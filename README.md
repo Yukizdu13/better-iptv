@@ -54,6 +54,8 @@ Better IPTV is a cross-platform desktop application that delivers the ultimate I
 
 ## 📥 Installation
 
+> **⚠️ Known Issue (Linux/Wayland):** Versions 2.0.0-2.0.1 may encounter `EGL_BAD_PARAMETER` error on newer systems running Wayland (especially Hyprland). This is a WebKit2GTK compatibility issue that has been fixed in the build pipeline. **Workaround:** Build locally (`npm run tauri build`) or wait for the next release (2.0.2+) which includes the fix.
+
 ### System Requirements
 
 #### **MPV (Media Player)**

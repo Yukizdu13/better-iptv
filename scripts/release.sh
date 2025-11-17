@@ -144,12 +144,24 @@ echo ""
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "📤 Pushing to GitHub..."
-    git push && git push --tags
+
+    # Check if upstream is set, if not set it
+    if ! git rev-parse --abbrev-ref --symbolic-full-name @{u} > /dev/null 2>&1; then
+        current_branch=$(git rev-parse --abbrev-ref HEAD)
+        echo "Setting upstream for branch $current_branch..."
+        git push --set-upstream origin "$current_branch"
+    else
+        git push
+    fi
+
+    # Push tags
+    git push --tags
+
     echo ""
     echo "🎉 Done! Check GitHub Actions for build progress:"
     echo "   https://github.com/$(git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')/actions"
 else
-    echo "👍 You can push later with: git push && git push --tags"
+    echo "👍 You can push later with: git push --set-upstream origin main && git push --tags"
 fi
 
 echo ""

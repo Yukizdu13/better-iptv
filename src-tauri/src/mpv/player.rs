@@ -32,9 +32,7 @@ impl MpvPlayer {
 
         // Build MPV command
         let mut cmd = Command::new("mpv");
-        cmd.arg("--no-resume-playback")
-            .arg("--save-position-on-quit")
-            .arg("--hwdec=auto")
+        cmd.arg("--hwdec=auto")
             .arg("--vo=gpu-next")
             .arg("--profile=high-quality")
             .arg("--msg-level=all=error")
@@ -78,9 +76,7 @@ impl MpvPlayer {
 
         // Build MPV command
         let mut cmd = Command::new("mpv");
-        cmd.arg("--no-resume-playback")
-            .arg("--save-position-on-quit")
-            .arg("--hwdec=auto")
+        cmd.arg("--hwdec=auto")
             .arg("--vo=gpu-next")
             .arg("--profile=high-quality")
             .arg("--msg-level=all=error")

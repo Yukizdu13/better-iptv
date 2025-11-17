@@ -166,21 +166,6 @@ export default function Settings({ onClose }: SettingsProps) {
                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Remember Position
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Resume playback from last position
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                />
-              </div>
             </div>
           </div>
         </div>

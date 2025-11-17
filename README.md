@@ -83,7 +83,7 @@ brew install mpv
 #### **Better IPTV App**
 
 **Pre-built packages:**
-1. Go to [Releases](https://github.com/yourusername/better-ip-tv/releases)
+1. Go to [Releases](https://github.com/mewset/better-ip-tv/releases)
 2. Download the appropriate package for your system:
    - **Linux**: `.AppImage`, `.deb`, or `.rpm`
    - **Windows**: `.msi` or `.exe`
@@ -98,7 +98,7 @@ chmod +x Better-IPTV.AppImage
 **Build from source:**
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/better-ip-tv.git
+git clone https://github.com/mewset/better-ip-tv.git
 cd better-ip-tv
 
 # Install dependencies
@@ -263,14 +263,14 @@ mpv --version
 Better IPTV is open source and we welcome contributions!
 
 ### Report Bugs
-Found a bug? [Create an issue](https://github.com/yourusername/better-ip-tv/issues) with:
+Found a bug? [Create an issue](https://github.com/mewset/better-ip-tv/issues) with:
 - Detailed description of the problem
 - Steps to reproduce the bug
 - Your operating system and version
 - Screenshots if possible
 
 ### Suggest Features
-Have an idea? [Open a feature request](https://github.com/yourusername/better-ip-tv/issues) and describe:
+Have an idea? [Open a feature request](https://github.com/mewset/better-ip-tv/issues) and describe:
 - What feature you want
 - Why it would be useful
 - How you envision it working
@@ -281,7 +281,7 @@ Have an idea? [Open a feature request](https://github.com/yourusername/better-ip
 1. **Fork the repository**
    ```bash
    # Click "Fork" on GitHub
-   git clone https://github.com/YOUR-USERNAME/better-ip-tv.git
+   git clone https://github.com/mewset/better-ip-tv.git
    cd better-ip-tv
    ```
 
@@ -345,9 +345,6 @@ cargo test
    - May request changes or improvements
    - When approved, your PR will be merged
 
-### Development Documentation
-For technical documentation about architecture, APIs, and code structure, see [CLAUDE.md](./CLAUDE.md).
-
 ### Community Guidelines
 - Be respectful and inclusive
 - Give constructive feedback
@@ -380,8 +377,8 @@ See [LICENSE](./LICENSE) for full license text.
 
 ## 📞 Contact & Support
 
-- **GitHub Issues**: [Report bugs or suggest features](https://github.com/yourusername/better-ip-tv/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/better-ip-tv/discussions)
+- **GitHub Issues**: [Report bugs or suggest features](https://github.com/mewset/better-ip-tv/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/mewset/better-ip-tv/discussions)
 - **Email**: support@better-iptv.com
 
 ---

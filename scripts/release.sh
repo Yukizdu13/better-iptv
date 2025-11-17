@@ -39,11 +39,16 @@ current_version=$(node -p "require('./package.json').version")
 echo "📦 Current version: $current_version"
 echo ""
 
+# Calculate preview versions
+patch_preview=$(node -p "const v=require('./package.json').version.split('.').map(Number);v[2]++;v.join('.')")
+minor_preview=$(node -p "const v=require('./package.json').version.split('.').map(Number);v[1]++;v[2]=0;v.join('.')")
+major_preview=$(node -p "const v=require('./package.json').version.split('.').map(Number);v[0]++;v[1]=0;v[2]=0;v.join('.')")
+
 # Ask for version bump type
 echo "Select version bump type:"
-echo "  1) PATCH (bug fixes)        - $current_version → $(npm version patch --no-git-tag-version --dry-run 2>/dev/null | tail -1)"
-echo "  2) MINOR (new features)     - $current_version → $(npm version minor --no-git-tag-version --dry-run 2>/dev/null | tail -1)"
-echo "  3) MAJOR (breaking changes) - $current_version → $(npm version major --no-git-tag-version --dry-run 2>/dev/null | tail -1)"
+echo "  1) PATCH (bug fixes)        - $current_version → $patch_preview"
+echo "  2) MINOR (new features)     - $current_version → $minor_preview"
+echo "  3) MAJOR (breaking changes) - $current_version → $major_preview"
 echo "  4) CUSTOM (specify version)"
 echo ""
 read -p "Enter choice (1-4): " choice

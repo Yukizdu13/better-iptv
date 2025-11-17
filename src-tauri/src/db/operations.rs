@@ -5,16 +5,23 @@ use super::models::*;
 
 pub fn create_playlist(conn: &Connection, playlist: &Playlist) -> Result<i64> {
     conn.execute(
-        "INSERT INTO playlists (name, url, file_path, auto_refresh)
-         VALUES (?1, ?2, ?3, ?4)",
-        params![playlist.name, playlist.url, playlist.file_path, playlist.auto_refresh],
+        "INSERT INTO playlists (name, url, file_path, auto_refresh, xtream_username, xtream_password)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![
+            playlist.name,
+            playlist.url,
+            playlist.file_path,
+            playlist.auto_refresh,
+            playlist.xtream_username,
+            playlist.xtream_password
+        ],
     )?;
     Ok(conn.last_insert_rowid())
 }
 
 pub fn get_playlists(conn: &Connection) -> Result<Vec<Playlist>> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, url, file_path, last_updated, auto_refresh, created_at
+        "SELECT id, name, url, file_path, last_updated, auto_refresh, xtream_username, xtream_password, created_at
          FROM playlists
          ORDER BY created_at DESC"
     )?;
@@ -27,7 +34,9 @@ pub fn get_playlists(conn: &Connection) -> Result<Vec<Playlist>> {
             file_path: row.get(3)?,
             last_updated: row.get(4)?,
             auto_refresh: row.get(5)?,
-            created_at: row.get(6)?,
+            xtream_username: row.get(6)?,
+            xtream_password: row.get(7)?,
+            created_at: row.get(8)?,
         })
     })?
     .collect::<Result<Vec<_>>>()?;
@@ -59,6 +68,31 @@ pub fn create_channel(conn: &Connection, channel: &Channel) -> Result<i64> {
         ],
     )?;
     Ok(conn.last_insert_rowid())
+}
+
+pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<()> {
+    let tx = conn.unchecked_transaction()?;
+
+    for channel in channels {
+        tx.execute(
+            "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                channel.playlist_id,
+                channel.name,
+                channel.url,
+                channel.logo,
+                channel.group_name,
+                channel.epg_id,
+                channel.tvg_name,
+                channel.content_type,
+                channel.sort_order
+            ],
+        )?;
+    }
+
+    tx.commit()?;
+    Ok(())
 }
 
 pub fn get_channels(conn: &Connection, playlist_id: Option<i64>) -> Result<Vec<Channel>> {
@@ -186,4 +220,56 @@ pub fn set_setting(conn: &Connection, key: &str, value: &str) -> Result<()> {
         params![key, value],
     )?;
     Ok(())
+}
+
+// ========== EPG Operations ==========
+
+/// Update EPG IDs for all Swedish channels based on their names
+pub fn update_channel_epg_ids(conn: &Connection) -> Result<usize> {
+    // Get all live channels without EPG IDs
+    let mut stmt = conn.prepare(
+        "SELECT id, name FROM channels WHERE content_type = 'live' AND epg_id IS NULL"
+    )?;
+
+    let channels: Vec<(i64, String)> = stmt
+        .query_map([], |row| {
+            Ok((row.get(0)?, row.get(1)?))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut updated_count = 0;
+
+    for (id, name) in channels {
+        if let Some(epg_id) = generate_epg_id_from_name(&name) {
+            conn.execute(
+                "UPDATE channels SET epg_id = ?1 WHERE id = ?2",
+                params![epg_id, id],
+            )?;
+            updated_count += 1;
+        }
+    }
+
+    Ok(updated_count)
+}
+
+/// Generate EPG ID from channel name (e.g., "SVT1 HD SE" -> "SVT1 HD.se")
+fn generate_epg_id_from_name(channel_name: &str) -> Option<String> {
+    // Remove quality suffixes and convert to EPG format
+    let clean_name = channel_name
+        .trim_end_matches(" SE")
+        .trim_end_matches(" FHD")
+        .trim_end_matches(" HD")
+        .trim_end_matches(" SD")
+        .trim();
+
+    // Only generate EPG ID if the name ends with "SE" (Swedish channels)
+    if channel_name.ends_with(" SE")
+        || channel_name.ends_with(" FHD SE")
+        || channel_name.ends_with(" HD SE")
+        || channel_name.ends_with(" SD SE")
+    {
+        Some(format!("{}.se", clean_name))
+    } else {
+        None
+    }
 }

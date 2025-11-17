@@ -29,4 +29,6 @@ chrono = { version = "0.4", features = ["serde"] }
 # m3u_parser = "0.1"  # Using simple custom parser instead
 anyhow = "1.0"
 thiserror = "2.0"
+quick-xml = { version = "0.37", features = ["serialize"] }
+flate2 = "1.0"
 

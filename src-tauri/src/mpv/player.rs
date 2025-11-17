@@ -20,21 +20,95 @@ impl MpvPlayer {
             .is_ok()
     }
 
-    /// Play a stream URL
+    /// Play a stream URL with optional title
     pub fn play(&mut self, url: &str) -> Result<()> {
+        self.play_with_title(url, None)
+    }
+
+    /// Play a stream URL with a specific title
+    pub fn play_with_title(&mut self, url: &str, title: Option<&str>) -> Result<()> {
         // Stop any existing playback
         self.stop()?;
 
-        // Spawn MPV process
-        let child = Command::new("mpv")
-            .arg("--keep-open")
-            .arg("--force-window=yes")
+        // Build MPV command
+        let mut cmd = Command::new("mpv");
+        cmd.arg("--no-resume-playback")
+            .arg("--save-position-on-quit")
+            .arg("--hwdec=auto")
+            .arg("--vo=gpu-next")
+            .arg("--profile=high-quality")
+            .arg("--msg-level=all=error")
             .arg("--cache=yes")
             .arg("--cache-secs=30")
-            .arg("--demuxer-max-bytes=100M")
+            .arg("--demuxer-max-bytes=100M");
+
+        // Add title if provided
+        if let Some(title_str) = title {
+            cmd.arg(format!("--title={}", title_str));
+        }
+
+        // Add URL
+        cmd.arg(url);
+
+        // Log the command
+        println!("=== MPV Command ===");
+        println!("mpv");
+        for arg in cmd.get_args() {
+            println!("  {}", arg.to_string_lossy());
+        }
+        println!("==================");
+
+        // Spawn MPV process
+        let child = cmd
+            .spawn()
+            .context("Failed to spawn MPV process. Is MPV installed?")?;
+
+        self.process = Some(child);
+        Ok(())
+    }
+
+    /// Play a playlist of URLs (for series episodes)
+    pub fn play_with_playlist(&mut self, urls: &[String], title: Option<&str>) -> Result<()> {
+        // Stop any existing playback
+        self.stop()?;
+
+        if urls.is_empty() {
+            return Err(anyhow::anyhow!("Cannot play empty playlist"));
+        }
+
+        // Build MPV command
+        let mut cmd = Command::new("mpv");
+        cmd.arg("--no-resume-playback")
+            .arg("--save-position-on-quit")
             .arg("--hwdec=auto")
-            .arg("--vo=gpu")
-            .arg(url)
+            .arg("--vo=gpu-next")
+            .arg("--profile=high-quality")
+            .arg("--msg-level=all=error")
+            .arg("--cache=yes")
+            .arg("--cache-secs=30")
+            .arg("--demuxer-max-bytes=100M");
+
+        // Add title if provided (will show for first episode)
+        if let Some(title_str) = title {
+            cmd.arg(format!("--title={}", title_str));
+        }
+
+        // Add all URLs as arguments (MPV will play them in sequence)
+        for url in urls {
+            cmd.arg(url);
+        }
+
+        // Log the command
+        println!("=== MPV Playlist Command ===");
+        println!("mpv");
+        for arg in cmd.get_args() {
+            println!("  {}", arg.to_string_lossy());
+        }
+        println!("Total episodes in playlist: {}", urls.len());
+        println!("============================");
+
+        // Spawn MPV process
+        let child = cmd
             .spawn()
             .context("Failed to spawn MPV process. Is MPV installed?")?;
 

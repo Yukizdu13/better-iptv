@@ -11,6 +11,8 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
             file_path TEXT,
             last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             auto_refresh BOOLEAN DEFAULT 0,
+            xtream_username TEXT,
+            xtream_password TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )",
         [],

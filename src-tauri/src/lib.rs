@@ -37,6 +37,16 @@ pub fn run() {
             init_schema(&conn)
                 .expect("Failed to initialize database schema");
 
+            // Update EPG IDs for existing channels (for migration)
+            match db::operations::update_channel_epg_ids(&conn) {
+                Ok(count) => {
+                    if count > 0 {
+                        println!("Updated EPG IDs for {} channels", count);
+                    }
+                }
+                Err(e) => eprintln!("Warning: Failed to update EPG IDs: {}", e),
+            }
+
             // Create and manage app state
             let state = AppState::new(conn);
             app.manage(state);
@@ -51,6 +61,7 @@ pub fn run() {
             is_playing,
             // Playlist commands
             import_playlist,
+            import_xtream_playlist,
             get_playlists,
             delete_playlist,
             // Channel commands
@@ -58,9 +69,15 @@ pub fn run() {
             search_channels,
             toggle_favorite,
             get_favorites,
+            // Series commands
+            get_series_info,
+            play_episode_with_season,
             // Settings commands
             get_setting,
             set_setting,
+            // EPG commands
+            fetch_epg_data,
+            get_channel_epg,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,5 +1,5 @@
 {
-  "name": "--name",
+  "name": "better-ip-tv",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -7,10 +7,16 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "release": "bash scripts/release.sh",
+    "version:sync": "node scripts/sync-version.cjs",
+    "version:patch": "npm version patch && npm run version:sync",
+    "version:minor": "npm version minor && npm run version:sync",
+    "version:major": "npm version major && npm run version:sync"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.9",
+    "@tanstack/react-virtual": "^3.13.12",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "lucide-react": "^0.553.0",

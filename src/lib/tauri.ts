@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Channel, Playlist } from '../types';
+import type { Channel, Playlist, SeriesInfo } from '../types';
 
 // ========== MPV Commands ==========
 
@@ -23,6 +23,20 @@ export async function isPlaying(): Promise<boolean> {
 
 export async function importPlaylist(name: string, source: string): Promise<Playlist> {
   return await invoke('import_playlist', { name, source });
+}
+
+export async function importXtreamPlaylist(
+  name: string,
+  serverUrl: string,
+  username: string,
+  password: string
+): Promise<Playlist> {
+  return await invoke('import_xtream_playlist', {
+    name,
+    serverUrl,
+    username,
+    password
+  });
 }
 
 export async function getPlaylists(): Promise<Playlist[]> {
@@ -51,6 +65,42 @@ export async function getFavorites(): Promise<Channel[]> {
   return await invoke('get_favorites');
 }
 
+// ========== Series Commands ==========
+
+export interface PlaylistEpisode {
+  id: string;
+  title: string;
+  extension: string;
+}
+
+export async function getSeriesInfo(
+  serverUrl: string,
+  username: string,
+  password: string,
+  seriesId: number
+): Promise<SeriesInfo> {
+  return await invoke('get_series_info', {
+    serverUrl,
+    username,
+    password,
+    seriesId
+  });
+}
+
+export async function playEpisodeWithSeason(
+  serverUrl: string,
+  username: string,
+  password: string,
+  episodes: PlaylistEpisode[]
+): Promise<void> {
+  return await invoke('play_episode_with_season', {
+    serverUrl,
+    username,
+    password,
+    episodes
+  });
+}
+
 // ========== Settings Commands ==========
 
 export async function getSetting(key: string): Promise<string | null> {
@@ -59,4 +109,14 @@ export async function getSetting(key: string): Promise<string | null> {
 
 export async function setSetting(key: string, value: string): Promise<void> {
   await invoke('set_setting', { key, value });
+}
+
+// ========== EPG Commands ==========
+
+export async function fetchEpgData(epgUrl: string): Promise<number> {
+  return await invoke('fetch_epg_data', { epgUrl });
+}
+
+export async function getChannelEpg(channelEpgId: string): Promise<[string | null, string | null]> {
+  return await invoke('get_channel_epg', { channelEpgId });
 }

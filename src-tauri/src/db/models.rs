@@ -8,6 +8,8 @@ pub struct Playlist {
     pub file_path: Option<String>,
     pub last_updated: Option<String>,
     pub auto_refresh: bool,
+    pub xtream_username: Option<String>,
+    pub xtream_password: Option<String>,
     pub created_at: Option<String>,
 }
 

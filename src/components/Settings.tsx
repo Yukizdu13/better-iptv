@@ -225,7 +225,7 @@ export default function Settings({ onClose }: SettingsProps) {
                 <select
                   value={audioLang}
                   onChange={(e) => setAudioLang(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
                 >
                   {LANGUAGE_OPTIONS.map((lang) => (
                     <option key={lang.code} value={lang.code}>
@@ -245,7 +245,7 @@ export default function Settings({ onClose }: SettingsProps) {
                 <select
                   value={subtitleLang}
                   onChange={(e) => setSubtitleLang(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
                 >
                   {LANGUAGE_OPTIONS.map((lang) => (
                     <option key={lang.code} value={lang.code}>

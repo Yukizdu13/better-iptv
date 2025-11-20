@@ -34,10 +34,10 @@ pub async fn play_channel(
     // Retrieve language settings from database
     let (audio_lang, subtitle_lang) = {
         let db = state.db.lock().await;
-        let audio = get_setting(&db, "audio_language")
+        let audio = crate::db::operations::get_setting(&db, "audio_language")
             .map_err(|e| format!("Failed to get audio language setting: {}", e))?
             .filter(|s| !s.is_empty());
-        let subtitle = get_setting(&db, "subtitle_language")
+        let subtitle = crate::db::operations::get_setting(&db, "subtitle_language")
             .map_err(|e| format!("Failed to get subtitle language setting: {}", e))?
             .filter(|s| !s.is_empty());
         (audio, subtitle)
@@ -343,10 +343,10 @@ pub async fn play_episode_with_season(
     // Retrieve language settings from database
     let (audio_lang, subtitle_lang) = {
         let db = state.db.lock().await;
-        let audio = get_setting(&db, "audio_language")
+        let audio = crate::db::operations::get_setting(&db, "audio_language")
             .map_err(|e| format!("Failed to get audio language setting: {}", e))?
             .filter(|s| !s.is_empty());
-        let subtitle = get_setting(&db, "subtitle_language")
+        let subtitle = crate::db::operations::get_setting(&db, "subtitle_language")
             .map_err(|e| format!("Failed to get subtitle language setting: {}", e))?
             .filter(|s| !s.is_empty());
         (audio, subtitle)

@@ -22,11 +22,17 @@ impl MpvPlayer {
 
     /// Play a stream URL with optional title
     pub fn play(&mut self, url: &str) -> Result<()> {
-        self.play_with_title(url, None)
+        self.play_with_title(url, None, None, None)
     }
 
-    /// Play a stream URL with a specific title
-    pub fn play_with_title(&mut self, url: &str, title: Option<&str>) -> Result<()> {
+    /// Play a stream URL with a specific title and language preferences
+    pub fn play_with_title(
+        &mut self,
+        url: &str,
+        title: Option<&str>,
+        audio_lang: Option<&str>,
+        subtitle_lang: Option<&str>,
+    ) -> Result<()> {
         // Stop any existing playback
         self.stop()?;
 
@@ -43,6 +49,20 @@ impl MpvPlayer {
         // Add title if provided
         if let Some(title_str) = title {
             cmd.arg(format!("--title={}", title_str));
+        }
+
+        // Add audio language preference if provided
+        if let Some(lang) = audio_lang {
+            if !lang.is_empty() {
+                cmd.arg(format!("--alang={}", lang));
+            }
+        }
+
+        // Add subtitle language preference if provided
+        if let Some(lang) = subtitle_lang {
+            if !lang.is_empty() {
+                cmd.arg(format!("--slang={}", lang));
+            }
         }
 
         // Add URL
@@ -66,7 +86,13 @@ impl MpvPlayer {
     }
 
     /// Play a playlist of URLs (for series episodes)
-    pub fn play_with_playlist(&mut self, urls: &[String], title: Option<&str>) -> Result<()> {
+    pub fn play_with_playlist(
+        &mut self,
+        urls: &[String],
+        title: Option<&str>,
+        audio_lang: Option<&str>,
+        subtitle_lang: Option<&str>,
+    ) -> Result<()> {
         // Stop any existing playback
         self.stop()?;
 
@@ -87,6 +113,20 @@ impl MpvPlayer {
         // Add title if provided (will show for first episode)
         if let Some(title_str) = title {
             cmd.arg(format!("--title={}", title_str));
+        }
+
+        // Add audio language preference if provided
+        if let Some(lang) = audio_lang {
+            if !lang.is_empty() {
+                cmd.arg(format!("--alang={}", lang));
+            }
+        }
+
+        // Add subtitle language preference if provided
+        if let Some(lang) = subtitle_lang {
+            if !lang.is_empty() {
+                cmd.arg(format!("--slang={}", lang));
+            }
         }
 
         // Add all URLs as arguments (MPV will play them in sequence)

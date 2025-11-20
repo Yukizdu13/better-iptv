@@ -7,10 +7,35 @@ interface SettingsProps {
   onClose: () => void;
 }
 
+// Language options with ISO codes for MPV
+const LANGUAGE_OPTIONS = [
+  { code: 'none', name: 'None (Original)', iso: '' },
+  { code: 'sv', name: 'Svenska (Swedish)', iso: 'sv,swe,se' },
+  { code: 'en', name: 'English', iso: 'en,eng' },
+  { code: 'no', name: 'Norsk (Norwegian)', iso: 'no,nor,nb,nn' },
+  { code: 'da', name: 'Dansk (Danish)', iso: 'da,dan' },
+  { code: 'fi', name: 'Suomi (Finnish)', iso: 'fi,fin' },
+  { code: 'de', name: 'Deutsch (German)', iso: 'de,deu,ger' },
+  { code: 'fr', name: 'Français (French)', iso: 'fr,fra,fre' },
+  { code: 'es', name: 'Español (Spanish)', iso: 'es,spa' },
+  { code: 'it', name: 'Italiano (Italian)', iso: 'it,ita' },
+  { code: 'pt', name: 'Português (Portuguese)', iso: 'pt,por' },
+  { code: 'nl', name: 'Nederlands (Dutch)', iso: 'nl,nld,dut' },
+  { code: 'pl', name: 'Polski (Polish)', iso: 'pl,pol' },
+  { code: 'ru', name: 'Русский (Russian)', iso: 'ru,rus' },
+  { code: 'ar', name: 'العربية (Arabic)', iso: 'ar,ara' },
+  { code: 'tr', name: 'Türkçe (Turkish)', iso: 'tr,tur' },
+  { code: 'ja', name: '日本語 (Japanese)', iso: 'ja,jpn' },
+  { code: 'zh', name: '中文 (Chinese)', iso: 'zh,chi,zho' },
+  { code: 'ko', name: '한국어 (Korean)', iso: 'ko,kor' },
+];
+
 export default function Settings({ onClose }: SettingsProps) {
   const { triggerEpgRefresh } = usePlayerStore();
   const [epgUrl, setEpgUrl] = useState('https://iptv-epg.org/files/epg-se.xml.gz');
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
+  const [audioLang, setAudioLang] = useState('none');
+  const [subtitleLang, setSubtitleLang] = useState('none');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -20,9 +45,21 @@ export default function Settings({ onClose }: SettingsProps) {
       try {
         const savedEpgUrl = await getSetting('epg_url');
         const savedTheme = await getSetting('theme');
+        const savedAudioIso = await getSetting('audio_language');
+        const savedSubtitleIso = await getSetting('subtitle_language');
 
         if (savedEpgUrl) setEpgUrl(savedEpgUrl);
         if (savedTheme) setTheme(savedTheme as 'light' | 'dark' | 'system');
+
+        // Convert ISO codes back to language codes for UI
+        if (savedAudioIso) {
+          const audioLang = LANGUAGE_OPTIONS.find(l => l.iso === savedAudioIso);
+          if (audioLang) setAudioLang(audioLang.code);
+        }
+        if (savedSubtitleIso) {
+          const subtitleLang = LANGUAGE_OPTIONS.find(l => l.iso === savedSubtitleIso);
+          if (subtitleLang) setSubtitleLang(subtitleLang.code);
+        }
       } catch (err) {
         console.error('Failed to load settings:', err);
       } finally {
@@ -38,6 +75,12 @@ export default function Settings({ onClose }: SettingsProps) {
       setIsSaving(true);
       await setSetting('epg_url', epgUrl);
       await setSetting('theme', theme);
+
+      // Save language settings (store ISO codes for MPV)
+      const audioIso = LANGUAGE_OPTIONS.find(l => l.code === audioLang)?.iso || '';
+      const subtitleIso = LANGUAGE_OPTIONS.find(l => l.code === subtitleLang)?.iso || '';
+      await setSetting('audio_language', audioIso);
+      await setSetting('subtitle_language', subtitleIso);
 
       // Fetch EPG data if URL is provided
       if (epgUrl.trim()) {
@@ -165,6 +208,54 @@ export default function Settings({ onClose }: SettingsProps) {
                   defaultChecked
                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Language Settings */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Language Settings
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Default Audio Language
+                </label>
+                <select
+                  value={audioLang}
+                  onChange={(e) => setAudioLang(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Preferred audio track language (if available in stream)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Default Subtitles Language
+                </label>
+                <select
+                  value={subtitleLang}
+                  onChange={(e) => setSubtitleLang(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Preferred subtitle language (if available in stream)
+                </p>
               </div>
             </div>
           </div>

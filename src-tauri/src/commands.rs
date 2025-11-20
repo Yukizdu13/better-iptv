@@ -31,10 +31,27 @@ pub async fn play_channel(
         *current = Some(channel.clone());
     }
 
-    // Play the stream with title
+    // Retrieve language settings from database
+    let (audio_lang, subtitle_lang) = {
+        let db = state.db.lock().await;
+        let audio = get_setting(&db, "audio_language")
+            .map_err(|e| format!("Failed to get audio language setting: {}", e))?
+            .filter(|s| !s.is_empty());
+        let subtitle = get_setting(&db, "subtitle_language")
+            .map_err(|e| format!("Failed to get subtitle language setting: {}", e))?
+            .filter(|s| !s.is_empty());
+        (audio, subtitle)
+    };
+
+    // Play the stream with title and language preferences
     let mut player = state.mpv_player.lock().await;
     player
-        .play_with_title(&channel.url, Some(&channel.name))
+        .play_with_title(
+            &channel.url,
+            Some(&channel.name),
+            audio_lang.as_deref(),
+            subtitle_lang.as_deref(),
+        )
         .map_err(|e| format!("Failed to play channel: {}", e))?;
 
     Ok(())
@@ -323,10 +340,27 @@ pub async fn play_episode_with_season(
         });
     }
 
-    // Play playlist
+    // Retrieve language settings from database
+    let (audio_lang, subtitle_lang) = {
+        let db = state.db.lock().await;
+        let audio = get_setting(&db, "audio_language")
+            .map_err(|e| format!("Failed to get audio language setting: {}", e))?
+            .filter(|s| !s.is_empty());
+        let subtitle = get_setting(&db, "subtitle_language")
+            .map_err(|e| format!("Failed to get subtitle language setting: {}", e))?
+            .filter(|s| !s.is_empty());
+        (audio, subtitle)
+    };
+
+    // Play playlist with language preferences
     let mut player = state.mpv_player.lock().await;
     player
-        .play_with_playlist(&urls, Some(first_title))
+        .play_with_playlist(
+            &urls,
+            Some(first_title),
+            audio_lang.as_deref(),
+            subtitle_lang.as_deref(),
+        )
         .map_err(|e| format!("Failed to play episode playlist: {}", e))?;
 
     Ok(())

@@ -12,9 +12,10 @@ This directory contains the PKGBUILD for publishing Better IPTV on the Arch User
 
 ### First-time Setup
 
-1. **Create AUR account** at https://aur.archlinux.org/register
+1. **Create AUR account** at <https://aur.archlinux.org/register>
 
 2. **Add SSH key** to your AUR account:
+
    ```bash
    ssh-keygen -t ed25519 -C "your_email@example.com"
    cat ~/.ssh/id_ed25519.pub
@@ -22,23 +23,27 @@ This directory contains the PKGBUILD for publishing Better IPTV on the Arch User
    ```
 
 3. **Clone AUR repository**:
+
    ```bash
    git clone ssh://aur@aur.archlinux.org/better-iptv-bin.git aur-repo
    ```
 
 4. **Copy PKGBUILD files**:
+
    ```bash
    cp aur/PKGBUILD aur-repo/
    cp aur/.SRCINFO aur-repo/
    ```
 
 5. **Update maintainer info** in `PKGBUILD`:
+
    ```bash
    # Change this line:
    # Maintainer: Your Name <your.email@example.com>
    ```
 
 6. **Update checksum**:
+
    ```bash
    cd aur-repo
    # Download the AppImage to calculate checksum
@@ -51,17 +56,20 @@ This directory contains the PKGBUILD for publishing Better IPTV on the Arch User
    ```
 
 7. **Generate .SRCINFO**:
+
    ```bash
    makepkg --printsrcinfo > .SRCINFO
    ```
 
 8. **Test build locally**:
+
    ```bash
    makepkg -si
    # This builds and installs the package
    ```
 
 9. **Commit and push to AUR**:
+
    ```bash
    git add PKGBUILD .SRCINFO
    git commit -m "Initial release: v2.0.0"
@@ -73,6 +81,7 @@ This directory contains the PKGBUILD for publishing Better IPTV on the Arch User
 When you release a new version:
 
 1. **Update version in PKGBUILD**:
+
    ```bash
    pkgver=2.1.0  # New version
    pkgrel=1      # Reset to 1 for new version
@@ -81,6 +90,7 @@ When you release a new version:
 2. **Update source URL** to point to new release
 
 3. **Update checksum**:
+
    ```bash
    wget https://github.com/mewset/better-iptv/releases/download/v2.1.0/better-iptv_2.1.0_amd64.AppImage
    sha256sum better-iptv_2.1.0_amd64.AppImage
@@ -88,16 +98,19 @@ When you release a new version:
    ```
 
 4. **Regenerate .SRCINFO**:
+
    ```bash
    makepkg --printsrcinfo > .SRCINFO
    ```
 
 5. **Test build**:
+
    ```bash
    makepkg -si
    ```
 
 6. **Commit and push**:
+
    ```bash
    git add PKGBUILD .SRCINFO
    git commit -m "Update to v2.1.0"
@@ -141,7 +154,7 @@ You can create additional package variants:
 - **`better-iptv`**: Builds from source (requires Rust, Node.js)
 - **`better-iptv-git`**: Builds latest git commit
 
-See AUR packaging guidelines: https://wiki.archlinux.org/title/AUR_submission_guidelines
+See AUR packaging guidelines: <https://wiki.archlinux.org/title/AUR_submission_guidelines>
 
 ## Testing
 
@@ -164,20 +177,26 @@ sudo pacman -R better-iptv-bin
 ## Troubleshooting
 
 ### AppImage extraction fails
+
 If the AppImage extraction fails, you may need to install `fuse2`:
+
 ```bash
 sudo pacman -S fuse2
 ```
 
 ### Wrong checksum
+
 Always regenerate checksums after updating the version:
+
 ```bash
 updpkgsums  # Updates checksums in PKGBUILD
 makepkg --printsrcinfo > .SRCINFO
 ```
 
 ### Build fails
+
 Check that all dependencies are correctly listed:
+
 - Runtime deps: `depends=()`
 - Build deps: `makedepends=()`
 

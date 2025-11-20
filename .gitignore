@@ -27,3 +27,8 @@ dist-ssr
 CLAUDE.md
 .claude/
 *.claude
+
+## MISC
+VERSION.md
+scripts/*
+RELEASE_GUIDE.md

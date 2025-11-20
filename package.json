@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "release": "bash scripts/release.sh",
+    "aur:update": "bash scripts/update-aur.sh",
     "version:sync": "node scripts/sync-version.cjs",
     "version:patch": "npm version patch && npm run version:sync",
     "version:minor": "npm version minor && npm run version:sync",

@@ -90,8 +90,23 @@ new_version=$(node -p "require('./package.json').version")
 echo "✅ Version updated to: $new_version"
 echo ""
 
+# Show commits since last release
+echo "📋 Changes since last release:"
+echo "================================"
+last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+if [ -z "$last_tag" ]; then
+    echo "   (First release - showing all commits)"
+    git log --oneline --no-decorate | head -20
+else
+    echo "   Since $last_tag:"
+    git log --oneline --no-decorate ${last_tag}..HEAD
+fi
+echo "================================"
+echo ""
+
 # Ask for release notes
 echo "📝 Release notes (what's new in this version?):"
+echo "   (Use the commits above as reference)"
 echo "   (Press Ctrl+D when done, or Ctrl+C to cancel)"
 release_notes=$(cat)
 

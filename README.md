@@ -311,6 +311,24 @@ Found a bug? [Create an issue](https://github.com/mewset/better-ip-tv/issues) wi
 - Steps to reproduce the bug
 - Your operating system and version
 - Screenshots if possible
+- **Log file** (helps diagnose issues):
+
+  **Linux:**
+  ```bash
+  ~/.local/share/better-ip-tv/logs/better-ip-tv.log
+  ```
+
+  **Windows:**
+  ```
+  %APPDATA%\com.m0s.better-ip-tv\logs\better-ip-tv.log
+  ```
+
+  **macOS:**
+  ```bash
+  ~/Library/Application Support/com.m0s.better-ip-tv/logs/better-ip-tv.log
+  ```
+
+  Attach the log file to your issue or paste relevant error lines.
 
 ### Suggest Features
 

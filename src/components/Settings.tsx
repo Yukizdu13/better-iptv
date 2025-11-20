@@ -33,6 +33,7 @@ const LANGUAGE_OPTIONS = [
 export default function Settings({ onClose }: SettingsProps) {
   const { triggerEpgRefresh } = usePlayerStore();
   const [epgUrl, setEpgUrl] = useState('https://iptv-epg.org/files/epg-se.xml.gz');
+  const [originalEpgUrl, setOriginalEpgUrl] = useState('https://iptv-epg.org/files/epg-se.xml.gz');
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
   const [audioLang, setAudioLang] = useState('none');
   const [subtitleLang, setSubtitleLang] = useState('none');
@@ -48,7 +49,10 @@ export default function Settings({ onClose }: SettingsProps) {
         const savedAudioIso = await getSetting('audio_language');
         const savedSubtitleIso = await getSetting('subtitle_language');
 
-        if (savedEpgUrl) setEpgUrl(savedEpgUrl);
+        if (savedEpgUrl) {
+          setEpgUrl(savedEpgUrl);
+          setOriginalEpgUrl(savedEpgUrl); // Remember original for comparison
+        }
         if (savedTheme) setTheme(savedTheme as 'light' | 'dark' | 'system');
 
         // Convert ISO codes back to language codes for UI
@@ -82,14 +86,19 @@ export default function Settings({ onClose }: SettingsProps) {
       await setSetting('audio_language', audioIso);
       await setSetting('subtitle_language', subtitleIso);
 
-      // Fetch EPG data if URL is provided
-      if (epgUrl.trim()) {
-        console.log('Fetching EPG from:', epgUrl);
+      // Only fetch EPG data if URL has actually changed
+      const epgUrlChanged = epgUrl.trim() !== originalEpgUrl.trim();
+      if (epgUrlChanged && epgUrl.trim()) {
+        console.log('EPG URL changed, fetching new data from:', epgUrl);
         const count = await fetchEpgData(epgUrl);
         console.log(`EPG fetched successfully: ${count} programs`);
 
         // Trigger refresh of EPG data in channel cards
         triggerEpgRefresh();
+      } else if (epgUrlChanged) {
+        console.log('EPG URL cleared, skipping fetch');
+      } else {
+        console.log('EPG URL unchanged, skipping fetch');
       }
 
       console.log('Settings saved successfully');

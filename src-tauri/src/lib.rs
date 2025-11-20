@@ -7,15 +7,35 @@ mod state;
 
 use commands::*;
 use db::schema::init_schema;
+use log::{info, warn};
 use rusqlite::Connection;
 use state::AppState;
-use std::path::PathBuf;
 use tauri::Manager;
+use tauri_plugin_log::{Target, TargetKind, RotationStrategy, TimezoneStrategy};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(if cfg!(debug_assertions) {
+                    log::LevelFilter::Debug
+                } else {
+                    log::LevelFilter::Info
+                })
+                .targets([
+                    Target::new(TargetKind::Stdout),
+                    Target::new(TargetKind::Webview),
+                    Target::new(TargetKind::LogDir {
+                        file_name: Some("better-ip-tv".to_string()),
+                    }),
+                ])
+                .max_file_size(10_000_000) // 10 MB
+                .rotation_strategy(RotationStrategy::KeepOne)
+                .timezone_strategy(TimezoneStrategy::UseLocal)
+                .build(),
+        )
         .setup(|app| {
             // Get app data directory
             let app_data_dir = app
@@ -41,10 +61,10 @@ pub fn run() {
             match db::operations::update_channel_epg_ids(&conn) {
                 Ok(count) => {
                     if count > 0 {
-                        println!("Updated EPG IDs for {} channels", count);
+                        info!("Updated EPG IDs for {} channels", count);
                     }
                 }
-                Err(e) => eprintln!("Warning: Failed to update EPG IDs: {}", e),
+                Err(e) => warn!("Failed to update EPG IDs: {}", e),
             }
 
             // Create and manage app state

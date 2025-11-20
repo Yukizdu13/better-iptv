@@ -1,5 +1,6 @@
 use std::process::{Child, Command};
 use anyhow::{Context, Result};
+use log::{debug, info};
 
 /// MPV player controller using external process approach
 pub struct MpvPlayer {
@@ -69,12 +70,8 @@ impl MpvPlayer {
         cmd.arg(url);
 
         // Log the command
-        println!("=== MPV Command ===");
-        println!("mpv");
-        for arg in cmd.get_args() {
-            println!("  {}", arg.to_string_lossy());
-        }
-        println!("==================");
+        let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().to_string()).collect();
+        debug!("MPV command: mpv {}", args.join(" "));
 
         // Spawn MPV process
         let child = cmd
@@ -135,13 +132,9 @@ impl MpvPlayer {
         }
 
         // Log the command
-        println!("=== MPV Playlist Command ===");
-        println!("mpv");
-        for arg in cmd.get_args() {
-            println!("  {}", arg.to_string_lossy());
-        }
-        println!("Total episodes in playlist: {}", urls.len());
-        println!("============================");
+        let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().to_string()).collect();
+        info!("MPV playlist command: {} episodes", urls.len());
+        debug!("MPV command: mpv {}", args.join(" "));
 
         // Spawn MPV process
         let child = cmd
@@ -196,6 +189,6 @@ mod tests {
     fn test_check_installed() {
         // This will pass if MPV is installed on the system
         let installed = MpvPlayer::check_installed();
-        println!("MPV installed: {}", installed);
+        debug!("MPV installed: {}", installed);
     }
 }

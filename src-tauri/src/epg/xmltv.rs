@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use flate2::read::GzDecoder;
+use log::{info, debug, warn};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use rusqlite::{Connection, OptionalExtension};
@@ -19,7 +20,7 @@ pub struct EpgProgram {
 
 /// Fetch and parse XMLTV EPG data from a URL (async part)
 pub async fn fetch_and_parse_epg(url: &str) -> Result<Vec<EpgProgram>> {
-    println!("Fetching EPG from: {}", url);
+    info!("Fetching EPG from: {}", url);
 
     // Download EPG file
     let response = reqwest::get(url)
@@ -38,14 +39,14 @@ pub async fn fetch_and_parse_epg(url: &str) -> Result<Vec<EpgProgram>> {
     // Parse XMLTV
     let programs = parse_xmltv(&xml_content)?;
 
-    println!("Parsed {} EPG programs", programs.len());
+    info!("Parsed {} EPG programs from XMLTV", programs.len());
     Ok(programs)
 }
 
 /// Store EPG programs in database (sync part)
 pub fn store_epg_programs(conn: &Connection, programs: &[EpgProgram]) -> Result<usize> {
     let count = store_programs(conn, programs)?;
-    println!("Stored {} EPG programs", count);
+    info!("Stored {} EPG programs in database", count);
     Ok(count)
 }
 
@@ -149,7 +150,7 @@ fn parse_xmltv(xml: &str) -> Result<Vec<EpgProgram>> {
             }
             Ok(Event::Eof) => break,
             Err(e) => {
-                eprintln!("XML parsing error: {}", e);
+                warn!("XML parsing error: {}", e);
                 break;
             }
             _ => {}

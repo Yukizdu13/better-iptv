@@ -2,6 +2,7 @@ use crate::db::{models::*, operations::*};
 use crate::mpv::player::MpvPlayer;
 use crate::playlist::{parse_m3u, fetch_xtream_channels_with_progress, fetch_series_info, XtreamCredentials, SeriesInfo, FetchProgress};
 use crate::state::AppState;
+use log::{info, debug, error};
 use serde::{Deserialize, Serialize};
 use tauri::{State, AppHandle, Emitter};
 
@@ -190,9 +191,7 @@ pub async fn import_xtream_playlist(
     username: String,
     password: String,
 ) -> Result<Playlist, String> {
-    println!("=== Xtream Import Started ===");
-    println!("Server: {}", server_url);
-    println!("Username: {}", username);
+    info!("Xtream import started: server={}, username={}", server_url, username);
 
     // Create credentials
     let creds = XtreamCredentials {
@@ -202,18 +201,18 @@ pub async fn import_xtream_playlist(
     };
 
     // Fetch channels from Xtream API with progress updates
-    println!("Fetching channels from Xtream API...");
+    debug!("Fetching channels from Xtream API: {}", server_url);
     let channels = fetch_xtream_channels_with_progress(&creds, |progress| {
         let _ = app.emit("import-progress", progress);
     })
         .await
         .map_err(|e| {
             let err_msg = format!("Failed to fetch Xtream channels: {}", e);
-            eprintln!("ERROR: {}", err_msg);
+            error!("{}", err_msg);
             err_msg
         })?;
 
-    println!("Fetched {} channels", channels.len());
+    info!("Fetched {} channels from Xtream API", channels.len());
 
     let db = state.db.lock().await;
 
@@ -233,11 +232,11 @@ pub async fn import_xtream_playlist(
     let playlist_id = create_playlist(&db, &playlist)
         .map_err(|e| {
             let err_msg = format!("Failed to create playlist: {}", e);
-            eprintln!("ERROR: {}", err_msg);
+            error!("{}", err_msg);
             err_msg
         })?;
 
-    println!("Created playlist with ID: {}", playlist_id);
+    debug!("Created playlist with ID: {}", playlist_id);
 
     // Set playlist_id for all channels
     let mut channels_with_playlist: Vec<Channel> = channels
@@ -251,19 +250,19 @@ pub async fn import_xtream_playlist(
     // Insert channels in batches for better performance
     const BATCH_SIZE: usize = 1000;
     let total_channels = channels_with_playlist.len();
-    println!("Inserting {} channels in batches of {}...", total_channels, BATCH_SIZE);
+    debug!("Inserting {} channels in batches of {}...", total_channels, BATCH_SIZE);
 
     for (batch_num, chunk) in channels_with_playlist.chunks(BATCH_SIZE).enumerate() {
         create_channels_batch(&db, chunk)
             .map_err(|e| {
                 let err_msg = format!("Failed to insert channel batch: {}", e);
-                eprintln!("ERROR: {}", err_msg);
+                error!("{}", err_msg);
                 err_msg
             })?;
-        println!("Inserted batch {}/{}", batch_num + 1, (total_channels + BATCH_SIZE - 1) / BATCH_SIZE);
+        debug!("Inserted batch {}/{}", batch_num + 1, (total_channels + BATCH_SIZE - 1) / BATCH_SIZE);
     }
 
-    println!("=== Xtream Import Completed ===");
+    info!("Xtream import completed: {} channels imported", total_channels);
 
     // Return playlist with ID
     let mut result = playlist;
@@ -401,7 +400,7 @@ pub async fn fetch_epg_data(state: State<'_, AppState>, epg_url: String) -> Resu
         .map_err(|e| format!("Failed to update channel EPG IDs: {}", e))?;
 
     if updated > 0 {
-        println!("Updated EPG IDs for {} channels", updated);
+        debug!("Updated EPG IDs for {} channels", updated);
     }
 
     let count = crate::epg::store_epg_programs(&db, &programs)

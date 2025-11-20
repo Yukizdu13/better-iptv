@@ -6,6 +6,7 @@ import { Search, Play, Square, Star, Tv, Film, Clapperboard, Settings as Setting
 import SeriesView from './SeriesView';
 import SettingsModal from './Settings';
 import type { Channel } from '../types';
+import { logger } from '../lib/logger';
 
 export default function MainScreen() {
   const {
@@ -84,7 +85,7 @@ export default function MainScreen() {
           setNextProgram(null);
         }
       } catch (err) {
-        console.error('Failed to check playback status:', err);
+        logger.error('Failed to check playback status:', err);
       }
     }, 1000); // Check every second
 
@@ -101,7 +102,7 @@ export default function MainScreen() {
         setCurrentProgram(current);
         setNextProgram(next);
       } catch (err) {
-        console.error('Failed to update EPG:', err);
+        logger.error('Failed to update EPG:', err);
       }
     }, 60000); // Update every minute
 
@@ -129,7 +130,7 @@ export default function MainScreen() {
               }
             } catch (err) {
               // Silently fail for individual channels
-              console.debug(`Failed to fetch EPG for ${channel.name}:`, err);
+              logger.debug(`Failed to fetch EPG for ${channel.name}:`, err);
             }
           })
         );
@@ -206,7 +207,7 @@ export default function MainScreen() {
             setCurrentProgram(current);
             setNextProgram(next);
           } catch (err) {
-            console.error('Failed to fetch EPG:', err);
+            logger.error('Failed to fetch EPG:', err);
             // Don't fail the whole playback if EPG fails
             setCurrentProgram(null);
             setNextProgram(null);
@@ -217,7 +218,7 @@ export default function MainScreen() {
         }
       }
     } catch (err) {
-      console.error('Failed to play channel:', err);
+      logger.error('Failed to play channel:', err);
     }
   };
 
@@ -228,7 +229,7 @@ export default function MainScreen() {
     remainingEpisodes?: Array<{ id: string; title: string; extension: string }>
   ) => {
     if (!currentPlaylist?.url || !currentPlaylist.xtream_username || !currentPlaylist.xtream_password) {
-      console.error('Missing Xtream credentials');
+      logger.error('Missing Xtream credentials');
       return;
     }
 
@@ -260,7 +261,7 @@ export default function MainScreen() {
         setIsPlaying(true);
       }
     } catch (err) {
-      console.error('Failed to play episode:', err);
+      logger.error('Failed to play episode:', err);
     }
   };
 

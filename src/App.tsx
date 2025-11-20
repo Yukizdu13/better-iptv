@@ -3,6 +3,7 @@ import Setup from './components/Setup';
 import MainScreen from './components/MainScreen';
 import { usePlayerStore } from './stores/player-store';
 import { getPlaylists, getChannels } from './lib/tauri';
+import { logger } from './lib/logger';
 
 export default function App() {
   const { isSetupComplete, setIsSetupComplete, setPlaylists, setChannels, setCurrentPlaylist } = usePlayerStore();
@@ -24,7 +25,7 @@ export default function App() {
           setIsSetupComplete(true);
         }
       } catch (err) {
-        console.error('Failed to check setup:', err);
+        logger.error('Failed to check setup:', err);
       } finally {
         setIsCheckingSetup(false);
       }

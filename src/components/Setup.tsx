@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { importPlaylist, importXtreamPlaylist, getChannels } from '../lib/tauri';
 import { usePlayerStore } from '../stores/player-store';
 import { listen } from '@tauri-apps/api/event';
+import { logger } from '../lib/logger';
 
 type ImportType = 'm3u' | 'xtream';
 
@@ -66,23 +67,23 @@ export default function Setup() {
       let playlist;
 
       if (importType === 'm3u') {
-        console.log('Importing M3U playlist...');
+        logger.info('Importing M3U playlist...');
         playlist = await importPlaylist(playlistName, playlistUrl);
       } else {
-        console.log('Importing Xtream playlist...', { serverUrl, username });
+        logger.info('Importing Xtream playlist...', { serverUrl, username });
         playlist = await importXtreamPlaylist(playlistName, serverUrl, username, password);
-        console.log('Xtream import result:', playlist);
+        logger.debug('Xtream import result:', playlist);
       }
 
-      console.log('Fetching channels for playlist:', playlist.id);
+      logger.debug('Fetching channels for playlist:', playlist.id);
       const channels = await getChannels(playlist.id);
-      console.log('Fetched channels:', channels.length);
+      logger.info('Fetched channels:', channels.length);
 
       setCurrentPlaylist(playlist);
       setChannels(channels);
       setIsSetupComplete(true);
     } catch (err) {
-      console.error('Import error:', err);
+      logger.error('Import error:', err);
       setError(err instanceof Error ? err.message : 'Failed to import playlist');
     } finally {
       setIsLoading(false);

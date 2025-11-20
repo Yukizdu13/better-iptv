@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { getSetting, setSetting, fetchEpgData } from '../lib/tauri';
 import { usePlayerStore } from '../stores/player-store';
+import { logger } from '../lib/logger';
 
 interface SettingsProps {
   onClose: () => void;
@@ -65,7 +66,7 @@ export default function Settings({ onClose }: SettingsProps) {
           if (subtitleLang) setSubtitleLang(subtitleLang.code);
         }
       } catch (err) {
-        console.error('Failed to load settings:', err);
+        logger.error('Failed to load settings:', err);
       } finally {
         setIsLoading(false);
       }
@@ -89,22 +90,22 @@ export default function Settings({ onClose }: SettingsProps) {
       // Only fetch EPG data if URL has actually changed
       const epgUrlChanged = epgUrl.trim() !== originalEpgUrl.trim();
       if (epgUrlChanged && epgUrl.trim()) {
-        console.log('EPG URL changed, fetching new data from:', epgUrl);
+        logger.info('EPG URL changed, fetching new data from:', epgUrl);
         const count = await fetchEpgData(epgUrl);
-        console.log(`EPG fetched successfully: ${count} programs`);
+        logger.info(`EPG fetched successfully: ${count} programs`);
 
         // Trigger refresh of EPG data in channel cards
         triggerEpgRefresh();
       } else if (epgUrlChanged) {
-        console.log('EPG URL cleared, skipping fetch');
+        logger.debug('EPG URL cleared, skipping fetch');
       } else {
-        console.log('EPG URL unchanged, skipping fetch');
+        logger.debug('EPG URL unchanged, skipping fetch');
       }
 
-      console.log('Settings saved successfully');
+      logger.info('Settings saved successfully');
       onClose();
     } catch (err) {
-      console.error('Failed to save settings:', err);
+      logger.error('Failed to save settings:', err);
       alert(`Failed to save settings: ${err}. Please check the EPG URL and try again.`);
     } finally {
       setIsSaving(false);

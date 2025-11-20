@@ -3,6 +3,7 @@ import { usePlayerStore } from '../stores/player-store';
 import { getSeriesInfo } from '../lib/tauri';
 import { ChevronLeft, Play } from 'lucide-react';
 import type { Episode } from '../types';
+import { logger } from '../lib/logger';
 
 interface SeriesViewProps {
   seriesId: number;
@@ -43,7 +44,7 @@ export default function SeriesView({
           setSelectedSeason(info.seasons[0].season_number);
         }
       } catch (err) {
-        console.error('Failed to load series info:', err);
+        logger.error('Failed to load series info:', err);
         setError(err instanceof Error ? err.message : 'Failed to load series');
       } finally {
         setIsLoading(false);

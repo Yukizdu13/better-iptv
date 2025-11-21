@@ -7,6 +7,7 @@ import SeriesView from './SeriesView';
 import SettingsModal from './Settings';
 import type { Channel } from '../types';
 import { logger } from '../lib/logger';
+import { useResponsiveGrid, getGridClasses } from '../hooks/useResponsiveGrid';
 
 export default function MainScreen() {
   const {
@@ -37,6 +38,9 @@ export default function MainScreen() {
   const [selectedSeries, setSelectedSeries] = useState<Channel | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // Responsive grid configuration
+  const { columns, cardHeight, estimatedRowHeight, gap } = useResponsiveGrid();
 
   // Filter channels when search query or content type changes
   useEffect(() => {
@@ -171,14 +175,13 @@ export default function MainScreen() {
     return () => clearInterval(interval);
   }, [filteredChannels, setChannelEpg]);
 
-  // Virtual scrolling setup - virtualize by rows (4 items per row)
-  const ITEMS_PER_ROW = 4;
-  const rowCount = Math.ceil(filteredChannels.length / ITEMS_PER_ROW);
+  // Virtual scrolling setup - virtualize by rows (dynamic items per row)
+  const rowCount = Math.ceil(filteredChannels.length / columns);
 
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 340, // Card height (~250px) + gap (16px) + extra margin (74px)
+    estimateSize: () => estimatedRowHeight,
     overscan: 3, // Render 3 extra rows above/below viewport
   });
 
@@ -289,7 +292,7 @@ export default function MainScreen() {
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="mx-auto px-2 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Better IPTV
           </h1>
@@ -310,7 +313,7 @@ export default function MainScreen() {
 
       {/* Search Bar */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto px-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -326,7 +329,7 @@ export default function MainScreen() {
 
       {/* Content Type Tabs */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="mx-auto px-6">
           <div className="flex gap-2 overflow-x-auto">
             <button
               onClick={() => setContentTypeFilter('all')}
@@ -377,7 +380,7 @@ export default function MainScreen() {
 
       {/* Channel List with Virtual Scrolling */}
       <div ref={parentRef} className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto p-4">
+        <div className="mx-auto p-4">
           {filteredChannels.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 dark:text-gray-400">
@@ -393,8 +396,8 @@ export default function MainScreen() {
               }}
             >
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                const startIndex = virtualRow.index * ITEMS_PER_ROW;
-                const rowItems = filteredChannels.slice(startIndex, startIndex + ITEMS_PER_ROW);
+                const startIndex = virtualRow.index * columns;
+                const rowItems = filteredChannels.slice(startIndex, startIndex + columns);
 
                 return (
                   <div
@@ -408,7 +411,7 @@ export default function MainScreen() {
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
                   >
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className={`grid ${getGridClasses(columns)} gap-4`}>
                       {rowItems.map((channel) => (
                         <ChannelCard
                           key={channel.id}
@@ -416,6 +419,7 @@ export default function MainScreen() {
                           isPlaying={currentChannel?.id === channel.id && isPlaying}
                           onPlay={() => handlePlayChannel(channel)}
                           currentProgram={channel.id ? channelEpgData.get(channel.id) : undefined}
+                          cardHeight={cardHeight}
                         />
                       ))}
                     </div>
@@ -430,7 +434,7 @@ export default function MainScreen() {
       {/* Now Playing Bar */}
       {currentChannel && (
         <div className="bg-blue-600 text-white p-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="mx-auto px-2 flex items-center justify-between">
             <div className="flex items-center gap-4">
               {currentChannel.logo && (
                 <div className="w-12 h-12 bg-gray-900 rounded flex items-center justify-center p-1">
@@ -490,14 +494,28 @@ interface ChannelCardProps {
   isPlaying: boolean;
   onPlay: () => void;
   currentProgram?: string;
+  cardHeight: number;
 }
 
-const ChannelCard = memo(function ChannelCard({ channel, isPlaying, onPlay, currentProgram }: ChannelCardProps) {
+const ChannelCard = memo(function ChannelCard({ channel, isPlaying, onPlay, currentProgram, cardHeight }: ChannelCardProps) {
+  // Calculate dynamic image height (approximately 45% of card height)
+  const imageHeight = Math.max(80, Math.round(cardHeight * 0.45));
+
+  // Scale text and padding based on card height
+  const isLarge = cardHeight > 280;
+  const isSmall = cardHeight < 220;
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
-      <div className="relative bg-gray-900">
+    <div
+      className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow flex flex-col"
+      style={{ height: `${cardHeight}px` }}
+    >
+      <div className="relative bg-gray-900 flex-shrink-0">
         {channel.logo ? (
-          <div className="w-full h-32 bg-gray-900 flex items-center justify-center p-2">
+          <div
+            className="w-full bg-gray-900 flex items-center justify-center p-2"
+            style={{ height: `${imageHeight}px` }}
+          >
             <img
               src={channel.logo}
               alt={channel.name}
@@ -506,35 +524,41 @@ const ChannelCard = memo(function ChannelCard({ channel, isPlaying, onPlay, curr
             />
           </div>
         ) : (
-          <div className="w-full h-32 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <span className="text-3xl font-bold text-white">
+          <div
+            className="w-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center"
+            style={{ height: `${imageHeight}px` }}
+          >
+            <span className={`font-bold text-white ${isLarge ? 'text-4xl' : isSmall ? 'text-2xl' : 'text-3xl'}`}>
               {channel.name.charAt(0).toUpperCase()}
             </span>
           </div>
         )}
         {channel.is_favorite && (
           <div className="absolute top-2 right-2 bg-yellow-400 rounded-full p-1">
-            <Star className="w-4 h-4 text-white fill-white" />
+            <Star className={`${isSmall ? 'w-3 h-3' : 'w-4 h-4'} text-white fill-white`} />
           </div>
         )}
       </div>
-      <div className="p-3">
-        <h3 className="font-medium text-gray-900 dark:text-white truncate">
+      <div className={`${isLarge ? 'p-4' : isSmall ? 'p-2' : 'p-3'} flex flex-col flex-1 min-h-0`}>
+        <h3 className={`font-medium text-gray-900 dark:text-white truncate ${isLarge ? 'text-base' : 'text-sm'}`}>
           {channel.name}
         </h3>
         {channel.group_name && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className={`text-gray-500 dark:text-gray-400 mt-0.5 truncate ${isSmall ? 'text-[10px]' : 'text-xs'}`}>
             {channel.group_name}
           </p>
         )}
         {currentProgram && channel.content_type === 'live' && (
-          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 truncate" title={currentProgram}>
+          <p className={`text-blue-600 dark:text-blue-400 mt-0.5 truncate ${isSmall ? 'text-[10px]' : 'text-xs'}`} title={currentProgram}>
             📺 {currentProgram}
           </p>
         )}
+        <div className="flex-1" />
         <button
           onClick={onPlay}
-          className={`mt-3 w-full py-2 px-4 rounded-md font-medium transition-colors flex items-center justify-center gap-2 ${
+          className={`w-full rounded-md font-medium transition-colors flex items-center justify-center gap-2 ${
+            isLarge ? 'py-2.5 px-4 mt-3' : isSmall ? 'py-1.5 px-3 mt-2 text-sm' : 'py-2 px-4 mt-2'
+          } ${
             isPlaying
               ? 'bg-red-600 hover:bg-red-700 text-white'
               : channel.content_type === 'series'
@@ -544,17 +568,17 @@ const ChannelCard = memo(function ChannelCard({ channel, isPlaying, onPlay, curr
         >
           {isPlaying ? (
             <>
-              <Square className="w-4 h-4" />
+              <Square className={`${isSmall ? 'w-3 h-3' : 'w-4 h-4'}`} />
               Stop
             </>
           ) : channel.content_type === 'series' ? (
             <>
-              <Clapperboard className="w-4 h-4" />
+              <Clapperboard className={`${isSmall ? 'w-3 h-3' : 'w-4 h-4'}`} />
               Browse
             </>
           ) : (
             <>
-              <Play className="w-4 h-4" />
+              <Play className={`${isSmall ? 'w-3 h-3' : 'w-4 h-4'}`} />
               Play
             </>
           )}

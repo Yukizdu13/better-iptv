@@ -37,6 +37,13 @@ All notable changes to Better IPTV will be documented in this file.
   - Prevents unnecessary network requests when saving other settings
   - Added debug logging to track EPG fetch decisions
 
+- **Responsive Grid Layout** - Dynamic card layout that adapts to screen size
+  - Cards scale automatically based on viewport dimensions
+  - Columns adjust from 2 (mobile) to 7 (4K displays)
+  - Card height optimized to show ~4 rows on any screen
+  - Improved space utilization on large monitors
+  - Smooth resize handling with debounced updates
+
 ### Fixed
 
 - **Wayland/Hyprland Compatibility** - Resolved EGL_BAD_PARAMETER crash on Wayland systems

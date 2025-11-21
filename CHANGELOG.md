@@ -47,6 +47,10 @@ All notable changes to Better IPTV will be documented in this file.
   - Added `dark:[color-scheme:dark]` CSS property to properly style native select elements
   - Dropdown now respects dark theme in all browsers
 
+- **Default Tab Selection** - Live TV tab now selected by default
+  - Changed default content type filter from "All" to "Live" for better UX
+  - Users see live channels immediately when opening the app
+
 - **Non-Functional Setting Removed** - Removed "Remember Position" setting
   - Setting did nothing due to MPV being started with `--no-resume-playback` flag
   - Cleaned up associated MPV flags

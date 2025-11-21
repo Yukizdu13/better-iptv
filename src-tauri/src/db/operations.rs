@@ -49,6 +49,14 @@ pub fn delete_playlist(conn: &Connection, id: i64) -> Result<()> {
     Ok(())
 }
 
+pub fn rename_playlist(conn: &Connection, playlist_id: i64, new_name: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE playlists SET name = ?1 WHERE id = ?2",
+        params![new_name, playlist_id],
+    )?;
+    Ok(())
+}
+
 // ========== Channel Operations ==========
 
 pub fn create_channel(conn: &Connection, channel: &Channel) -> Result<i64> {

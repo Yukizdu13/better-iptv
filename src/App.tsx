@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import Setup from './components/Setup';
 import MainScreen from './components/MainScreen';
 import { usePlayerStore } from './stores/player-store';
-import { getPlaylists, getChannels } from './lib/tauri';
+import { getPlaylists, getChannels, getActiveProfileId } from './lib/tauri';
 import { logger } from './lib/logger';
 
 export default function App() {
-  const { isSetupComplete, setIsSetupComplete, setPlaylists, setChannels, setCurrentPlaylist } = usePlayerStore();
+  const { isSetupComplete, setIsSetupComplete, setPlaylists, setChannels, setCurrentPlaylist, setActiveProfileId } = usePlayerStore();
   const [isCheckingSetup, setIsCheckingSetup] = useState(true);
 
   useEffect(() => {
@@ -16,11 +16,18 @@ export default function App() {
         const playlists = await getPlaylists();
 
         if (playlists.length > 0) {
-          // User has playlists, load the first one
           setPlaylists(playlists);
-          setCurrentPlaylist(playlists[0]);
 
-          const channels = await getChannels(playlists[0].id);
+          // Load active profile instead of first playlist
+          const activeId = await getActiveProfileId();
+          const activePlaylist = activeId
+            ? playlists.find(p => p.id === activeId) || playlists[0]
+            : playlists[0];
+
+          setActiveProfileId(activePlaylist.id!);
+          setCurrentPlaylist(activePlaylist);
+
+          const channels = await getChannels(activePlaylist.id);
           setChannels(channels);
           setIsSetupComplete(true);
         }
@@ -32,7 +39,7 @@ export default function App() {
     }
 
     checkSetup();
-  }, [setIsSetupComplete, setPlaylists, setChannels, setCurrentPlaylist]);
+  }, [setIsSetupComplete, setPlaylists, setChannels, setCurrentPlaylist, setActiveProfileId]);
 
   if (isCheckingSetup) {
     return (

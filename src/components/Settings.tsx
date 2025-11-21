@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { getSetting, setSetting, fetchEpgData } from '../lib/tauri';
 import { usePlayerStore } from '../stores/player-store';
 import { logger } from '../lib/logger';
+import ProfileManager from './ProfileManager';
 
 interface SettingsProps {
   onClose: () => void;
@@ -128,6 +129,11 @@ export default function Settings({ onClose }: SettingsProps) {
 
         {/* Content */}
         <div className="p-6 space-y-6">
+          {/* Profile Management */}
+          <div>
+            <ProfileManager onClose={onClose} />
+          </div>
+
           {/* EPG Settings */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">

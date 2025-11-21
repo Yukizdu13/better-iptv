@@ -111,6 +111,20 @@ export async function setSetting(key: string, value: string): Promise<void> {
   await invoke('set_setting', { key, value });
 }
 
+// ========== Profile Management Commands ==========
+
+export async function getActiveProfileId(): Promise<number | null> {
+  return await invoke('get_active_profile_id');
+}
+
+export async function setActiveProfileId(profileId: number): Promise<void> {
+  return await invoke('set_active_profile_id', { profileId });
+}
+
+export async function renamePlaylist(playlistId: number, newName: string): Promise<void> {
+  return await invoke('rename_playlist', { playlistId, newName });
+}
+
 // ========== EPG Commands ==========
 
 export async function fetchEpgData(epgUrl: string): Promise<number> {

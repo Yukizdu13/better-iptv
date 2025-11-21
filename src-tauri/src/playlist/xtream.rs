@@ -1,4 +1,5 @@
 use crate::db::models::Channel;
+use crate::http::get_http_client;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -133,7 +134,9 @@ async fn fetch_live_streams(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
         creds.password
     );
 
-    let response = reqwest::get(&url)
+    let response = get_http_client()
+        .get(&url)
+        .send()
         .await
         .context("Failed to fetch live streams from Xtream API")?
         .json::<Vec<XtreamStream>>()
@@ -152,7 +155,9 @@ async fn fetch_vod_streams(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
         creds.password
     );
 
-    let response = reqwest::get(&url)
+    let response = get_http_client()
+        .get(&url)
+        .send()
         .await
         .context("Failed to fetch VOD streams from Xtream API")?
         .json::<Vec<XtreamStream>>()
@@ -171,7 +176,9 @@ async fn fetch_series(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
         creds.password
     );
 
-    let response = reqwest::get(&url)
+    let response = get_http_client()
+        .get(&url)
+        .send()
         .await
         .context("Failed to fetch series from Xtream API")?
         .json::<Vec<XtreamStream>>()
@@ -288,7 +295,9 @@ pub async fn fetch_series_info(creds: &XtreamCredentials, series_id: i64) -> Res
         series_id
     );
 
-    let response = reqwest::get(&url)
+    let response = get_http_client()
+        .get(&url)
+        .send()
         .await
         .context("Failed to fetch series info from Xtream API")?
         .json::<SeriesInfo>()

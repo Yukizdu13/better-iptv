@@ -1,12 +1,13 @@
 mod commands;
 mod db;
 mod epg;
+mod http;
 mod mpv;
 mod playlist;
 mod state;
 
 use commands::*;
-use db::schema::init_schema;
+use db::schema::{init_schema, ensure_active_profile};
 use log::{info, warn};
 use rusqlite::Connection;
 use state::AppState;
@@ -57,6 +58,10 @@ pub fn run() {
             init_schema(&conn)
                 .expect("Failed to initialize database schema");
 
+            // Run migration for active profile setting
+            ensure_active_profile(&conn)
+                .expect("Failed to ensure active profile setting");
+
             // Update EPG IDs for existing channels (for migration)
             match db::operations::update_channel_epg_ids(&conn) {
                 Ok(count) => {
@@ -95,6 +100,10 @@ pub fn run() {
             // Settings commands
             get_setting,
             set_setting,
+            // Profile management commands
+            get_active_profile_id,
+            set_active_profile_id,
+            rename_playlist,
             // EPG commands
             fetch_epg_data,
             get_channel_epg,

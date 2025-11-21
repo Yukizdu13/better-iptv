@@ -3,10 +3,16 @@ import { importPlaylist, importXtreamPlaylist, getChannels } from '../lib/tauri'
 import { usePlayerStore } from '../stores/player-store';
 import { listen } from '@tauri-apps/api/event';
 import { logger } from '../lib/logger';
+import type { Playlist } from '../types';
 
 type ImportType = 'm3u' | 'xtream';
 
-export default function Setup() {
+interface SetupProps {
+  onComplete?: (playlist: Playlist) => void; // Callback when profile created (modal mode)
+  onCancel?: () => void;                     // Callback to cancel modal
+}
+
+export default function Setup({ onComplete, onCancel }: SetupProps = {}) {
   const [importType, setImportType] = useState<ImportType>('m3u');
   const [playlistName, setPlaylistName] = useState('');
 
@@ -79,6 +85,13 @@ export default function Setup() {
       const channels = await getChannels(playlist.id);
       logger.info('Fetched channels:', channels.length);
 
+      // If modal mode with onComplete callback, call it
+      if (onComplete) {
+        onComplete(playlist);
+        return; // Don't set setup complete, parent handles state
+      }
+
+      // Normal mode (initial setup)
       setCurrentPlaylist(playlist);
       setChannels(channels);
       setIsSetupComplete(true);
@@ -92,8 +105,8 @@ export default function Setup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full relative">
+    <div className={onCancel ? "" : "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4"}>
+      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 ${onCancel ? "max-w-md w-full" : "max-w-md w-full"} relative`}>
         {isLoading && (
           <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
             <div className="text-center">
@@ -122,12 +135,23 @@ export default function Setup() {
             </div>
           </div>
         )}
+
+        {/* Cancel button if in modal mode */}
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            ✕
+          </button>
+        )}
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Better IPTV
+            {onCancel ? "Add New Profile" : "Better IPTV"}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Add your IPTV playlist to get started
+            {onCancel ? "Add a new IPTV playlist" : "Add your IPTV playlist to get started"}
           </p>
         </div>
 

@@ -383,6 +383,58 @@ pub async fn set_setting(
     crate::db::operations::set_setting(&db, &key, &value).map_err(|e| format!("Database error: {}", e))
 }
 
+// ========== Profile Management Commands ==========
+
+#[tauri::command]
+pub async fn get_active_profile_id(
+    state: State<'_, AppState>
+) -> Result<Option<i64>, String> {
+    let db = state.db.lock().await;
+
+    let active_id_str = crate::db::operations::get_setting(&db, "active_profile_id")
+        .map_err(|e| format!("Failed to get active profile: {}", e))?;
+
+    // Parse string to i64
+    let active_id = active_id_str.and_then(|s| s.parse::<i64>().ok());
+
+    Ok(active_id)
+}
+
+#[tauri::command]
+pub async fn set_active_profile_id(
+    state: State<'_, AppState>,
+    profile_id: i64,
+) -> Result<(), String> {
+    let db = state.db.lock().await;
+
+    crate::db::operations::set_setting(
+        &db,
+        "active_profile_id",
+        &profile_id.to_string()
+    )
+    .map_err(|e| format!("Failed to set active profile: {}", e))?;
+
+    info!("Active profile changed to ID: {}", profile_id);
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn rename_playlist(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+    new_name: String,
+) -> Result<(), String> {
+    let db = state.db.lock().await;
+
+    crate::db::operations::rename_playlist(&db, playlist_id, &new_name)
+        .map_err(|e| format!("Failed to rename playlist: {}", e))?;
+
+    info!("Playlist ID {} renamed to: {}", playlist_id, new_name);
+
+    Ok(())
+}
+
 // ========== EPG Commands ==========
 
 #[tauri::command]

@@ -2,9 +2,19 @@
 
 All notable changes to Better IPTV will be documented in this file.
 
-## [2.1.0] - 2025-11-20
+## [2.1.0] - 2025-11-21
 
 ### Added
+
+- **Multi-Profile System** - Manage multiple IPTV playlists as profiles
+  - Card-based UI in Settings for easy profile management
+  - Create, rename, delete, and switch between profiles
+  - Active profile indication with visual badge (blue highlight)
+  - Automatic profile switching with channel reload
+  - Setup component reusable as modal for creating profiles within Settings
+  - Automatic migration for existing users (first playlist becomes active profile)
+  - Warning modal when attempting to delete the last profile
+  - Seamless profile switching preserves EPG and favorites data
 
 - **Language Settings** - Choose default audio and subtitle languages from 19 supported languages
   - Settings stored as ISO language codes for MPV integration
@@ -40,6 +50,17 @@ All notable changes to Better IPTV will be documented in this file.
 - **Non-Functional Setting Removed** - Removed "Remember Position" setting
   - Setting did nothing due to MPV being started with `--no-resume-playback` flag
   - Cleaned up associated MPV flags
+
+- **Credential Masking in Logs** - Sensitive data protection for bug reports
+  - Masks Xtream username and password parameters in MPV logs
+  - Prevents accidental credential leakage when sharing log files in issue reports
+  - Uses regex to replace credentials with `***` while preserving log structure
+
+- **Custom HTTP User-Agent** - Improved provider compatibility
+  - All external HTTP requests now use proper user-agent: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Better-IPTV/2.1.0`
+  - Shared HTTP client with connection pooling and reasonable timeouts (30s default)
+  - Centralized HTTP client management for consistency
+  - Prevents potential provider blocking of generic `reqwest/0.12.x` user-agent
 
 ### Changed
 

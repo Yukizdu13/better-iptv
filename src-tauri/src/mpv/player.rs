@@ -1,6 +1,22 @@
 use std::process::{Child, Command};
 use anyhow::{Context, Result};
 use log::{debug, info};
+use regex::Regex;
+
+/// Mask sensitive credentials in URLs for safe logging
+/// Replaces username and password parameters with ***
+fn mask_sensitive_data(input: &str) -> String {
+    // Mask username parameter: ?username=...&  or &username=...&
+    let masked = Regex::new(r"([?&]username=)[^&]*")
+        .unwrap()
+        .replace_all(input, "${1}***");
+
+    // Mask password parameter: ?password=...&  or &password=...&
+    Regex::new(r"([?&]password=)[^&]*")
+        .unwrap()
+        .replace_all(&masked, "${1}***")
+        .to_string()
+}
 
 /// MPV player controller using external process approach
 pub struct MpvPlayer {
@@ -69,9 +85,10 @@ impl MpvPlayer {
         // Add URL
         cmd.arg(url);
 
-        // Log the command
+        // Log the command with masked credentials
         let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().to_string()).collect();
-        debug!("MPV command: mpv {}", args.join(" "));
+        let safe_args = args.iter().map(|arg| mask_sensitive_data(arg)).collect::<Vec<_>>();
+        debug!("MPV command: mpv {}", safe_args.join(" "));
 
         // Spawn MPV process
         let child = cmd
@@ -131,10 +148,11 @@ impl MpvPlayer {
             cmd.arg(url);
         }
 
-        // Log the command
+        // Log the command with masked credentials
         let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().to_string()).collect();
+        let safe_args = args.iter().map(|arg| mask_sensitive_data(arg)).collect::<Vec<_>>();
         info!("MPV playlist command: {} episodes", urls.len());
-        debug!("MPV command: mpv {}", args.join(" "));
+        debug!("MPV command: mpv {}", safe_args.join(" "));
 
         // Spawn MPV process
         let child = cmd

@@ -98,3 +98,29 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
 
     Ok(())
 }
+
+/// Ensure active_profile_id setting exists (migration for existing users)
+pub fn ensure_active_profile(conn: &Connection) -> Result<()> {
+    // Check if active_profile_id already exists
+    let existing = crate::db::operations::get_setting(conn, "active_profile_id")?;
+
+    if existing.is_none() {
+        // Get first playlist (oldest by created_at)
+        let playlists = crate::db::operations::get_playlists(conn)?;
+
+        if let Some(first_playlist) = playlists.first() {
+            let playlist_id = first_playlist.id.unwrap().to_string();
+            crate::db::operations::set_setting(
+                conn,
+                "active_profile_id",
+                &playlist_id
+            )?;
+            log::info!(
+                "Migration: Set active profile to first playlist (ID: {})",
+                playlist_id
+            );
+        }
+    }
+
+    Ok(())
+}

@@ -1,3 +1,4 @@
+use crate::http::get_http_client;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use flate2::read::GzDecoder;
@@ -22,8 +23,10 @@ pub struct EpgProgram {
 pub async fn fetch_and_parse_epg(url: &str) -> Result<Vec<EpgProgram>> {
     info!("Fetching EPG from: {}", url);
 
-    // Download EPG file
-    let response = reqwest::get(url)
+    // Download EPG file using shared HTTP client
+    let response = get_http_client()
+        .get(url)
+        .send()
         .await
         .context("Failed to download EPG file")?;
 

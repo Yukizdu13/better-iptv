@@ -5,8 +5,10 @@ interface PlayerState {
   // Playlists
   playlists: Playlist[];
   currentPlaylist: Playlist | null;
+  activeProfileId: number | null;
   setPlaylists: (playlists: Playlist[]) => void;
   setCurrentPlaylist: (playlist: Playlist | null) => void;
+  setActiveProfileId: (id: number | null) => void;
 
   // Channels
   channels: Channel[];
@@ -62,8 +64,10 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   // Playlists
   playlists: [],
   currentPlaylist: null,
+  activeProfileId: null,
   setPlaylists: (playlists) => set({ playlists }),
   setCurrentPlaylist: (playlist) => set({ currentPlaylist: playlist }),
+  setActiveProfileId: (id) => set({ activeProfileId: id }),
 
   // Channels
   channels: [],

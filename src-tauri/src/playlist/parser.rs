@@ -1,12 +1,15 @@
 use crate::db::models::Channel;
+use crate::http::get_http_client;
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 
 /// Simple M3U playlist parser
 pub async fn parse_m3u(source: &str) -> Result<Vec<Channel>> {
     let content = if source.starts_with("http://") || source.starts_with("https://") {
-        // Download from URL
-        reqwest::get(source)
+        // Download from URL using shared HTTP client
+        get_http_client()
+            .get(source)
+            .send()
             .await
             .context("Failed to download M3U playlist")?
             .text()

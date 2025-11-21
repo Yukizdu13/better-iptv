@@ -6,10 +6,24 @@ if (import.meta.env.DEV) {
   attachConsole();
 }
 
+// Helper to format multiple arguments into a single string
+const formatArgs = (message: string, ...args: unknown[]): string => {
+  if (args.length === 0) return message;
+  const formatted = args.map(arg => {
+    if (typeof arg === 'string') return arg;
+    try {
+      return JSON.stringify(arg);
+    } catch {
+      return String(arg);
+    }
+  }).join(' ');
+  return `${message} ${formatted}`;
+};
+
 // Export logger functions for use throughout the app
 export const logger = {
-  info,
-  warn,
-  error,
-  debug,
+  info: (message: string, ...args: unknown[]) => info(formatArgs(message, ...args)),
+  warn: (message: string, ...args: unknown[]) => warn(formatArgs(message, ...args)),
+  error: (message: string, ...args: unknown[]) => error(formatArgs(message, ...args)),
+  debug: (message: string, ...args: unknown[]) => debug(formatArgs(message, ...args)),
 };

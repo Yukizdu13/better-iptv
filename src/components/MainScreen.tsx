@@ -40,7 +40,7 @@ export default function MainScreen() {
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Responsive grid configuration
-  const { columns, cardHeight, estimatedRowHeight, gap } = useResponsiveGrid();
+  const { columns, cardHeight, estimatedRowHeight } = useResponsiveGrid();
 
   // Filter channels when search query or content type changes
   useEffect(() => {

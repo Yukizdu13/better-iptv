@@ -16,7 +16,6 @@
     "version:major": "npm version major && npm run version:sync"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.90.9",
     "@tanstack/react-virtual": "^3.13.12",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-log": "^2.7.1",

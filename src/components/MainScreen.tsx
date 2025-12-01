@@ -165,7 +165,7 @@ export default function MainScreen() {
                 setChannelEpg(channel.id, current);
               }
             } catch (err) {
-              console.debug(`Failed to refresh EPG for ${channel.name}:`, err);
+              logger.debug(`Failed to refresh EPG for ${channel.name}:`, err);
             }
           })
         );
@@ -271,9 +271,27 @@ export default function MainScreen() {
   // If a series is selected, show the SeriesView
   if (selectedSeries && currentPlaylist?.url && currentPlaylist.xtream_username && currentPlaylist.xtream_password) {
     // Extract series ID from the URL (format: /series/user/pass/SERIES_ID.mp4)
-    const urlParts = selectedSeries.url.split('/');
-    const seriesIdWithExt = urlParts[urlParts.length - 1];
-    const seriesId = parseInt(seriesIdWithExt.replace(/\.\w+$/, ''));
+    const urlParts = selectedSeries.url?.split('/');
+    const seriesIdWithExt = urlParts?.[urlParts.length - 1];
+    const seriesId = seriesIdWithExt ? parseInt(seriesIdWithExt.replace(/\.\w+$/, ''), 10) : NaN;
+
+    // Handle invalid series ID
+    if (isNaN(seriesId)) {
+      logger.error('Failed to parse series ID from URL:', selectedSeries.url);
+      return (
+        <div className="h-screen flex items-center justify-center bg-gray-900">
+          <div className="text-center">
+            <p className="text-red-400 mb-4">Failed to load series: Invalid URL format</p>
+            <button
+              onClick={() => setSelectedSeries(null)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <SeriesView
@@ -330,8 +348,11 @@ export default function MainScreen() {
       {/* Content Type Tabs */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="mx-auto px-6">
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex gap-2 overflow-x-auto" role="tablist" aria-label="Content type filter">
             <button
+              role="tab"
+              aria-selected={contentTypeFilter === 'all'}
+              aria-controls="channel-list"
               onClick={() => setContentTypeFilter('all')}
               className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
                 contentTypeFilter === 'all'
@@ -342,6 +363,9 @@ export default function MainScreen() {
               All
             </button>
             <button
+              role="tab"
+              aria-selected={contentTypeFilter === 'live'}
+              aria-controls="channel-list"
               onClick={() => setContentTypeFilter('live')}
               className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
                 contentTypeFilter === 'live'
@@ -349,10 +373,13 @@ export default function MainScreen() {
                   : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <Tv className="w-4 h-4" />
+              <Tv className="w-4 h-4" aria-hidden="true" />
               Live TV
             </button>
             <button
+              role="tab"
+              aria-selected={contentTypeFilter === 'vod'}
+              aria-controls="channel-list"
               onClick={() => setContentTypeFilter('vod')}
               className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
                 contentTypeFilter === 'vod'
@@ -360,10 +387,13 @@ export default function MainScreen() {
                   : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <Film className="w-4 h-4" />
+              <Film className="w-4 h-4" aria-hidden="true" />
               Movies
             </button>
             <button
+              role="tab"
+              aria-selected={contentTypeFilter === 'series'}
+              aria-controls="channel-list"
               onClick={() => setContentTypeFilter('series')}
               className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
                 contentTypeFilter === 'series'
@@ -371,7 +401,7 @@ export default function MainScreen() {
                   : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <Clapperboard className="w-4 h-4" />
+              <Clapperboard className="w-4 h-4" aria-hidden="true" />
               Series
             </button>
           </div>
@@ -379,7 +409,7 @@ export default function MainScreen() {
       </div>
 
       {/* Channel List with Virtual Scrolling */}
-      <div ref={parentRef} className="flex-1 overflow-y-auto">
+      <div ref={parentRef} className="flex-1 overflow-y-auto" id="channel-list" role="tabpanel" aria-label="Channel list">
         <div className="mx-auto p-4">
           {filteredChannels.length === 0 ? (
             <div className="text-center py-12">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Setup from './components/Setup';
 import MainScreen from './components/MainScreen';
+import ErrorBoundary from './components/ErrorBoundary';
 import { usePlayerStore } from './stores/player-store';
 import { getPlaylists, getChannels, getActiveProfileId } from './lib/tauri';
 import { logger } from './lib/logger';
@@ -54,5 +55,9 @@ export default function App() {
     );
   }
 
-  return isSetupComplete ? <MainScreen /> : <Setup />;
+  return (
+    <ErrorBoundary>
+      {isSetupComplete ? <MainScreen /> : <Setup />}
+    </ErrorBoundary>
+  );
 }

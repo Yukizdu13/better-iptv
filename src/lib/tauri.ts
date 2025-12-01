@@ -35,7 +35,7 @@ export async function importXtreamPlaylist(
     name,
     serverUrl,
     username,
-    password
+    password,
   });
 }
 
@@ -83,7 +83,7 @@ export async function getSeriesInfo(
     serverUrl,
     username,
     password,
-    seriesId
+    seriesId,
   });
 }
 
@@ -97,7 +97,7 @@ export async function playEpisodeWithSeason(
     serverUrl,
     username,
     password,
-    episodes
+    episodes,
   });
 }
 

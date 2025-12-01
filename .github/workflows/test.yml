@@ -41,10 +41,16 @@ jobs:
         run: npm ci
 
       - name: Run frontend linting
-        run: npm run lint --if-present
+        run: npm run lint
+
+      - name: Check frontend formatting
+        run: npm run format:check
 
       - name: Run frontend tests
-        run: npm run test --if-present
+        run: npm run test:run
+
+      - name: Run Rust clippy
+        run: cd src-tauri && cargo clippy --all-targets -- -D warnings
 
       - name: Run Rust tests
         run: cd src-tauri && cargo test

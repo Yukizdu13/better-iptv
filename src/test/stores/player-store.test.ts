@@ -33,10 +33,42 @@ describe('usePlayerStore', () => {
 
     it('should set channels and automatically filter by content type', () => {
       const mockChannels = [
-        { id: 1, name: 'Live Channel 1', content_type: 'live', url: 'http://test', playlist_id: 1, is_favorite: false, sort_order: 0 },
-        { id: 2, name: 'VOD Movie 1', content_type: 'vod', url: 'http://test', playlist_id: 1, is_favorite: false, sort_order: 1 },
-        { id: 3, name: 'Series 1', content_type: 'series', url: 'http://test', playlist_id: 1, is_favorite: false, sort_order: 2 },
-        { id: 4, name: 'Live Channel 2', content_type: 'live', url: 'http://test', playlist_id: 1, is_favorite: false, sort_order: 3 },
+        {
+          id: 1,
+          name: 'Live Channel 1',
+          content_type: 'live',
+          url: 'http://test',
+          playlist_id: 1,
+          is_favorite: false,
+          sort_order: 0,
+        },
+        {
+          id: 2,
+          name: 'VOD Movie 1',
+          content_type: 'vod',
+          url: 'http://test',
+          playlist_id: 1,
+          is_favorite: false,
+          sort_order: 1,
+        },
+        {
+          id: 3,
+          name: 'Series 1',
+          content_type: 'series',
+          url: 'http://test',
+          playlist_id: 1,
+          is_favorite: false,
+          sort_order: 2,
+        },
+        {
+          id: 4,
+          name: 'Live Channel 2',
+          content_type: 'live',
+          url: 'http://test',
+          playlist_id: 1,
+          is_favorite: false,
+          sort_order: 3,
+        },
       ];
 
       usePlayerStore.getState().setChannels(mockChannels);
@@ -50,8 +82,24 @@ describe('usePlayerStore', () => {
 
     it('should update filtered channels based on content type filter', () => {
       const mockChannels = [
-        { id: 1, name: 'Live 1', content_type: 'live', url: 'http://test', playlist_id: 1, is_favorite: false, sort_order: 0 },
-        { id: 2, name: 'VOD 1', content_type: 'vod', url: 'http://test', playlist_id: 1, is_favorite: false, sort_order: 1 },
+        {
+          id: 1,
+          name: 'Live 1',
+          content_type: 'live',
+          url: 'http://test',
+          playlist_id: 1,
+          is_favorite: false,
+          sort_order: 0,
+        },
+        {
+          id: 2,
+          name: 'VOD 1',
+          content_type: 'vod',
+          url: 'http://test',
+          playlist_id: 1,
+          is_favorite: false,
+          sort_order: 1,
+        },
       ];
 
       usePlayerStore.getState().setChannels(mockChannels);

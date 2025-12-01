@@ -78,16 +78,16 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   seriesChannels: [],
   setChannels: (channels) => {
     // Pre-filter channels by type for instant tab switching
-    const liveChannels = channels.filter(c => c.content_type === 'live');
-    const vodChannels = channels.filter(c => c.content_type === 'vod');
-    const seriesChannels = channels.filter(c => c.content_type === 'series');
+    const liveChannels = channels.filter((c) => c.content_type === 'live');
+    const vodChannels = channels.filter((c) => c.content_type === 'vod');
+    const seriesChannels = channels.filter((c) => c.content_type === 'series');
 
     set({
       channels,
       filteredChannels: channels,
       liveChannels,
       vodChannels,
-      seriesChannels
+      seriesChannels,
     });
   },
   setFilteredChannels: (channels) => set({ filteredChannels: channels }),
@@ -113,15 +113,16 @@ export const usePlayerStore = create<PlayerState>((set) => ({
 
   // EPG data for all channels
   channelEpgData: new Map(),
-  setChannelEpg: (channelId, program) => set((state) => {
-    const newMap = new Map(state.channelEpgData);
-    if (program) {
-      newMap.set(channelId, program);
-    } else {
-      newMap.delete(channelId);
-    }
-    return { channelEpgData: newMap };
-  }),
+  setChannelEpg: (channelId, program) =>
+    set((state) => {
+      const newMap = new Map(state.channelEpgData);
+      if (program) {
+        newMap.set(channelId, program);
+      } else {
+        newMap.delete(channelId);
+      }
+      return { channelEpgData: newMap };
+    }),
   clearAllEpg: () => set({ channelEpgData: new Map() }),
   epgRefreshTrigger: 0,
   triggerEpgRefresh: () => set((state) => ({ epgRefreshTrigger: state.epgRefreshTrigger + 1 })),

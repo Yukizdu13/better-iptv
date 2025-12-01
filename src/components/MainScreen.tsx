@@ -1,8 +1,23 @@
 import { useEffect, useState, memo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePlayerStore } from '../stores/player-store';
-import { playChannel, stopPlayback, isPlaying as checkIsPlaying, getChannelEpg, playEpisodeWithSeason } from '../lib/tauri';
-import { Search, Play, Square, Star, Tv, Film, Clapperboard, Settings as SettingsIcon } from 'lucide-react';
+import {
+  playChannel,
+  stopPlayback,
+  isPlaying as checkIsPlaying,
+  getChannelEpg,
+  playEpisodeWithSeason,
+} from '../lib/tauri';
+import {
+  Search,
+  Play,
+  Square,
+  Star,
+  Tv,
+  Film,
+  Clapperboard,
+  Settings as SettingsIcon,
+} from 'lucide-react';
 import SeriesView from './SeriesView';
 import SettingsModal from './Settings';
 import type { Channel } from '../types';
@@ -72,7 +87,15 @@ export default function MainScreen() {
     } else {
       setFilteredChannels(baseList);
     }
-  }, [searchQuery, contentTypeFilter, channels, liveChannels, vodChannels, seriesChannels, setFilteredChannels]);
+  }, [
+    searchQuery,
+    contentTypeFilter,
+    channels,
+    liveChannels,
+    vodChannels,
+    seriesChannels,
+    setFilteredChannels,
+  ]);
 
   // Poll MPV playback status to detect when player is closed externally
   useEffect(() => {
@@ -231,7 +254,11 @@ export default function MainScreen() {
     title: string,
     remainingEpisodes?: Array<{ id: string; title: string; extension: string }>
   ) => {
-    if (!currentPlaylist?.url || !currentPlaylist.xtream_username || !currentPlaylist.xtream_password) {
+    if (
+      !currentPlaylist?.url ||
+      !currentPlaylist.xtream_username ||
+      !currentPlaylist.xtream_password
+    ) {
       logger.error('Missing Xtream credentials');
       return;
     }
@@ -269,7 +296,12 @@ export default function MainScreen() {
   };
 
   // If a series is selected, show the SeriesView
-  if (selectedSeries && currentPlaylist?.url && currentPlaylist.xtream_username && currentPlaylist.xtream_password) {
+  if (
+    selectedSeries &&
+    currentPlaylist?.url &&
+    currentPlaylist.xtream_username &&
+    currentPlaylist.xtream_password
+  ) {
     // Extract series ID from the URL (format: /series/user/pass/SERIES_ID.mp4)
     const urlParts = selectedSeries.url?.split('/');
     const seriesIdWithExt = urlParts?.[urlParts.length - 1];
@@ -279,12 +311,12 @@ export default function MainScreen() {
     if (isNaN(seriesId)) {
       logger.error('Failed to parse series ID from URL:', selectedSeries.url);
       return (
-        <div className="h-screen flex items-center justify-center bg-gray-900">
+        <div className="flex h-screen items-center justify-center bg-gray-900">
           <div className="text-center">
-            <p className="text-red-400 mb-4">Failed to load series: Invalid URL format</p>
+            <p className="mb-4 text-red-400">Failed to load series: Invalid URL format</p>
             <button
               onClick={() => setSelectedSeries(null)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
             >
               Go Back
             </button>
@@ -307,57 +339,59 @@ export default function MainScreen() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-        <div className="mx-auto px-2 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Better IPTV
-          </h1>
+      <div className="border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+        <div className="mx-auto flex items-center justify-between px-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Better IPTV</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {channels.length} channels
             </span>
             <button
               onClick={() => setShowSettings(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Settings"
             >
-              <SettingsIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <SettingsIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
             </button>
           </div>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+      <div className="border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
         <div className="mx-auto px-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search channels..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           </div>
         </div>
       </div>
 
       {/* Content Type Tabs */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="mx-auto px-6">
-          <div className="flex gap-2 overflow-x-auto" role="tablist" aria-label="Content type filter">
+          <div
+            className="flex gap-2 overflow-x-auto"
+            role="tablist"
+            aria-label="Content type filter"
+          >
             <button
               role="tab"
               aria-selected={contentTypeFilter === 'all'}
               aria-controls="channel-list"
               onClick={() => setContentTypeFilter('all')}
-              className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
+              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 font-medium transition-colors ${
                 contentTypeFilter === 'all'
-                  ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
               }`}
             >
               All
@@ -367,13 +401,13 @@ export default function MainScreen() {
               aria-selected={contentTypeFilter === 'live'}
               aria-controls="channel-list"
               onClick={() => setContentTypeFilter('live')}
-              className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
+              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 font-medium transition-colors ${
                 contentTypeFilter === 'live'
-                  ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
               }`}
             >
-              <Tv className="w-4 h-4" aria-hidden="true" />
+              <Tv className="h-4 w-4" aria-hidden="true" />
               Live TV
             </button>
             <button
@@ -381,13 +415,13 @@ export default function MainScreen() {
               aria-selected={contentTypeFilter === 'vod'}
               aria-controls="channel-list"
               onClick={() => setContentTypeFilter('vod')}
-              className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
+              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 font-medium transition-colors ${
                 contentTypeFilter === 'vod'
-                  ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
               }`}
             >
-              <Film className="w-4 h-4" aria-hidden="true" />
+              <Film className="h-4 w-4" aria-hidden="true" />
               Movies
             </button>
             <button
@@ -395,13 +429,13 @@ export default function MainScreen() {
               aria-selected={contentTypeFilter === 'series'}
               aria-controls="channel-list"
               onClick={() => setContentTypeFilter('series')}
-              className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
+              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 font-medium transition-colors ${
                 contentTypeFilter === 'series'
-                  ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
               }`}
             >
-              <Clapperboard className="w-4 h-4" aria-hidden="true" />
+              <Clapperboard className="h-4 w-4" aria-hidden="true" />
               Series
             </button>
           </div>
@@ -409,10 +443,16 @@ export default function MainScreen() {
       </div>
 
       {/* Channel List with Virtual Scrolling */}
-      <div ref={parentRef} className="flex-1 overflow-y-auto" id="channel-list" role="tabpanel" aria-label="Channel list">
+      <div
+        ref={parentRef}
+        className="flex-1 overflow-y-auto"
+        id="channel-list"
+        role="tabpanel"
+        aria-label="Channel list"
+      >
         <div className="mx-auto p-4">
           {filteredChannels.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="py-12 text-center">
               <p className="text-gray-500 dark:text-gray-400">
                 {searchQuery ? 'No channels found' : 'No channels available'}
               </p>
@@ -463,30 +503,28 @@ export default function MainScreen() {
 
       {/* Now Playing Bar */}
       {currentChannel && (
-        <div className="bg-blue-600 text-white p-4">
-          <div className="mx-auto px-2 flex items-center justify-between">
+        <div className="bg-blue-600 p-4 text-white">
+          <div className="mx-auto flex items-center justify-between px-2">
             <div className="flex items-center gap-4">
               {currentChannel.logo && (
-                <div className="w-12 h-12 bg-gray-900 rounded flex items-center justify-center p-1">
+                <div className="flex h-12 w-12 items-center justify-center rounded bg-gray-900 p-1">
                   <img
                     src={currentChannel.logo}
                     alt={currentChannel.name}
-                    className="max-w-full max-h-full object-contain"
+                    className="max-h-full max-w-full object-contain"
                   />
                 </div>
               )}
               <div>
                 <p className="font-medium">{currentChannel.name}</p>
-                <p className="text-sm text-blue-100">
-                  {currentChannel.group_name || 'Live TV'}
-                </p>
+                <p className="text-sm text-blue-100">{currentChannel.group_name || 'Live TV'}</p>
                 {currentProgram && (
-                  <p className="text-sm text-blue-200 mt-1">
+                  <p className="mt-1 text-sm text-blue-200">
                     <span className="font-medium">Now showing:</span> {currentProgram}
                   </p>
                 )}
                 {nextProgram && (
-                  <p className="text-xs text-blue-200 mt-0.5">
+                  <p className="mt-0.5 text-xs text-blue-200">
                     <span className="font-medium">Next up:</span> {nextProgram}
                   </p>
                 )}
@@ -497,9 +535,9 @@ export default function MainScreen() {
                 await stopPlayback();
                 setIsPlaying(false);
               }}
-              className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+              className="rounded-lg bg-white/20 p-2 transition-colors hover:bg-white/30"
             >
-              <Square className="w-5 h-5" />
+              <Square className="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -527,7 +565,13 @@ interface ChannelCardProps {
   cardHeight: number;
 }
 
-const ChannelCard = memo(function ChannelCard({ channel, isPlaying, onPlay, currentProgram, cardHeight }: ChannelCardProps) {
+const ChannelCard = memo(function ChannelCard({
+  channel,
+  isPlaying,
+  onPlay,
+  currentProgram,
+  cardHeight,
+}: ChannelCardProps) {
   // Calculate dynamic image height (approximately 45% of card height)
   const imageHeight = Math.max(80, Math.round(cardHeight * 0.45));
 
@@ -537,78 +581,87 @@ const ChannelCard = memo(function ChannelCard({ channel, isPlaying, onPlay, curr
 
   return (
     <div
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow flex flex-col"
+      className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
       style={{ height: `${cardHeight}px` }}
     >
-      <div className="relative bg-gray-900 flex-shrink-0">
+      <div className="relative flex-shrink-0 bg-gray-900">
         {channel.logo ? (
           <div
-            className="w-full bg-gray-900 flex items-center justify-center p-2"
+            className="flex w-full items-center justify-center bg-gray-900 p-2"
             style={{ height: `${imageHeight}px` }}
           >
             <img
               src={channel.logo}
               alt={channel.name}
               loading="lazy"
-              className="max-w-full max-h-full object-contain"
+              className="max-h-full max-w-full object-contain"
             />
           </div>
         ) : (
           <div
-            className="w-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center"
+            className="flex w-full items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600"
             style={{ height: `${imageHeight}px` }}
           >
-            <span className={`font-bold text-white ${isLarge ? 'text-4xl' : isSmall ? 'text-2xl' : 'text-3xl'}`}>
+            <span
+              className={`font-bold text-white ${isLarge ? 'text-4xl' : isSmall ? 'text-2xl' : 'text-3xl'}`}
+            >
               {channel.name.charAt(0).toUpperCase()}
             </span>
           </div>
         )}
         {channel.is_favorite && (
-          <div className="absolute top-2 right-2 bg-yellow-400 rounded-full p-1">
-            <Star className={`${isSmall ? 'w-3 h-3' : 'w-4 h-4'} text-white fill-white`} />
+          <div className="absolute right-2 top-2 rounded-full bg-yellow-400 p-1">
+            <Star className={`${isSmall ? 'h-3 w-3' : 'h-4 w-4'} fill-white text-white`} />
           </div>
         )}
       </div>
-      <div className={`${isLarge ? 'p-4' : isSmall ? 'p-2' : 'p-3'} flex flex-col flex-1 min-h-0`}>
-        <h3 className={`font-medium text-gray-900 dark:text-white truncate ${isLarge ? 'text-base' : 'text-sm'}`}>
+      <div className={`${isLarge ? 'p-4' : isSmall ? 'p-2' : 'p-3'} flex min-h-0 flex-1 flex-col`}>
+        <h3
+          className={`truncate font-medium text-gray-900 dark:text-white ${isLarge ? 'text-base' : 'text-sm'}`}
+        >
           {channel.name}
         </h3>
         {channel.group_name && (
-          <p className={`text-gray-500 dark:text-gray-400 mt-0.5 truncate ${isSmall ? 'text-[10px]' : 'text-xs'}`}>
+          <p
+            className={`mt-0.5 truncate text-gray-500 dark:text-gray-400 ${isSmall ? 'text-[10px]' : 'text-xs'}`}
+          >
             {channel.group_name}
           </p>
         )}
         {currentProgram && channel.content_type === 'live' && (
-          <p className={`text-blue-600 dark:text-blue-400 mt-0.5 truncate ${isSmall ? 'text-[10px]' : 'text-xs'}`} title={currentProgram}>
+          <p
+            className={`mt-0.5 truncate text-blue-600 dark:text-blue-400 ${isSmall ? 'text-[10px]' : 'text-xs'}`}
+            title={currentProgram}
+          >
             📺 {currentProgram}
           </p>
         )}
         <div className="flex-1" />
         <button
           onClick={onPlay}
-          className={`w-full rounded-md font-medium transition-colors flex items-center justify-center gap-2 ${
-            isLarge ? 'py-2.5 px-4 mt-3' : isSmall ? 'py-1.5 px-3 mt-2 text-sm' : 'py-2 px-4 mt-2'
+          className={`flex w-full items-center justify-center gap-2 rounded-md font-medium transition-colors ${
+            isLarge ? 'mt-3 px-4 py-2.5' : isSmall ? 'mt-2 px-3 py-1.5 text-sm' : 'mt-2 px-4 py-2'
           } ${
             isPlaying
-              ? 'bg-red-600 hover:bg-red-700 text-white'
+              ? 'bg-red-600 text-white hover:bg-red-700'
               : channel.content_type === 'series'
-              ? 'bg-purple-600 hover:bg-purple-700 text-white'
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
+                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}
         >
           {isPlaying ? (
             <>
-              <Square className={`${isSmall ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              <Square className={`${isSmall ? 'h-3 w-3' : 'h-4 w-4'}`} />
               Stop
             </>
           ) : channel.content_type === 'series' ? (
             <>
-              <Clapperboard className={`${isSmall ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              <Clapperboard className={`${isSmall ? 'h-3 w-3' : 'h-4 w-4'}`} />
               Browse
             </>
           ) : (
             <>
-              <Play className={`${isSmall ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              <Play className={`${isSmall ? 'h-3 w-3' : 'h-4 w-4'}`} />
               Play
             </>
           )}

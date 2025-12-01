@@ -7,7 +7,14 @@ import { getPlaylists, getChannels, getActiveProfileId } from './lib/tauri';
 import { logger } from './lib/logger';
 
 export default function App() {
-  const { isSetupComplete, setIsSetupComplete, setPlaylists, setChannels, setCurrentPlaylist, setActiveProfileId } = usePlayerStore();
+  const {
+    isSetupComplete,
+    setIsSetupComplete,
+    setPlaylists,
+    setChannels,
+    setCurrentPlaylist,
+    setActiveProfileId,
+  } = usePlayerStore();
   const [isCheckingSetup, setIsCheckingSetup] = useState(true);
 
   useEffect(() => {
@@ -22,7 +29,7 @@ export default function App() {
           // Load active profile instead of first playlist
           const activeId = await getActiveProfileId();
           const activePlaylist = activeId
-            ? playlists.find(p => p.id === activeId) || playlists[0]
+            ? playlists.find((p) => p.id === activeId) || playlists[0]
             : playlists[0];
 
           setActiveProfileId(activePlaylist.id!);
@@ -44,10 +51,10 @@ export default function App() {
 
   if (isCheckingSetup) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-700 dark:text-gray-300 font-medium text-lg">
+          <div className="mx-auto mb-4 h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
             Loading playlist...
           </p>
         </div>
@@ -55,9 +62,5 @@ export default function App() {
     );
   }
 
-  return (
-    <ErrorBoundary>
-      {isSetupComplete ? <MainScreen /> : <Setup />}
-    </ErrorBoundary>
-  );
+  return <ErrorBoundary>{isSetupComplete ? <MainScreen /> : <Setup />}</ErrorBoundary>;
 }

@@ -41,12 +41,12 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="h-screen flex items-center justify-center bg-gray-900">
-          <div className="max-w-md w-full mx-4 p-6 bg-gray-800 rounded-lg shadow-xl">
+        <div className="flex h-screen items-center justify-center bg-gray-900">
+          <div className="mx-4 w-full max-w-md rounded-lg bg-gray-800 p-6 shadow-xl">
             <div className="text-center">
               <div className="mb-4">
                 <svg
-                  className="w-16 h-16 mx-auto text-red-500"
+                  className="mx-auto h-16 w-16 text-red-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -60,18 +60,16 @@ export class ErrorBoundary extends Component<Props, State> {
                   />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-white mb-2">
-                Something went wrong
-              </h2>
-              <p className="text-gray-400 mb-6">
+              <h2 className="mb-2 text-xl font-semibold text-white">Something went wrong</h2>
+              <p className="mb-6 text-gray-400">
                 An unexpected error occurred. Please try again or restart the application.
               </p>
               {this.state.error && (
-                <details className="text-left mb-6">
-                  <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-400">
+                <details className="mb-6 text-left">
+                  <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-400">
                     Error details
                   </summary>
-                  <pre className="mt-2 p-3 bg-gray-900 rounded text-xs text-red-400 overflow-auto max-h-40">
+                  <pre className="mt-2 max-h-40 overflow-auto rounded bg-gray-900 p-3 text-xs text-red-400">
                     {this.state.error.message}
                     {this.state.error.stack && (
                       <>
@@ -82,16 +80,16 @@ export class ErrorBoundary extends Component<Props, State> {
                   </pre>
                 </details>
               )}
-              <div className="flex gap-3 justify-center">
+              <div className="flex justify-center gap-3">
                 <button
                   onClick={this.handleRetry}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
                 >
                   Try Again
                 </button>
                 <button
                   onClick={() => window.location.reload()}
-                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  className="rounded-lg bg-gray-700 px-4 py-2 text-white transition-colors hover:bg-gray-600"
                 >
                   Reload App
                 </button>

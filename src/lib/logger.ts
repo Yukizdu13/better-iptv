@@ -9,14 +9,16 @@ if (import.meta.env.DEV) {
 // Helper to format multiple arguments into a single string
 const formatArgs = (message: string, ...args: unknown[]): string => {
   if (args.length === 0) return message;
-  const formatted = args.map(arg => {
-    if (typeof arg === 'string') return arg;
-    try {
-      return JSON.stringify(arg);
-    } catch {
-      return String(arg);
-    }
-  }).join(' ');
+  const formatted = args
+    .map((arg) => {
+      if (typeof arg === 'string') return arg;
+      try {
+        return JSON.stringify(arg);
+      } catch {
+        return String(arg);
+      }
+    })
+    .join(' ');
   return `${message} ${formatted}`;
 };
 

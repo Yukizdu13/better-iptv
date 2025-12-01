@@ -59,11 +59,11 @@ export default function Settings({ onClose }: SettingsProps) {
 
         // Convert ISO codes back to language codes for UI
         if (savedAudioIso) {
-          const audioLang = LANGUAGE_OPTIONS.find(l => l.iso === savedAudioIso);
+          const audioLang = LANGUAGE_OPTIONS.find((l) => l.iso === savedAudioIso);
           if (audioLang) setAudioLang(audioLang.code);
         }
         if (savedSubtitleIso) {
-          const subtitleLang = LANGUAGE_OPTIONS.find(l => l.iso === savedSubtitleIso);
+          const subtitleLang = LANGUAGE_OPTIONS.find((l) => l.iso === savedSubtitleIso);
           if (subtitleLang) setSubtitleLang(subtitleLang.code);
         }
       } catch (err) {
@@ -83,8 +83,8 @@ export default function Settings({ onClose }: SettingsProps) {
       await setSetting('theme', theme);
 
       // Save language settings (store ISO codes for MPV)
-      const audioIso = LANGUAGE_OPTIONS.find(l => l.code === audioLang)?.iso || '';
-      const subtitleIso = LANGUAGE_OPTIONS.find(l => l.code === subtitleLang)?.iso || '';
+      const audioIso = LANGUAGE_OPTIONS.find((l) => l.code === audioLang)?.iso || '';
+      const subtitleIso = LANGUAGE_OPTIONS.find((l) => l.code === subtitleLang)?.iso || '';
       await setSetting('audio_language', audioIso);
       await setSetting('subtitle_language', subtitleIso);
 
@@ -114,21 +114,21 @@ export default function Settings({ onClose }: SettingsProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-xl dark:bg-gray-800">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="space-y-6 p-6">
           {/* Profile Management */}
           <div>
             <ProfileManager onClose={onClose} />
@@ -136,12 +136,12 @@ export default function Settings({ onClose }: SettingsProps) {
 
           {/* EPG Settings */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
               Electronic Program Guide (EPG)
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   EPG URL (XMLTV format)
                 </label>
                 <input
@@ -149,9 +149,9 @@ export default function Settings({ onClose }: SettingsProps) {
                   value={epgUrl}
                   onChange={(e) => setEpgUrl(e.target.value)}
                   placeholder="http://example.com/epg.xml"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Leave empty to use Xtream API EPG (if available)
                 </p>
               </div>
@@ -160,41 +160,39 @@ export default function Settings({ onClose }: SettingsProps) {
 
           {/* Appearance Settings */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Appearance
-            </h3>
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Appearance</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Theme
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   <button
                     onClick={() => setTheme('light')}
-                    className={`px-4 py-2 rounded-lg border ${
+                    className={`rounded-lg border px-4 py-2 ${
                       theme === 'light'
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600'
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
                     }`}
                   >
                     Light
                   </button>
                   <button
                     onClick={() => setTheme('dark')}
-                    className={`px-4 py-2 rounded-lg border ${
+                    className={`rounded-lg border px-4 py-2 ${
                       theme === 'dark'
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600'
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
                     }`}
                   >
                     Dark
                   </button>
                   <button
                     onClick={() => setTheme('system')}
-                    className={`px-4 py-2 rounded-lg border ${
+                    className={`rounded-lg border px-4 py-2 ${
                       theme === 'system'
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600'
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
                     }`}
                   >
                     System
@@ -206,9 +204,7 @@ export default function Settings({ onClose }: SettingsProps) {
 
           {/* Playback Settings */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Playback
-            </h3>
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Playback</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -222,7 +218,7 @@ export default function Settings({ onClose }: SettingsProps) {
                 <input
                   type="checkbox"
                   defaultChecked
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -230,18 +226,18 @@ export default function Settings({ onClose }: SettingsProps) {
 
           {/* Language Settings */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
               Language Settings
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Default Audio Language
                 </label>
                 <select
                   value={audioLang}
                   onChange={(e) => setAudioLang(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
                 >
                   {LANGUAGE_OPTIONS.map((lang) => (
                     <option key={lang.code} value={lang.code}>
@@ -249,19 +245,19 @@ export default function Settings({ onClose }: SettingsProps) {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Preferred audio track language (if available in stream)
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Default Subtitles Language
                 </label>
                 <select
                   value={subtitleLang}
                   onChange={(e) => setSubtitleLang(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
                 >
                   {LANGUAGE_OPTIONS.map((lang) => (
                     <option key={lang.code} value={lang.code}>
@@ -269,7 +265,7 @@ export default function Settings({ onClose }: SettingsProps) {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Preferred subtitle language (if available in stream)
                 </p>
               </div>
@@ -278,17 +274,17 @@ export default function Settings({ onClose }: SettingsProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-end gap-3 border-t border-gray-200 p-6 dark:border-gray-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="rounded-lg px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving || isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
           </button>

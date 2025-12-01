@@ -1,5 +1,6 @@
 use rusqlite::{Connection, Result, params};
 use super::models::*;
+use crate::utils::generate_epg_id_swedish;
 
 // ========== Playlist Operations ==========
 
@@ -265,7 +266,8 @@ pub fn update_channel_epg_ids(conn: &Connection) -> Result<usize> {
     let mut updated_count = 0;
 
     for (id, name) in channels {
-        if let Some(epg_id) = generate_epg_id_from_name(&name) {
+        // Use shared EPG ID generation function
+        if let Some(epg_id) = generate_epg_id_swedish(&name) {
             conn.execute(
                 "UPDATE channels SET epg_id = ?1 WHERE id = ?2",
                 params![epg_id, id],
@@ -275,26 +277,4 @@ pub fn update_channel_epg_ids(conn: &Connection) -> Result<usize> {
     }
 
     Ok(updated_count)
-}
-
-/// Generate EPG ID from channel name (e.g., "SVT1 HD SE" -> "SVT1 HD.se")
-fn generate_epg_id_from_name(channel_name: &str) -> Option<String> {
-    // Remove quality suffixes and convert to EPG format
-    let clean_name = channel_name
-        .trim_end_matches(" SE")
-        .trim_end_matches(" FHD")
-        .trim_end_matches(" HD")
-        .trim_end_matches(" SD")
-        .trim();
-
-    // Only generate EPG ID if the name ends with "SE" (Swedish channels)
-    if channel_name.ends_with(" SE")
-        || channel_name.ends_with(" FHD SE")
-        || channel_name.ends_with(" HD SE")
-        || channel_name.ends_with(" SD SE")
-    {
-        Some(format!("{}.se", clean_name))
-    } else {
-        None
-    }
 }

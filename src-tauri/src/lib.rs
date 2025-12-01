@@ -5,6 +5,7 @@ mod http;
 mod mpv;
 mod playlist;
 mod state;
+mod utils;
 
 use commands::*;
 use db::schema::{init_schema, ensure_active_profile};

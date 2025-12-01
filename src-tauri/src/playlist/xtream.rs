@@ -1,8 +1,11 @@
 use crate::db::models::Channel;
 use crate::http::get_http_client;
 use anyhow::{Context, Result};
+use backoff::{ExponentialBackoff, future::retry};
+use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::time::Duration;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct XtreamCredentials {
@@ -125,6 +128,58 @@ pub async fn fetch_xtream_channels(creds: &XtreamCredentials) -> Result<Vec<Chan
     fetch_xtream_channels_with_progress(creds, |_| {}).await
 }
 
+/// Create exponential backoff configuration for API retries
+fn create_backoff() -> ExponentialBackoff {
+    ExponentialBackoff {
+        initial_interval: Duration::from_millis(500),
+        max_interval: Duration::from_secs(10),
+        max_elapsed_time: Some(Duration::from_secs(60)),
+        multiplier: 2.0,
+        ..ExponentialBackoff::default()
+    }
+}
+
+/// Fetch JSON from URL with retry logic
+async fn fetch_json_with_retry<T: for<'de> Deserialize<'de>>(url: &str, action: &str) -> Result<T> {
+    let url = url.to_string();
+    let action = action.to_string();
+
+    retry(create_backoff(), || {
+        let url = url.clone();
+        let action = action.clone();
+        async move {
+            let response = get_http_client()
+                .get(&url)
+                .send()
+                .await
+                .map_err(|e| {
+                    warn!("Xtream API {} failed, retrying: {}", action, e);
+                    backoff::Error::transient(anyhow::anyhow!("Request failed: {}", e))
+                })?;
+
+            // Check for HTTP errors
+            if !response.status().is_success() {
+                let status = response.status();
+                warn!("Xtream API {} returned status {}, retrying", action, status);
+                return Err(backoff::Error::transient(anyhow::anyhow!(
+                    "HTTP error: {}",
+                    status
+                )));
+            }
+
+            response
+                .json::<T>()
+                .await
+                .map_err(|e| {
+                    warn!("Failed to parse {} response, retrying: {}", action, e);
+                    backoff::Error::transient(anyhow::anyhow!("Parse failed: {}", e))
+                })
+        }
+    })
+    .await
+    .with_context(|| format!("Failed to fetch {} from Xtream API after retries", action))
+}
+
 /// Fetch live TV streams
 async fn fetch_live_streams(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
     let url = format!(
@@ -134,15 +189,7 @@ async fn fetch_live_streams(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
         creds.password
     );
 
-    let response = get_http_client()
-        .get(&url)
-        .send()
-        .await
-        .context("Failed to fetch live streams from Xtream API")?
-        .json::<Vec<XtreamStream>>()
-        .await
-        .context("Failed to parse live streams response")?;
-
+    let response: Vec<XtreamStream> = fetch_json_with_retry(&url, "live streams").await?;
     Ok(convert_streams_to_channels(creds, response, "live"))
 }
 
@@ -155,15 +202,7 @@ async fn fetch_vod_streams(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
         creds.password
     );
 
-    let response = get_http_client()
-        .get(&url)
-        .send()
-        .await
-        .context("Failed to fetch VOD streams from Xtream API")?
-        .json::<Vec<XtreamStream>>()
-        .await
-        .context("Failed to parse VOD streams response")?;
-
+    let response: Vec<XtreamStream> = fetch_json_with_retry(&url, "VOD streams").await?;
     Ok(convert_streams_to_channels(creds, response, "vod"))
 }
 
@@ -176,35 +215,12 @@ async fn fetch_series(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
         creds.password
     );
 
-    let response = get_http_client()
-        .get(&url)
-        .send()
-        .await
-        .context("Failed to fetch series from Xtream API")?
-        .json::<Vec<XtreamStream>>()
-        .await
-        .context("Failed to parse series response")?;
-
+    let response: Vec<XtreamStream> = fetch_json_with_retry(&url, "series").await?;
     Ok(convert_streams_to_channels(creds, response, "series"))
 }
 
-/// Generate EPG ID from channel name (e.g., "SVT1 HD SE" -> "SVT1 HD.se")
-fn generate_epg_id(channel_name: &str) -> Option<String> {
-    // Remove quality suffixes and convert to EPG format
-    let clean_name = channel_name
-        .trim_end_matches(" SE")
-        .trim_end_matches(" FHD")
-        .trim_end_matches(" HD")
-        .trim_end_matches(" SD")
-        .trim();
-
-    // Only generate EPG ID if the name ends with "SE" (Swedish channels)
-    if channel_name.ends_with(" SE") || channel_name.ends_with(" FHD SE") || channel_name.ends_with(" HD SE") {
-        Some(format!("{}.se", clean_name))
-    } else {
-        None
-    }
-}
+// Use shared EPG ID generation from utils module
+use crate::utils::generate_epg_id_swedish;
 
 /// Convert Xtream streams to our Channel format
 fn convert_streams_to_channels(
@@ -228,7 +244,7 @@ fn convert_streams_to_channels(
 
             // Generate EPG ID for live channels
             let epg_id = if content_type == "live" {
-                generate_epg_id(&stream.name)
+                generate_epg_id_swedish(&stream.name)
             } else {
                 None
             };
@@ -295,16 +311,7 @@ pub async fn fetch_series_info(creds: &XtreamCredentials, series_id: i64) -> Res
         series_id
     );
 
-    let response = get_http_client()
-        .get(&url)
-        .send()
-        .await
-        .context("Failed to fetch series info from Xtream API")?
-        .json::<SeriesInfo>()
-        .await
-        .context("Failed to parse series info response")?;
-
-    Ok(response)
+    fetch_json_with_retry(&url, "series info").await
 }
 
 /// Build episode playback URL

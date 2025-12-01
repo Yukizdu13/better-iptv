@@ -36,7 +36,7 @@ describe('usePlayerStore', () => {
         {
           id: 1,
           name: 'Live Channel 1',
-          content_type: 'live',
+          content_type: 'live' as const,
           url: 'http://test',
           playlist_id: 1,
           is_favorite: false,
@@ -45,7 +45,7 @@ describe('usePlayerStore', () => {
         {
           id: 2,
           name: 'VOD Movie 1',
-          content_type: 'vod',
+          content_type: 'vod' as const,
           url: 'http://test',
           playlist_id: 1,
           is_favorite: false,
@@ -54,7 +54,7 @@ describe('usePlayerStore', () => {
         {
           id: 3,
           name: 'Series 1',
-          content_type: 'series',
+          content_type: 'series' as const,
           url: 'http://test',
           playlist_id: 1,
           is_favorite: false,
@@ -63,7 +63,7 @@ describe('usePlayerStore', () => {
         {
           id: 4,
           name: 'Live Channel 2',
-          content_type: 'live',
+          content_type: 'live' as const,
           url: 'http://test',
           playlist_id: 1,
           is_favorite: false,
@@ -85,7 +85,7 @@ describe('usePlayerStore', () => {
         {
           id: 1,
           name: 'Live 1',
-          content_type: 'live',
+          content_type: 'live' as const,
           url: 'http://test',
           playlist_id: 1,
           is_favorite: false,
@@ -94,7 +94,7 @@ describe('usePlayerStore', () => {
         {
           id: 2,
           name: 'VOD 1',
-          content_type: 'vod',
+          content_type: 'vod' as const,
           url: 'http://test',
           playlist_id: 1,
           is_favorite: false,
@@ -129,7 +129,7 @@ describe('usePlayerStore', () => {
       const mockChannel = {
         id: 1,
         name: 'Test Channel',
-        content_type: 'live',
+        content_type: 'live' as const,
         url: 'http://test',
         playlist_id: 1,
         is_favorite: false,

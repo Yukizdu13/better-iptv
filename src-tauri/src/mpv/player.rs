@@ -1,7 +1,46 @@
 use std::process::{Child, Command};
 use anyhow::{Context, Result};
-use log::{debug, info};
+use log::{debug, info, warn};
 use regex::Regex;
+
+/// Allowed URL schemes for stream playback
+const ALLOWED_SCHEMES: &[&str] = &["http://", "https://", "rtsp://", "rtmp://", "rtp://", "udp://"];
+
+/// Characters that could be used for shell injection
+const FORBIDDEN_CHARS: &[char] = &['`', '$', ';', '|', '&', '>', '<', '\n', '\r', '\0'];
+
+/// Maximum allowed URL length
+const MAX_URL_LENGTH: usize = 4096;
+
+/// Validate a stream URL before passing to MPV
+///
+/// Checks:
+/// - URL scheme is whitelisted (http, https, rtsp, rtmp, rtp, udp)
+/// - No shell metacharacters that could enable command injection
+/// - Reasonable URL length
+fn validate_stream_url(url: &str) -> Result<()> {
+    // Check URL length
+    if url.len() > MAX_URL_LENGTH {
+        return Err(anyhow::anyhow!("URL exceeds maximum length of {} characters", MAX_URL_LENGTH));
+    }
+
+    // Check for allowed scheme
+    let has_valid_scheme = ALLOWED_SCHEMES.iter().any(|scheme| url.starts_with(scheme));
+    if !has_valid_scheme {
+        warn!("Rejected URL with invalid scheme: {}", url.chars().take(50).collect::<String>());
+        return Err(anyhow::anyhow!(
+            "Invalid URL scheme. Allowed: http, https, rtsp, rtmp, rtp, udp"
+        ));
+    }
+
+    // Check for forbidden characters (shell injection prevention)
+    if url.chars().any(|c| FORBIDDEN_CHARS.contains(&c)) {
+        warn!("Rejected URL containing forbidden characters");
+        return Err(anyhow::anyhow!("URL contains forbidden characters"));
+    }
+
+    Ok(())
+}
 
 /// Mask sensitive credentials in URLs for safe logging
 /// Replaces username and password parameters with ***
@@ -50,6 +89,9 @@ impl MpvPlayer {
         audio_lang: Option<&str>,
         subtitle_lang: Option<&str>,
     ) -> Result<()> {
+        // Validate URL before passing to MPV
+        validate_stream_url(url).context("Stream URL validation failed")?;
+
         // Stop any existing playback
         self.stop()?;
 
@@ -107,12 +149,18 @@ impl MpvPlayer {
         audio_lang: Option<&str>,
         subtitle_lang: Option<&str>,
     ) -> Result<()> {
-        // Stop any existing playback
-        self.stop()?;
-
         if urls.is_empty() {
             return Err(anyhow::anyhow!("Cannot play empty playlist"));
         }
+
+        // Validate all URLs before passing to MPV
+        for (i, url) in urls.iter().enumerate() {
+            validate_stream_url(url)
+                .with_context(|| format!("Stream URL validation failed for episode {}", i + 1))?;
+        }
+
+        // Stop any existing playback
+        self.stop()?;
 
         // Build MPV command
         let mut cmd = Command::new("mpv");
@@ -208,5 +256,50 @@ mod tests {
         // This will pass if MPV is installed on the system
         let installed = MpvPlayer::check_installed();
         debug!("MPV installed: {}", installed);
+    }
+
+    #[test]
+    fn test_validate_url_valid_schemes() {
+        assert!(validate_stream_url("http://example.com/stream.m3u8").is_ok());
+        assert!(validate_stream_url("https://example.com/stream.m3u8").is_ok());
+        assert!(validate_stream_url("rtsp://example.com/live").is_ok());
+        assert!(validate_stream_url("rtmp://example.com/live").is_ok());
+        assert!(validate_stream_url("rtp://example.com:1234").is_ok());
+        assert!(validate_stream_url("udp://239.0.0.1:1234").is_ok());
+    }
+
+    #[test]
+    fn test_validate_url_invalid_schemes() {
+        assert!(validate_stream_url("file:///etc/passwd").is_err());
+        assert!(validate_stream_url("ftp://example.com/file").is_err());
+        assert!(validate_stream_url("javascript:alert(1)").is_err());
+        assert!(validate_stream_url("/etc/passwd").is_err());
+        assert!(validate_stream_url("./local/file").is_err());
+    }
+
+    #[test]
+    fn test_validate_url_shell_injection() {
+        assert!(validate_stream_url("http://example.com/`whoami`").is_err());
+        assert!(validate_stream_url("http://example.com/$HOME").is_err());
+        assert!(validate_stream_url("http://example.com/;rm -rf /").is_err());
+        assert!(validate_stream_url("http://example.com/|cat /etc/passwd").is_err());
+        assert!(validate_stream_url("http://example.com/&id").is_err());
+        assert!(validate_stream_url("http://example.com/\nmalicious").is_err());
+    }
+
+    #[test]
+    fn test_validate_url_length() {
+        let long_url = format!("http://example.com/{}", "a".repeat(5000));
+        assert!(validate_stream_url(&long_url).is_err());
+    }
+
+    #[test]
+    fn test_mask_sensitive_data() {
+        let url = "http://server.com?username=secret&password=hunter2&action=play";
+        let masked = mask_sensitive_data(url);
+        assert!(!masked.contains("secret"));
+        assert!(!masked.contains("hunter2"));
+        assert!(masked.contains("username=***"));
+        assert!(masked.contains("password=***"));
     }
 }

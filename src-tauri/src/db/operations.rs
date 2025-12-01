@@ -104,38 +104,55 @@ pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<
 }
 
 pub fn get_channels(conn: &Connection, playlist_id: Option<i64>) -> Result<Vec<Channel>> {
-    let query = if let Some(pid) = playlist_id {
-        format!(
+    let channels = if let Some(pid) = playlist_id {
+        // Use parameterized query to prevent SQL injection
+        let mut stmt = conn.prepare(
             "SELECT id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, created_at
              FROM channels
-             WHERE playlist_id = {}
-             ORDER BY sort_order, name",
-            pid
-        )
+             WHERE playlist_id = ?1
+             ORDER BY sort_order, name"
+        )?;
+        let rows = stmt.query_map(params![pid], |row| {
+            Ok(Channel {
+                id: row.get(0)?,
+                playlist_id: row.get(1)?,
+                name: row.get(2)?,
+                url: row.get(3)?,
+                logo: row.get(4)?,
+                group_name: row.get(5)?,
+                epg_id: row.get(6)?,
+                tvg_name: row.get(7)?,
+                content_type: row.get(8)?,
+                is_favorite: row.get(9)?,
+                sort_order: row.get(10)?,
+                created_at: row.get(11)?,
+            })
+        })?;
+        rows.collect::<Result<Vec<_>>>()?
     } else {
-        "SELECT id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, created_at
-         FROM channels
-         ORDER BY sort_order, name".to_string()
+        let mut stmt = conn.prepare(
+            "SELECT id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, created_at
+             FROM channels
+             ORDER BY sort_order, name"
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok(Channel {
+                id: row.get(0)?,
+                playlist_id: row.get(1)?,
+                name: row.get(2)?,
+                url: row.get(3)?,
+                logo: row.get(4)?,
+                group_name: row.get(5)?,
+                epg_id: row.get(6)?,
+                tvg_name: row.get(7)?,
+                content_type: row.get(8)?,
+                is_favorite: row.get(9)?,
+                sort_order: row.get(10)?,
+                created_at: row.get(11)?,
+            })
+        })?;
+        rows.collect::<Result<Vec<_>>>()?
     };
-
-    let mut stmt = conn.prepare(&query)?;
-    let channels = stmt.query_map([], |row| {
-        Ok(Channel {
-            id: row.get(0)?,
-            playlist_id: row.get(1)?,
-            name: row.get(2)?,
-            url: row.get(3)?,
-            logo: row.get(4)?,
-            group_name: row.get(5)?,
-            epg_id: row.get(6)?,
-            tvg_name: row.get(7)?,
-            content_type: row.get(8)?,
-            is_favorite: row.get(9)?,
-            sort_order: row.get(10)?,
-            created_at: row.get(11)?,
-        })
-    })?
-    .collect::<Result<Vec<_>>>()?;
 
     Ok(channels)
 }

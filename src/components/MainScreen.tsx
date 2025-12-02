@@ -277,7 +277,10 @@ export default function MainScreen() {
         // Fallback: play single episode (shouldn't happen with series, but kept for safety)
         const episodeUrl = `${currentPlaylist.url.replace(/\/$/, '')}/series/${currentPlaylist.xtream_username}/${currentPlaylist.xtream_password}/${episodeId}.${extension}`;
 
+        // Create a temporary channel object for playback
+        // Using id: -1 to indicate this is a virtual/temporary channel
         const episodeChannel: Channel = {
+          id: -1,
           playlist_id: currentPlaylist.id || 0,
           name: title,
           url: episodeUrl,

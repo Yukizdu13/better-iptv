@@ -73,8 +73,9 @@ fn parse_xmltv(xml: &str) -> Result<Vec<EpgProgram>> {
     let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
 
-    let mut programs = Vec::new();
-    let mut buf = Vec::new();
+    // Pre-allocate with estimated capacity (typical EPG has 5k-50k programs)
+    let mut programs = Vec::with_capacity(10_000);
+    let mut buf = Vec::with_capacity(1024);
 
     let mut current_program: Option<EpgProgramBuilder> = None;
     let mut in_title = false;

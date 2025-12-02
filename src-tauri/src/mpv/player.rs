@@ -1,7 +1,9 @@
 use std::process::{Child, Command};
+use std::time::Duration;
 use anyhow::{Context, Result};
 use log::{debug, info, warn};
 use regex::Regex;
+use wait_timeout::ChildExt;
 
 /// Allowed URL schemes for stream playback
 const ALLOWED_SCHEMES: &[&str] = &["http://", "https://", "rtsp://", "rtmp://", "rtp://", "udp://"];
@@ -62,6 +64,13 @@ pub struct MpvPlayer {
     process: Option<Child>,
 }
 
+/// MPV playback options
+struct MpvPlaybackOptions<'a> {
+    title: Option<&'a str>,
+    audio_lang: Option<&'a str>,
+    subtitle_lang: Option<&'a str>,
+}
+
 impl MpvPlayer {
     /// Create a new MPV player instance
     pub fn new() -> Self {
@@ -74,6 +83,60 @@ impl MpvPlayer {
             .arg("--version")
             .output()
             .is_ok()
+    }
+
+    /// Apply default MPV arguments for high-quality playback
+    fn apply_default_args(cmd: &mut Command) {
+        cmd.arg("--hwdec=auto")
+            .arg("--vo=gpu-next")
+            .arg("--profile=high-quality")
+            .arg("--msg-level=all=error")
+            .arg("--cache=yes")
+            .arg("--cache-secs=30")
+            .arg("--demuxer-max-bytes=100M");
+    }
+
+    /// Apply playback options (title, audio/subtitle language)
+    fn apply_playback_options(cmd: &mut Command, options: &MpvPlaybackOptions) {
+        // Add title if provided
+        if let Some(title_str) = options.title {
+            cmd.arg(format!("--title={}", title_str));
+        }
+
+        // Add audio language preference if provided
+        if let Some(lang) = options.audio_lang {
+            if !lang.is_empty() {
+                cmd.arg(format!("--alang={}", lang));
+            }
+        }
+
+        // Add subtitle language preference if provided
+        if let Some(lang) = options.subtitle_lang {
+            if !lang.is_empty() {
+                cmd.arg(format!("--slang={}", lang));
+            }
+        }
+    }
+
+    /// Log MPV command with masked credentials
+    fn log_command(cmd: &Command, episode_count: Option<usize>) {
+        let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().to_string()).collect();
+        let safe_args = args.iter().map(|arg| mask_sensitive_data(arg)).collect::<Vec<_>>();
+
+        if let Some(count) = episode_count {
+            info!("MPV playlist command: {} episodes", count);
+        }
+        debug!("MPV command: mpv {}", safe_args.join(" "));
+    }
+
+    /// Spawn MPV process and store handle
+    fn spawn_mpv(&mut self, cmd: &mut Command) -> Result<()> {
+        let child = cmd
+            .spawn()
+            .context("Failed to spawn MPV process. Is MPV installed?")?;
+
+        self.process = Some(child);
+        Ok(())
     }
 
     /// Play a stream URL with optional title
@@ -97,48 +160,19 @@ impl MpvPlayer {
 
         // Build MPV command
         let mut cmd = Command::new("mpv");
-        cmd.arg("--hwdec=auto")
-            .arg("--vo=gpu-next")
-            .arg("--profile=high-quality")
-            .arg("--msg-level=all=error")
-            .arg("--cache=yes")
-            .arg("--cache-secs=30")
-            .arg("--demuxer-max-bytes=100M");
-
-        // Add title if provided
-        if let Some(title_str) = title {
-            cmd.arg(format!("--title={}", title_str));
-        }
-
-        // Add audio language preference if provided
-        if let Some(lang) = audio_lang {
-            if !lang.is_empty() {
-                cmd.arg(format!("--alang={}", lang));
-            }
-        }
-
-        // Add subtitle language preference if provided
-        if let Some(lang) = subtitle_lang {
-            if !lang.is_empty() {
-                cmd.arg(format!("--slang={}", lang));
-            }
-        }
+        Self::apply_default_args(&mut cmd);
+        Self::apply_playback_options(&mut cmd, &MpvPlaybackOptions {
+            title,
+            audio_lang,
+            subtitle_lang,
+        });
 
         // Add URL
         cmd.arg(url);
 
-        // Log the command with masked credentials
-        let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().to_string()).collect();
-        let safe_args = args.iter().map(|arg| mask_sensitive_data(arg)).collect::<Vec<_>>();
-        debug!("MPV command: mpv {}", safe_args.join(" "));
-
-        // Spawn MPV process
-        let child = cmd
-            .spawn()
-            .context("Failed to spawn MPV process. Is MPV installed?")?;
-
-        self.process = Some(child);
-        Ok(())
+        // Log and spawn
+        Self::log_command(&cmd, None);
+        self.spawn_mpv(&mut cmd)
     }
 
     /// Play a playlist of URLs (for series episodes)
@@ -164,58 +198,42 @@ impl MpvPlayer {
 
         // Build MPV command
         let mut cmd = Command::new("mpv");
-        cmd.arg("--hwdec=auto")
-            .arg("--vo=gpu-next")
-            .arg("--profile=high-quality")
-            .arg("--msg-level=all=error")
-            .arg("--cache=yes")
-            .arg("--cache-secs=30")
-            .arg("--demuxer-max-bytes=100M");
-
-        // Add title if provided (will show for first episode)
-        if let Some(title_str) = title {
-            cmd.arg(format!("--title={}", title_str));
-        }
-
-        // Add audio language preference if provided
-        if let Some(lang) = audio_lang {
-            if !lang.is_empty() {
-                cmd.arg(format!("--alang={}", lang));
-            }
-        }
-
-        // Add subtitle language preference if provided
-        if let Some(lang) = subtitle_lang {
-            if !lang.is_empty() {
-                cmd.arg(format!("--slang={}", lang));
-            }
-        }
+        Self::apply_default_args(&mut cmd);
+        Self::apply_playback_options(&mut cmd, &MpvPlaybackOptions {
+            title,
+            audio_lang,
+            subtitle_lang,
+        });
 
         // Add all URLs as arguments (MPV will play them in sequence)
         for url in urls {
             cmd.arg(url);
         }
 
-        // Log the command with masked credentials
-        let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().to_string()).collect();
-        let safe_args = args.iter().map(|arg| mask_sensitive_data(arg)).collect::<Vec<_>>();
-        info!("MPV playlist command: {} episodes", urls.len());
-        debug!("MPV command: mpv {}", safe_args.join(" "));
-
-        // Spawn MPV process
-        let child = cmd
-            .spawn()
-            .context("Failed to spawn MPV process. Is MPV installed?")?;
-
-        self.process = Some(child);
-        Ok(())
+        // Log and spawn
+        Self::log_command(&cmd, Some(urls.len()));
+        self.spawn_mpv(&mut cmd)
     }
 
-    /// Stop current playback
+    /// Stop current playback with timeout to prevent hanging
     pub fn stop(&mut self) -> Result<()> {
         if let Some(mut child) = self.process.take() {
-            child.kill().context("Failed to kill MPV process")?;
-            child.wait().context("Failed to wait for MPV process")?;
+            // Send kill signal
+            let _ = child.kill();
+
+            // Wait with timeout (5 seconds) to prevent indefinite blocking
+            match child.wait_timeout(Duration::from_secs(5))? {
+                Some(_status) => {
+                    // Process terminated normally
+                }
+                None => {
+                    // Process didn't respond within timeout, force kill
+                    warn!("MPV process did not respond to kill signal, forcing termination");
+                    let _ = child.kill();
+                    // Try waiting again briefly
+                    let _ = child.wait_timeout(Duration::from_secs(1));
+                }
+            }
         }
         Ok(())
     }

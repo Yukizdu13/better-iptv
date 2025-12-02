@@ -60,6 +60,27 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
         [],
     )?;
 
+    // Create index for channel search (LIKE queries on name and group_name)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_channel_search
+         ON channels(name, group_name)",
+        [],
+    )?;
+
+    // Index for playlist filtering (frequently used in WHERE playlist_id = ?)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_channels_playlist_id
+         ON channels(playlist_id)",
+        [],
+    )?;
+
+    // Index for EPG lookups by channel EPG ID
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_channels_epg_id
+         ON channels(epg_id)",
+        [],
+    )?;
+
     // Watch History table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS watch_history (
@@ -69,6 +90,13 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
             duration_seconds INTEGER DEFAULT 0,
             FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
         )",
+        [],
+    )?;
+
+    // Index for watch history lookups by channel
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_watch_history_channel_id
+         ON watch_history(channel_id)",
         [],
     )?;
 

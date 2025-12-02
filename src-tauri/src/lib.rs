@@ -1,11 +1,14 @@
 mod commands;
 mod db;
 mod epg;
+pub mod error;
 mod http;
 mod mpv;
 mod playlist;
 mod state;
 mod utils;
+
+pub use error::{AppError, AppResult};
 
 use commands::*;
 use db::schema::{init_schema, ensure_active_profile};

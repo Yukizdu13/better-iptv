@@ -1,6 +1,31 @@
-use rusqlite::{Connection, Result, params};
+use rusqlite::{Connection, Result, Row, params};
+use std::collections::HashMap;
 use super::models::*;
 use crate::utils::generate_epg_id_swedish;
+
+// ========== Channel Query Helpers ==========
+
+/// SQL columns for channel SELECT queries (in order)
+const CHANNEL_SELECT_COLUMNS: &str =
+    "id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, created_at";
+
+/// Maps a database row to a Channel struct
+fn map_channel_row(row: &Row) -> rusqlite::Result<Channel> {
+    Ok(Channel {
+        id: row.get(0)?,
+        playlist_id: row.get(1)?,
+        name: row.get(2)?,
+        url: row.get(3)?,
+        logo: row.get(4)?,
+        group_name: row.get(5)?,
+        epg_id: row.get(6)?,
+        tvg_name: row.get(7)?,
+        content_type: row.get(8)?,
+        is_favorite: row.get(9)?,
+        sort_order: row.get(10)?,
+        created_at: row.get(11)?,
+    })
+}
 
 // ========== Playlist Operations ==========
 
@@ -105,86 +130,37 @@ pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<
 }
 
 pub fn get_channels(conn: &Connection, playlist_id: Option<i64>) -> Result<Vec<Channel>> {
-    let channels = if let Some(pid) = playlist_id {
-        // Use parameterized query to prevent SQL injection
-        let mut stmt = conn.prepare(
-            "SELECT id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, created_at
-             FROM channels
-             WHERE playlist_id = ?1
-             ORDER BY sort_order, name"
-        )?;
-        let rows = stmt.query_map(params![pid], |row| {
-            Ok(Channel {
-                id: row.get(0)?,
-                playlist_id: row.get(1)?,
-                name: row.get(2)?,
-                url: row.get(3)?,
-                logo: row.get(4)?,
-                group_name: row.get(5)?,
-                epg_id: row.get(6)?,
-                tvg_name: row.get(7)?,
-                content_type: row.get(8)?,
-                is_favorite: row.get(9)?,
-                sort_order: row.get(10)?,
-                created_at: row.get(11)?,
-            })
-        })?;
-        rows.collect::<Result<Vec<_>>>()?
+    if let Some(pid) = playlist_id {
+        let sql = format!(
+            "SELECT {} FROM channels WHERE playlist_id = ?1 ORDER BY sort_order, name",
+            CHANNEL_SELECT_COLUMNS
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let channels = stmt.query_map(params![pid], map_channel_row)?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(channels)
     } else {
-        let mut stmt = conn.prepare(
-            "SELECT id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, created_at
-             FROM channels
-             ORDER BY sort_order, name"
-        )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(Channel {
-                id: row.get(0)?,
-                playlist_id: row.get(1)?,
-                name: row.get(2)?,
-                url: row.get(3)?,
-                logo: row.get(4)?,
-                group_name: row.get(5)?,
-                epg_id: row.get(6)?,
-                tvg_name: row.get(7)?,
-                content_type: row.get(8)?,
-                is_favorite: row.get(9)?,
-                sort_order: row.get(10)?,
-                created_at: row.get(11)?,
-            })
-        })?;
-        rows.collect::<Result<Vec<_>>>()?
-    };
-
-    Ok(channels)
+        let sql = format!(
+            "SELECT {} FROM channels ORDER BY sort_order, name",
+            CHANNEL_SELECT_COLUMNS
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let channels = stmt.query_map([], map_channel_row)?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(channels)
+    }
 }
 
 pub fn search_channels(conn: &Connection, query: &str) -> Result<Vec<Channel>> {
     let search_pattern = format!("%{}%", query);
-    let mut stmt = conn.prepare(
-        "SELECT id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, created_at
-         FROM channels
-         WHERE name LIKE ?1 OR group_name LIKE ?1
-         ORDER BY is_favorite DESC, name
-         LIMIT 100"
-    )?;
+    let sql = format!(
+        "SELECT {} FROM channels WHERE name LIKE ?1 OR group_name LIKE ?1 ORDER BY is_favorite DESC, name LIMIT 100",
+        CHANNEL_SELECT_COLUMNS
+    );
+    let mut stmt = conn.prepare(&sql)?;
 
-    let channels = stmt.query_map(params![search_pattern], |row| {
-        Ok(Channel {
-            id: row.get(0)?,
-            playlist_id: row.get(1)?,
-            name: row.get(2)?,
-            url: row.get(3)?,
-            logo: row.get(4)?,
-            group_name: row.get(5)?,
-            epg_id: row.get(6)?,
-            tvg_name: row.get(7)?,
-            content_type: row.get(8)?,
-            is_favorite: row.get(9)?,
-            sort_order: row.get(10)?,
-            created_at: row.get(11)?,
-        })
-    })?
-    .collect::<Result<Vec<_>>>()?;
+    let channels = stmt.query_map(params![search_pattern], map_channel_row)?
+        .collect::<Result<Vec<_>>>()?;
 
     Ok(channels)
 }
@@ -198,30 +174,14 @@ pub fn toggle_favorite(conn: &Connection, channel_id: i64) -> Result<()> {
 }
 
 pub fn get_favorites(conn: &Connection) -> Result<Vec<Channel>> {
-    let mut stmt = conn.prepare(
-        "SELECT id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, created_at
-         FROM channels
-         WHERE is_favorite = 1
-         ORDER BY name"
-    )?;
+    let sql = format!(
+        "SELECT {} FROM channels WHERE is_favorite = 1 ORDER BY name",
+        CHANNEL_SELECT_COLUMNS
+    );
+    let mut stmt = conn.prepare(&sql)?;
 
-    let channels = stmt.query_map([], |row| {
-        Ok(Channel {
-            id: row.get(0)?,
-            playlist_id: row.get(1)?,
-            name: row.get(2)?,
-            url: row.get(3)?,
-            logo: row.get(4)?,
-            group_name: row.get(5)?,
-            epg_id: row.get(6)?,
-            tvg_name: row.get(7)?,
-            content_type: row.get(8)?,
-            is_favorite: row.get(9)?,
-            sort_order: row.get(10)?,
-            created_at: row.get(11)?,
-        })
-    })?
-    .collect::<Result<Vec<_>>>()?;
+    let channels = stmt.query_map([], map_channel_row)?
+        .collect::<Result<Vec<_>>>()?;
 
     Ok(channels)
 }
@@ -248,33 +208,346 @@ pub fn set_setting(conn: &Connection, key: &str, value: &str) -> Result<()> {
     Ok(())
 }
 
+/// Get multiple settings in a single query for efficiency
+pub fn get_multiple_settings(conn: &Connection, keys: &[&str]) -> Result<HashMap<String, String>> {
+    if keys.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let placeholders = keys.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let sql = format!("SELECT key, value FROM settings WHERE key IN ({})", placeholders);
+
+    let mut stmt = conn.prepare(&sql)?;
+    let result = stmt.query_map(rusqlite::params_from_iter(keys), |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })?
+    .collect::<Result<HashMap<_, _>, _>>()?;
+
+    Ok(result)
+}
+
 // ========== EPG Operations ==========
 
 /// Update EPG IDs for all Swedish channels based on their names
+/// Uses a transaction with prepared statement for batch efficiency
 pub fn update_channel_epg_ids(conn: &Connection) -> Result<usize> {
     // Get all live channels without EPG IDs
     let mut stmt = conn.prepare(
         "SELECT id, name FROM channels WHERE content_type = 'live' AND epg_id IS NULL"
     )?;
-
     let channels: Vec<(i64, String)> = stmt
-        .query_map([], |row| {
-            Ok((row.get(0)?, row.get(1)?))
-        })?
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
         .collect::<Result<Vec<_>, _>>()?;
+    drop(stmt); // Explicitly drop to release borrow
 
+    if channels.is_empty() {
+        return Ok(0);
+    }
+
+    // Batch update using transaction for ~100-1000x performance improvement
+    let tx = conn.unchecked_transaction()?;
     let mut updated_count = 0;
 
-    for (id, name) in channels {
-        // Use shared EPG ID generation function
-        if let Some(epg_id) = generate_epg_id_swedish(&name) {
-            conn.execute(
-                "UPDATE channels SET epg_id = ?1 WHERE id = ?2",
-                params![epg_id, id],
-            )?;
-            updated_count += 1;
+    {
+        let mut update_stmt = tx.prepare_cached(
+            "UPDATE channels SET epg_id = ?1 WHERE id = ?2"
+        )?;
+
+        for (id, name) in &channels {
+            if let Some(epg_id) = generate_epg_id_swedish(name) {
+                update_stmt.execute(params![epg_id, id])?;
+                updated_count += 1;
+            }
         }
     }
 
+    tx.commit()?;
     Ok(updated_count)
+}
+
+// ========== Tests ==========
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::schema::init_schema;
+
+    /// Create an in-memory test database
+    fn setup_test_db() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        conn
+    }
+
+    /// Create a test playlist
+    fn create_test_playlist(conn: &Connection, name: &str) -> i64 {
+        let playlist = Playlist {
+            id: None,
+            name: name.to_string(),
+            url: Some("http://example.com/playlist.m3u".to_string()),
+            file_path: None,
+            last_updated: None,
+            auto_refresh: false,
+            xtream_username: None,
+            xtream_password: None,
+            created_at: None,
+        };
+        create_playlist(conn, &playlist).unwrap()
+    }
+
+    /// Create a test channel
+    fn create_test_channel(conn: &Connection, playlist_id: i64, name: &str) -> i64 {
+        let channel = Channel {
+            id: None,
+            playlist_id,
+            name: name.to_string(),
+            url: "http://example.com/stream.m3u8".to_string(),
+            logo: None,
+            group_name: Some("Test Group".to_string()),
+            epg_id: None,
+            tvg_name: None,
+            content_type: "live".to_string(),
+            is_favorite: false,
+            sort_order: 0,
+            created_at: None,
+        };
+        create_channel(conn, &channel).unwrap()
+    }
+
+    // ========== Playlist Tests ==========
+
+    #[test]
+    fn test_create_playlist_returns_id() {
+        let conn = setup_test_db();
+        let id = create_test_playlist(&conn, "Test Playlist");
+        assert!(id > 0);
+    }
+
+    #[test]
+    fn test_create_multiple_playlists() {
+        let conn = setup_test_db();
+        let id1 = create_test_playlist(&conn, "Playlist 1");
+        let id2 = create_test_playlist(&conn, "Playlist 2");
+        assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn test_get_playlists_returns_all() {
+        let conn = setup_test_db();
+        create_test_playlist(&conn, "Playlist 1");
+        create_test_playlist(&conn, "Playlist 2");
+
+        let playlists = get_playlists(&conn).unwrap();
+        assert_eq!(playlists.len(), 2);
+    }
+
+    #[test]
+    fn test_delete_playlist() {
+        let conn = setup_test_db();
+        let id = create_test_playlist(&conn, "To Delete");
+
+        delete_playlist(&conn, id).unwrap();
+
+        let playlists = get_playlists(&conn).unwrap();
+        assert!(playlists.is_empty());
+    }
+
+    #[test]
+    fn test_rename_playlist() {
+        let conn = setup_test_db();
+        let id = create_test_playlist(&conn, "Old Name");
+
+        rename_playlist(&conn, id, "New Name").unwrap();
+
+        let playlists = get_playlists(&conn).unwrap();
+        assert_eq!(playlists[0].name, "New Name");
+    }
+
+    // ========== Channel Tests ==========
+
+    #[test]
+    fn test_create_channel() {
+        let conn = setup_test_db();
+        let playlist_id = create_test_playlist(&conn, "Test Playlist");
+        let channel_id = create_test_channel(&conn, playlist_id, "Test Channel");
+
+        assert!(channel_id > 0);
+    }
+
+    #[test]
+    fn test_get_channels_by_playlist() {
+        let conn = setup_test_db();
+        let playlist1 = create_test_playlist(&conn, "Playlist 1");
+        let playlist2 = create_test_playlist(&conn, "Playlist 2");
+
+        create_test_channel(&conn, playlist1, "Channel 1");
+        create_test_channel(&conn, playlist1, "Channel 2");
+        create_test_channel(&conn, playlist2, "Channel 3");
+
+        let channels1 = get_channels(&conn, Some(playlist1)).unwrap();
+        let channels2 = get_channels(&conn, Some(playlist2)).unwrap();
+
+        assert_eq!(channels1.len(), 2);
+        assert_eq!(channels2.len(), 1);
+    }
+
+    #[test]
+    fn test_search_channels() {
+        let conn = setup_test_db();
+        let playlist_id = create_test_playlist(&conn, "Test Playlist");
+
+        create_test_channel(&conn, playlist_id, "SVT1 HD");
+        create_test_channel(&conn, playlist_id, "SVT2 HD");
+        create_test_channel(&conn, playlist_id, "TV4 HD");
+
+        let results = search_channels(&conn, "SVT").unwrap();
+        assert_eq!(results.len(), 2);
+
+        let results = search_channels(&conn, "TV4").unwrap();
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn test_search_channels_case_insensitive() {
+        let conn = setup_test_db();
+        let playlist_id = create_test_playlist(&conn, "Test Playlist");
+        create_test_channel(&conn, playlist_id, "SVT1 HD");
+
+        let results = search_channels(&conn, "svt").unwrap();
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn test_toggle_favorite() {
+        let conn = setup_test_db();
+        let playlist_id = create_test_playlist(&conn, "Test Playlist");
+        let channel_id = create_test_channel(&conn, playlist_id, "Test Channel");
+
+        // Initially not favorite
+        let channels = get_channels(&conn, Some(playlist_id)).unwrap();
+        assert!(!channels[0].is_favorite);
+
+        // Toggle to favorite
+        toggle_favorite(&conn, channel_id).unwrap();
+        let channels = get_channels(&conn, Some(playlist_id)).unwrap();
+        assert!(channels[0].is_favorite);
+
+        // Toggle back
+        toggle_favorite(&conn, channel_id).unwrap();
+        let channels = get_channels(&conn, Some(playlist_id)).unwrap();
+        assert!(!channels[0].is_favorite);
+    }
+
+    #[test]
+    fn test_get_favorites() {
+        let conn = setup_test_db();
+        let playlist_id = create_test_playlist(&conn, "Test Playlist");
+        let channel1 = create_test_channel(&conn, playlist_id, "Channel 1");
+        let _channel2 = create_test_channel(&conn, playlist_id, "Channel 2");
+
+        toggle_favorite(&conn, channel1).unwrap();
+
+        let favorites = get_favorites(&conn).unwrap();
+        assert_eq!(favorites.len(), 1);
+        assert_eq!(favorites[0].name, "Channel 1");
+    }
+
+    #[test]
+    fn test_batch_create_channels() {
+        let conn = setup_test_db();
+        let playlist_id = create_test_playlist(&conn, "Test Playlist");
+
+        let channels: Vec<Channel> = (0..100)
+            .map(|i| Channel {
+                id: None,
+                playlist_id,
+                name: format!("Channel {}", i),
+                url: format!("http://example.com/stream{}.m3u8", i),
+                logo: None,
+                group_name: Some("Batch Test".to_string()),
+                epg_id: None,
+                tvg_name: None,
+                content_type: "live".to_string(),
+                is_favorite: false,
+                sort_order: i,
+                created_at: None,
+            })
+            .collect();
+
+        create_channels_batch(&conn, &channels).unwrap();
+
+        let stored = get_channels(&conn, Some(playlist_id)).unwrap();
+        assert_eq!(stored.len(), 100);
+    }
+
+    // ========== Settings Tests ==========
+
+    #[test]
+    fn test_get_set_setting() {
+        let conn = setup_test_db();
+
+        // Initially empty
+        let value = get_setting(&conn, "theme").unwrap();
+        assert!(value.is_none());
+
+        // Set and get
+        set_setting(&conn, "theme", "dark").unwrap();
+        let value = get_setting(&conn, "theme").unwrap();
+        assert_eq!(value, Some("dark".to_string()));
+    }
+
+    #[test]
+    fn test_update_setting() {
+        let conn = setup_test_db();
+
+        set_setting(&conn, "theme", "light").unwrap();
+        set_setting(&conn, "theme", "dark").unwrap();
+
+        let value = get_setting(&conn, "theme").unwrap();
+        assert_eq!(value, Some("dark".to_string()));
+    }
+
+    #[test]
+    fn test_get_multiple_settings() {
+        let conn = setup_test_db();
+
+        set_setting(&conn, "theme", "dark").unwrap();
+        set_setting(&conn, "volume", "80").unwrap();
+        set_setting(&conn, "language", "sv").unwrap();
+
+        let settings = get_multiple_settings(&conn, &["theme", "volume"]).unwrap();
+
+        assert_eq!(settings.len(), 2);
+        assert_eq!(settings.get("theme"), Some(&"dark".to_string()));
+        assert_eq!(settings.get("volume"), Some(&"80".to_string()));
+    }
+
+    #[test]
+    fn test_get_multiple_settings_empty() {
+        let conn = setup_test_db();
+
+        let settings = get_multiple_settings(&conn, &[]).unwrap();
+        assert!(settings.is_empty());
+    }
+
+    // ========== Cascade Delete Tests ==========
+
+    #[test]
+    fn test_delete_playlist_cascades_to_channels() {
+        let conn = setup_test_db();
+        let playlist_id = create_test_playlist(&conn, "Test Playlist");
+        create_test_channel(&conn, playlist_id, "Channel 1");
+        create_test_channel(&conn, playlist_id, "Channel 2");
+
+        // Verify channels exist
+        let channels = get_channels(&conn, Some(playlist_id)).unwrap();
+        assert_eq!(channels.len(), 2);
+
+        // Delete playlist
+        delete_playlist(&conn, playlist_id).unwrap();
+
+        // Verify channels are deleted
+        let all_channels = get_channels(&conn, None).unwrap();
+        assert!(all_channels.is_empty());
+    }
 }

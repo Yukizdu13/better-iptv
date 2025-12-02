@@ -1,3 +1,6 @@
+// Re-export error types
+export * from './errors';
+
 export interface Playlist {
   id?: number;
   name: string;
@@ -11,8 +14,10 @@ export interface Playlist {
   xtream_password?: string;
 }
 
-export interface Channel {
-  id?: number;
+/**
+ * Channel data input (before creation, without id)
+ */
+export interface ChannelInput {
   playlist_id: number;
   name: string;
   url: string;
@@ -23,6 +28,13 @@ export interface Channel {
   content_type: 'live' | 'vod' | 'series';
   is_favorite: boolean;
   sort_order: number;
+}
+
+/**
+ * Channel with required id (after creation/from database)
+ */
+export interface Channel extends ChannelInput {
+  id: number;
   created_at?: string;
 }
 

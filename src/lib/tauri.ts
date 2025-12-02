@@ -65,6 +65,13 @@ export async function getFavorites(): Promise<Channel[]> {
   return await invoke('get_favorites');
 }
 
+export async function getChannelGroups(
+  playlistId: number,
+  contentType?: string
+): Promise<string[]> {
+  return await invoke('get_channel_groups', { playlistId, contentType });
+}
+
 // ========== Series Commands ==========
 
 export interface PlaylistEpisode {

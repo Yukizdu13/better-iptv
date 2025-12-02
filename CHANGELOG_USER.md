@@ -4,6 +4,20 @@ A simple overview of new features and improvements.
 
 ---
 
+## Version 2.2.0 (December 2, 2025)
+
+### New Features
+
+**Category Quick-Access Bar**
+- New horizontal scrollable bar showing provider categories (Sweden, Norway, F1, etc.)
+- Click any category chip to instantly filter channels
+- Categories update automatically based on your selected content type (Live TV, Movies, Series)
+- "All" button to show all channels in the current tab
+
+This makes it much faster to find channels from your favorite categories without having to search!
+
+---
+
 ## Version 2.1.1 (December 2, 2025)
 
 ### Improvements

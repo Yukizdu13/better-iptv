@@ -95,6 +95,7 @@ pub fn run() {
             delete_playlist,
             // Channel commands
             get_channels,
+            get_channel_groups,
             search_channels,
             toggle_favorite,
             get_favorites,

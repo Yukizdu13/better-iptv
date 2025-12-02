@@ -265,6 +265,37 @@ pub fn update_channel_epg_ids(conn: &Connection) -> Result<usize> {
     Ok(updated_count)
 }
 
+// ========== Category Operations ==========
+
+/// Get all unique category/group names for a playlist, optionally filtered by content type
+pub fn get_channel_groups(
+    conn: &Connection,
+    playlist_id: i64,
+    content_type: Option<&str>,
+) -> Result<Vec<String>> {
+    let (sql, groups) = if let Some(ct) = content_type {
+        let sql = "SELECT DISTINCT group_name FROM channels
+                   WHERE playlist_id = ?1 AND group_name IS NOT NULL AND group_name != ''
+                   AND content_type = ?2
+                   ORDER BY group_name";
+        let mut stmt = conn.prepare(sql)?;
+        let result = stmt.query_map(params![playlist_id, ct], |row| row.get(0))?
+            .collect::<Result<Vec<String>, _>>()?;
+        (sql, result)
+    } else {
+        let sql = "SELECT DISTINCT group_name FROM channels
+                   WHERE playlist_id = ?1 AND group_name IS NOT NULL AND group_name != ''
+                   ORDER BY group_name";
+        let mut stmt = conn.prepare(sql)?;
+        let result = stmt.query_map(params![playlist_id], |row| row.get(0))?
+            .collect::<Result<Vec<String>, _>>()?;
+        (sql, result)
+    };
+
+    let _ = sql; // Suppress unused warning
+    Ok(groups)
+}
+
 // ========== Tests ==========
 
 #[cfg(test)]
@@ -528,6 +559,90 @@ mod tests {
 
         let settings = get_multiple_settings(&conn, &[]).unwrap();
         assert!(settings.is_empty());
+    }
+
+    // ========== Category Tests ==========
+
+    #[test]
+    fn test_get_channel_groups() {
+        let conn = setup_test_db();
+        let playlist_id = create_test_playlist(&conn, "Test Playlist");
+
+        // Create channels with different groups
+        let groups = ["Sweden", "Norway", "Denmark"];
+        for (i, group) in groups.iter().enumerate() {
+            let channel = Channel {
+                id: None,
+                playlist_id,
+                name: format!("Channel {}", i),
+                url: "http://example.com/stream.m3u8".to_string(),
+                logo: None,
+                group_name: Some(group.to_string()),
+                epg_id: None,
+                tvg_name: None,
+                content_type: "live".to_string(),
+                is_favorite: false,
+                sort_order: i as i32,
+                created_at: None,
+            };
+            create_channel(&conn, &channel).unwrap();
+        }
+
+        let result = get_channel_groups(&conn, playlist_id, None).unwrap();
+        assert_eq!(result.len(), 3);
+        assert!(result.contains(&"Sweden".to_string()));
+        assert!(result.contains(&"Norway".to_string()));
+        assert!(result.contains(&"Denmark".to_string()));
+    }
+
+    #[test]
+    fn test_get_channel_groups_by_content_type() {
+        let conn = setup_test_db();
+        let playlist_id = create_test_playlist(&conn, "Test Playlist");
+
+        // Create live channel
+        let live_channel = Channel {
+            id: None,
+            playlist_id,
+            name: "Live Channel".to_string(),
+            url: "http://example.com/live.m3u8".to_string(),
+            logo: None,
+            group_name: Some("Live Group".to_string()),
+            epg_id: None,
+            tvg_name: None,
+            content_type: "live".to_string(),
+            is_favorite: false,
+            sort_order: 0,
+            created_at: None,
+        };
+        create_channel(&conn, &live_channel).unwrap();
+
+        // Create VOD channel
+        let vod_channel = Channel {
+            id: None,
+            playlist_id,
+            name: "VOD Channel".to_string(),
+            url: "http://example.com/vod.m3u8".to_string(),
+            logo: None,
+            group_name: Some("VOD Group".to_string()),
+            epg_id: None,
+            tvg_name: None,
+            content_type: "vod".to_string(),
+            is_favorite: false,
+            sort_order: 1,
+            created_at: None,
+        };
+        create_channel(&conn, &vod_channel).unwrap();
+
+        // Filter by live
+        let live_groups = get_channel_groups(&conn, playlist_id, Some("live")).unwrap();
+        assert_eq!(live_groups.len(), 1);
+        assert_eq!(live_groups[0], "Live Group");
+
+        // Filter by vod
+        let vod_groups = get_channel_groups(&conn, playlist_id, Some("vod")).unwrap();
+        assert_eq!(vod_groups.len(), 1);
+        assert_eq!(vod_groups[0], "VOD Group");
     }
 
     // ========== Cascade Delete Tests ==========

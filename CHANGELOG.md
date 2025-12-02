@@ -2,6 +2,25 @@
 
 All notable changes to Better IPTV will be documented in this file.
 
+## [2.2.0] - 2025-12-02
+
+### Added
+
+- **Category Quick-Access Bar** - New horizontal scrollable bar for filtering by provider categories
+  - Backend: `get_channel_groups()` function in `src-tauri/src/db/operations.rs`
+  - Tauri command: `get_channel_groups(playlist_id, content_type?)` returns unique categories
+  - Frontend: New `CategoryBar` component with chip-style buttons
+  - Zustand store: Added `categoryFilter`, `categories`, `setCategoryFilter`, `setCategories`
+  - Auto-fetches categories when content type tab changes
+  - Filter resets to "All" when switching content type tabs
+  - Supports filtering within Live TV, Movies, and Series tabs independently
+
+- **Category Tests** - 2 new Rust unit tests for `get_channel_groups()` function
+
+### Changed
+
+- Channel filtering logic now includes category filter layer between content type and search
+
 ## [2.1.1] - 2025-12-02
 
 ### Added
@@ -160,6 +179,7 @@ All notable changes to Better IPTV will be documented in this file.
 - GitHub Actions CI/CD
 - AUR (Arch User Repository) package
 
+[2.2.0]: https://github.com/mewset/better-ip-tv/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/mewset/better-ip-tv/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/mewset/better-ip-tv/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/mewset/better-ip-tv/compare/v2.0.0...v2.0.1

@@ -7,7 +7,9 @@ import {
   isPlaying as checkIsPlaying,
   getChannelEpg,
   playEpisodeWithSeason,
+  getChannelGroups,
 } from '../lib/tauri';
+import { CategoryBar } from './CategoryBar';
 import {
   Search,
   Play,
@@ -33,6 +35,7 @@ export default function MainScreen() {
     seriesChannels,
     searchQuery,
     contentTypeFilter,
+    categoryFilter,
     currentChannel,
     currentPlaylist,
     isPlaying,
@@ -48,6 +51,7 @@ export default function MainScreen() {
     setCurrentProgram,
     setNextProgram,
     setChannelEpg,
+    setCategories,
   } = usePlayerStore();
 
   const [selectedSeries, setSelectedSeries] = useState<Channel | null>(null);
@@ -57,7 +61,23 @@ export default function MainScreen() {
   // Responsive grid configuration
   const { columns, cardHeight, estimatedRowHeight } = useResponsiveGrid();
 
-  // Filter channels when search query or content type changes
+  // Fetch categories when playlist or content type changes
+  useEffect(() => {
+    if (!currentPlaylist?.id) {
+      setCategories([]);
+      return;
+    }
+
+    const contentType = contentTypeFilter === 'all' ? undefined : contentTypeFilter;
+    getChannelGroups(currentPlaylist.id, contentType)
+      .then(setCategories)
+      .catch((err) => {
+        logger.error('Failed to fetch categories:', err);
+        setCategories([]);
+      });
+  }, [currentPlaylist?.id, contentTypeFilter, setCategories]);
+
+  // Filter channels when search query, content type, or category changes
   useEffect(() => {
     // Get pre-filtered list based on content type (instant tab switching)
     let baseList: Channel[];
@@ -75,6 +95,11 @@ export default function MainScreen() {
         baseList = channels;
     }
 
+    // Apply category filter
+    if (categoryFilter) {
+      baseList = baseList.filter((channel) => channel.group_name === categoryFilter);
+    }
+
     // Apply search filter on top of pre-filtered list
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
@@ -90,6 +115,7 @@ export default function MainScreen() {
   }, [
     searchQuery,
     contentTypeFilter,
+    categoryFilter,
     channels,
     liveChannels,
     vodChannels,
@@ -444,6 +470,9 @@ export default function MainScreen() {
           </div>
         </div>
       </div>
+
+      {/* Category Bar - horizontal scrollable chips */}
+      <CategoryBar />
 
       {/* Channel List with Virtual Scrolling */}
       <div

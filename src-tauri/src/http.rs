@@ -10,7 +10,7 @@ lazy_static! {
 /// Create HTTP client with custom user-agent and reasonable timeouts
 fn create_http_client() -> Client {
     Client::builder()
-        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Better-IPTV/2.1.0")
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Better-IPTV/2.1.1")
         .timeout(Duration::from_secs(30))
         .connect_timeout(Duration::from_secs(10))
         .build()

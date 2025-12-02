@@ -30,6 +30,12 @@ interface PlayerState {
   contentTypeFilter: 'all' | 'live' | 'vod' | 'series';
   setContentTypeFilter: (filter: 'all' | 'live' | 'vod' | 'series') => void;
 
+  // Category Filter (provider categories like "Sweden", "Norway", etc.)
+  categoryFilter: string | null;
+  categories: string[];
+  setCategoryFilter: (category: string | null) => void;
+  setCategories: (categories: string[]) => void;
+
   // Playback
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
@@ -99,7 +105,13 @@ export const usePlayerStore = create<PlayerState>((set) => ({
 
   // Content Type Filter
   contentTypeFilter: 'live',
-  setContentTypeFilter: (filter) => set({ contentTypeFilter: filter }),
+  setContentTypeFilter: (filter) => set({ contentTypeFilter: filter, categoryFilter: null }),
+
+  // Category Filter
+  categoryFilter: null,
+  categories: [],
+  setCategoryFilter: (category) => set({ categoryFilter: category }),
+  setCategories: (categories) => set({ categories }),
 
   // Playback
   isPlaying: false,

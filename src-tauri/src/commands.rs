@@ -182,6 +182,20 @@ pub async fn get_channels(
 }
 
 #[tauri::command]
+pub async fn get_channel_groups(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+    content_type: Option<String>,
+) -> Result<Vec<String>, AppError> {
+    let db = state.db.lock().await;
+    Ok(crate::db::operations::get_channel_groups(
+        &db,
+        playlist_id,
+        content_type.as_deref(),
+    )?)
+}
+
+#[tauri::command]
 pub async fn search_channels(
     state: State<'_, AppState>,
     query: String,

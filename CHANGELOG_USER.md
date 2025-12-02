@@ -4,6 +4,24 @@ A simple overview of new features and improvements.
 
 ---
 
+## Version 2.1.1 (December 2, 2025)
+
+### Improvements
+
+**Better Error Handling**
+- Clearer and more informative error messages
+- Errors in one part of the app no longer crash the whole application
+
+**Faster Performance**
+- Improved database performance for large channel lists
+- Optimized code for a smoother experience
+
+**Higher Quality**
+- 76 new automated tests for improved stability
+- Restructured code for easier maintenance and fewer bugs
+
+---
+
 ## Version 2.1.0 (November 21, 2025)
 
 ### New Features

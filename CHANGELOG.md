@@ -2,6 +2,64 @@
 
 All notable changes to Better IPTV will be documented in this file.
 
+## [2.1.1] - 2025-12-02
+
+### Added
+
+- **Typed Error System (Rust)** - New `AppError` enum in `src-tauri/src/error.rs`
+  - Structured error types: `Database`, `Http`, `InvalidInput`, `PlaylistNotFound`, `ChannelNotFound`, `Mpv`, `Parse`, `Epg`, `Io`, `Config`
+  - JSON-serializable with `thiserror` + `serde` integration
+  - All Tauri commands now return `Result<T, AppError>` instead of `Result<T, String>`
+  - Input validation on all commands
+
+- **Frontend Error Handling**
+  - `src/types/errors.ts`: TypeScript types matching Rust `AppError`
+  - `src/hooks/useErrorHandler.ts`: Toast-based error display with auto-dismiss
+  - `SectionErrorBoundary` component for granular error isolation
+
+- **Extracted React Hooks** - Improved code organization
+  - `useChannelFilter`: Channel filtering and search logic
+  - `useChannelPlayback`: MPV playback control
+  - `useEpgData`: EPG fetching with automatic refresh
+
+- **Extracted UI Components**
+  - `ChannelCard`: Individual channel display
+  - `ChannelHeader`: Page header with playlist info
+  - `SearchBar`: Search input with keyboard handling
+  - `ContentTypeTabs`: Live/VOD/Series tab navigation
+  - `NowPlayingBar`: Current playback status display
+
+- **Database Performance Indexes**
+  ```sql
+  CREATE INDEX idx_channels_playlist_id ON channels(playlist_id);
+  CREATE INDEX idx_channels_epg_id ON channels(epg_id);
+  CREATE INDEX idx_watch_history_channel_id ON watch_history(channel_id);
+  ```
+
+- **Test Coverage** - 76 automated tests total
+  - 32 Rust unit tests (database operations, MPV player, error handling)
+  - 44 Frontend tests (error types, hooks, component behavior)
+
+### Changed
+
+- **MPV Player Refactoring** (`src-tauri/src/mpv/player.rs`)
+  - Extracted helper methods: `apply_default_args()`, `apply_playback_options()`, `log_command()`, `spawn_mpv()`
+  - New `MpvPlaybackOptions` struct for cleaner API
+  - ~40% reduction in code duplication
+
+- **MainScreen Component** - Reduced from 800+ to ~400 lines through hook extraction
+
+### Fixed
+
+- Channel ID handling for virtual/temporary channels (now uses `id: -1`)
+- Error messages now display Swedish translations for known error types
+
+### Technical Debt
+
+- Consolidated 15+ `.map_err(|e| e.to_string())` patterns into typed errors
+- Merged 3 overlapping EPG `useEffect` hooks into single `useEpgData` hook
+- Removed string-based error propagation throughout Rust backend
+
 ## [2.1.0] - 2025-11-21
 
 ### Added
@@ -102,6 +160,7 @@ All notable changes to Better IPTV will be documented in this file.
 - GitHub Actions CI/CD
 - AUR (Arch User Repository) package
 
+[2.1.1]: https://github.com/mewset/better-ip-tv/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/mewset/better-ip-tv/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/mewset/better-ip-tv/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/mewset/better-ip-tv/releases/tag/v2.0.0

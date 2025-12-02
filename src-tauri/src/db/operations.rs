@@ -7,7 +7,7 @@ use crate::utils::generate_epg_id_swedish;
 
 /// SQL columns for channel SELECT queries (in order)
 const CHANNEL_SELECT_COLUMNS: &str =
-    "id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, created_at";
+    "id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, category_order, created_at";
 
 /// Maps a database row to a Channel struct
 fn map_channel_row(row: &Row) -> rusqlite::Result<Channel> {
@@ -23,7 +23,8 @@ fn map_channel_row(row: &Row) -> rusqlite::Result<Channel> {
         content_type: row.get(8)?,
         is_favorite: row.get(9)?,
         sort_order: row.get(10)?,
-        created_at: row.get(11)?,
+        category_order: row.get(11)?,
+        created_at: row.get(12)?,
     })
 }
 
@@ -87,8 +88,8 @@ pub fn rename_playlist(conn: &Connection, playlist_id: i64, new_name: &str) -> R
 
 pub fn create_channel(conn: &Connection, channel: &Channel) -> Result<i64> {
     conn.execute(
-        "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order, category_order)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![
             channel.playlist_id,
             channel.name,
@@ -98,7 +99,8 @@ pub fn create_channel(conn: &Connection, channel: &Channel) -> Result<i64> {
             channel.epg_id,
             channel.tvg_name,
             channel.content_type,
-            channel.sort_order
+            channel.sort_order,
+            channel.category_order
         ],
     )?;
     Ok(conn.last_insert_rowid())
@@ -109,8 +111,8 @@ pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<
 
     for channel in channels {
         tx.execute(
-            "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order, category_order)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 channel.playlist_id,
                 channel.name,
@@ -120,7 +122,8 @@ pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<
                 channel.epg_id,
                 channel.tvg_name,
                 channel.content_type,
-                channel.sort_order
+                channel.sort_order,
+                channel.category_order
             ],
         )?;
     }
@@ -268,32 +271,34 @@ pub fn update_channel_epg_ids(conn: &Connection) -> Result<usize> {
 // ========== Category Operations ==========
 
 /// Get all unique category/group names for a playlist, optionally filtered by content type
+/// Categories are ordered by their original provider order (category_order), not alphabetically
 pub fn get_channel_groups(
     conn: &Connection,
     playlist_id: i64,
     content_type: Option<&str>,
 ) -> Result<Vec<String>> {
-    let (sql, groups) = if let Some(ct) = content_type {
-        let sql = "SELECT DISTINCT group_name FROM channels
+    // Use MIN(category_order) to get the order from provider
+    // Group by group_name to get distinct values, order by the min category_order
+    if let Some(ct) = content_type {
+        let sql = "SELECT group_name, MIN(category_order) as cat_order FROM channels
                    WHERE playlist_id = ?1 AND group_name IS NOT NULL AND group_name != ''
                    AND content_type = ?2
-                   ORDER BY group_name";
+                   GROUP BY group_name
+                   ORDER BY cat_order, group_name";
         let mut stmt = conn.prepare(sql)?;
-        let result = stmt.query_map(params![playlist_id, ct], |row| row.get(0))?
+        let groups = stmt.query_map(params![playlist_id, ct], |row| row.get::<_, String>(0))?
             .collect::<Result<Vec<String>, _>>()?;
-        (sql, result)
+        Ok(groups)
     } else {
-        let sql = "SELECT DISTINCT group_name FROM channels
+        let sql = "SELECT group_name, MIN(category_order) as cat_order FROM channels
                    WHERE playlist_id = ?1 AND group_name IS NOT NULL AND group_name != ''
-                   ORDER BY group_name";
+                   GROUP BY group_name
+                   ORDER BY cat_order, group_name";
         let mut stmt = conn.prepare(sql)?;
-        let result = stmt.query_map(params![playlist_id], |row| row.get(0))?
+        let groups = stmt.query_map(params![playlist_id], |row| row.get::<_, String>(0))?
             .collect::<Result<Vec<String>, _>>()?;
-        (sql, result)
-    };
-
-    let _ = sql; // Suppress unused warning
-    Ok(groups)
+        Ok(groups)
+    }
 }
 
 // ========== Tests ==========
@@ -340,6 +345,7 @@ mod tests {
             content_type: "live".to_string(),
             is_favorite: false,
             sort_order: 0,
+            category_order: 0,
             created_at: None,
         };
         create_channel(conn, &channel).unwrap()
@@ -501,6 +507,7 @@ mod tests {
                 content_type: "live".to_string(),
                 is_favorite: false,
                 sort_order: i,
+                category_order: 0,
                 created_at: None,
             })
             .collect();
@@ -568,9 +575,9 @@ mod tests {
         let conn = setup_test_db();
         let playlist_id = create_test_playlist(&conn, "Test Playlist");
 
-        // Create channels with different groups
-        let groups = ["Sweden", "Norway", "Denmark"];
-        for (i, group) in groups.iter().enumerate() {
+        // Create channels with different groups - note category_order to test ordering
+        let groups = [("Sweden", 0), ("Norway", 1), ("Denmark", 2)];
+        for (i, (group, cat_order)) in groups.iter().enumerate() {
             let channel = Channel {
                 id: None,
                 playlist_id,
@@ -583,6 +590,7 @@ mod tests {
                 content_type: "live".to_string(),
                 is_favorite: false,
                 sort_order: i as i32,
+                category_order: *cat_order,
                 created_at: None,
             };
             create_channel(&conn, &channel).unwrap();
@@ -590,9 +598,10 @@ mod tests {
 
         let result = get_channel_groups(&conn, playlist_id, None).unwrap();
         assert_eq!(result.len(), 3);
-        assert!(result.contains(&"Sweden".to_string()));
-        assert!(result.contains(&"Norway".to_string()));
-        assert!(result.contains(&"Denmark".to_string()));
+        // Check that order is preserved (Sweden first, then Norway, then Denmark)
+        assert_eq!(result[0], "Sweden");
+        assert_eq!(result[1], "Norway");
+        assert_eq!(result[2], "Denmark");
     }
 
     #[test]
@@ -613,6 +622,7 @@ mod tests {
             content_type: "live".to_string(),
             is_favorite: false,
             sort_order: 0,
+            category_order: 0,
             created_at: None,
         };
         create_channel(&conn, &live_channel).unwrap();
@@ -630,6 +640,7 @@ mod tests {
             content_type: "vod".to_string(),
             is_favorite: false,
             sort_order: 1,
+            category_order: 0,
             created_at: None,
         };
         create_channel(&conn, &vod_channel).unwrap();

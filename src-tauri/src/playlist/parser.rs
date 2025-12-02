@@ -104,6 +104,7 @@ fn create_channel_from_info(info: HashMap<String, String>, url: String, idx: usi
         content_type,
         is_favorite: false,
         sort_order: idx as i32,
+        category_order: 0, // M3U files don't have category ordering, use 0
         created_at: None,
     }
 }

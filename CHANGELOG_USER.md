@@ -13,8 +13,11 @@ A simple overview of new features and improvements.
 - Click any category chip to instantly filter channels
 - Categories update automatically based on your selected content type (Live TV, Movies, Series)
 - "All" button to show all channels in the current tab
+- Categories now appear in your provider's original order (not alphabetically)
 
 This makes it much faster to find channels from your favorite categories without having to search!
+
+**Note**: If you had the app before this update, please re-import your playlist in Settings to see categories.
 
 ---
 

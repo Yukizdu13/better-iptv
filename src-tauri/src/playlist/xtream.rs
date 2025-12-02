@@ -74,9 +74,14 @@ struct XtreamStream {
     stream_id: i64,
     stream_icon: Option<String>,
     category_id: Option<String>,
-    category_name: Option<String>,
     #[serde(rename = "type")]
     stream_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct XtreamCategory {
+    category_id: String,
+    category_name: String,
 }
 
 /// Progress information during channel fetching
@@ -95,6 +100,8 @@ pub async fn fetch_xtream_channels_with_progress<F>(
 where
     F: FnMut(FetchProgress),
 {
+    use std::collections::HashMap;
+
     let mut all_channels = Vec::new();
     let mut progress = FetchProgress {
         live_count: 0,
@@ -102,20 +109,38 @@ where
         series_count: 0,
     };
 
+    // Fetch all categories first to build category_id -> (category_name, order) map
+    // Each content type has its own ordering starting from 0
+    let live_categories = fetch_categories(creds, "get_live_categories").await.unwrap_or_default();
+    let vod_categories = fetch_categories(creds, "get_vod_categories").await.unwrap_or_default();
+    let series_categories = fetch_categories(creds, "get_series_categories").await.unwrap_or_default();
+
+    // Build map with (name, order) - order is the index in the provider's list
+    let mut category_map: HashMap<String, (String, i32)> = HashMap::new();
+    for (idx, cat) in live_categories.into_iter().enumerate() {
+        category_map.insert(cat.category_id, (cat.category_name, idx as i32));
+    }
+    for (idx, cat) in vod_categories.into_iter().enumerate() {
+        category_map.insert(cat.category_id, (cat.category_name, idx as i32));
+    }
+    for (idx, cat) in series_categories.into_iter().enumerate() {
+        category_map.insert(cat.category_id, (cat.category_name, idx as i32));
+    }
+
     // Fetch live streams
-    let live_streams = fetch_live_streams(creds).await?;
+    let live_streams = fetch_live_streams(creds, &category_map).await?;
     progress.live_count = live_streams.len();
     all_channels.extend(live_streams);
     progress_callback(progress.clone());
 
     // Fetch VOD streams
-    let vod_streams = fetch_vod_streams(creds).await?;
+    let vod_streams = fetch_vod_streams(creds, &category_map).await?;
     progress.vod_count = vod_streams.len();
     all_channels.extend(vod_streams);
     progress_callback(progress.clone());
 
     // Fetch series
-    let series_streams = fetch_series(creds).await?;
+    let series_streams = fetch_series(creds, &category_map).await?;
     progress.series_count = series_streams.len();
     all_channels.extend(series_streams);
     progress_callback(progress.clone());
@@ -180,8 +205,24 @@ async fn fetch_json_with_retry<T: for<'de> Deserialize<'de>>(url: &str, action: 
     .with_context(|| format!("Failed to fetch {} from Xtream API after retries", action))
 }
 
+/// Fetch categories from Xtream API
+async fn fetch_categories(creds: &XtreamCredentials, action: &str) -> Result<Vec<XtreamCategory>> {
+    let url = format!(
+        "{}/player_api.php?username={}&password={}&action={}",
+        creds.server_url.trim_end_matches('/'),
+        creds.username,
+        creds.password,
+        action
+    );
+
+    fetch_json_with_retry(&url, action).await
+}
+
 /// Fetch live TV streams
-async fn fetch_live_streams(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
+async fn fetch_live_streams(
+    creds: &XtreamCredentials,
+    category_map: &std::collections::HashMap<String, (String, i32)>,
+) -> Result<Vec<Channel>> {
     let url = format!(
         "{}/player_api.php?username={}&password={}&action=get_live_streams",
         creds.server_url.trim_end_matches('/'),
@@ -190,11 +231,14 @@ async fn fetch_live_streams(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
     );
 
     let response: Vec<XtreamStream> = fetch_json_with_retry(&url, "live streams").await?;
-    Ok(convert_streams_to_channels(creds, response, "live"))
+    Ok(convert_streams_to_channels(creds, response, "live", category_map))
 }
 
 /// Fetch VOD streams
-async fn fetch_vod_streams(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
+async fn fetch_vod_streams(
+    creds: &XtreamCredentials,
+    category_map: &std::collections::HashMap<String, (String, i32)>,
+) -> Result<Vec<Channel>> {
     let url = format!(
         "{}/player_api.php?username={}&password={}&action=get_vod_streams",
         creds.server_url.trim_end_matches('/'),
@@ -203,11 +247,14 @@ async fn fetch_vod_streams(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
     );
 
     let response: Vec<XtreamStream> = fetch_json_with_retry(&url, "VOD streams").await?;
-    Ok(convert_streams_to_channels(creds, response, "vod"))
+    Ok(convert_streams_to_channels(creds, response, "vod", category_map))
 }
 
 /// Fetch series
-async fn fetch_series(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
+async fn fetch_series(
+    creds: &XtreamCredentials,
+    category_map: &std::collections::HashMap<String, (String, i32)>,
+) -> Result<Vec<Channel>> {
     let url = format!(
         "{}/player_api.php?username={}&password={}&action=get_series",
         creds.server_url.trim_end_matches('/'),
@@ -216,7 +263,7 @@ async fn fetch_series(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
     );
 
     let response: Vec<XtreamStream> = fetch_json_with_retry(&url, "series").await?;
-    Ok(convert_streams_to_channels(creds, response, "series"))
+    Ok(convert_streams_to_channels(creds, response, "series", category_map))
 }
 
 // Use shared EPG ID generation from utils module
@@ -227,6 +274,7 @@ fn convert_streams_to_channels(
     creds: &XtreamCredentials,
     streams: Vec<XtreamStream>,
     default_content_type: &str,
+    category_map: &std::collections::HashMap<String, (String, i32)>,
 ) -> Vec<Channel> {
     streams
         .into_iter()
@@ -249,18 +297,27 @@ fn convert_streams_to_channels(
                 None
             };
 
+            // Look up category name and order from category_id
+            let (group_name, category_order) = stream
+                .category_id
+                .as_ref()
+                .and_then(|id| category_map.get(id))
+                .map(|(name, order)| (Some(name.clone()), *order))
+                .unwrap_or((None, i32::MAX)); // Uncategorized items go last
+
             Channel {
                 id: None,
                 playlist_id: 0, // Will be set when inserting to database
                 name: stream.name,
                 url,
                 logo: stream.stream_icon,
-                group_name: stream.category_name,
+                group_name,
                 epg_id,
                 tvg_name: None,
                 content_type: content_type.to_string(),
                 is_favorite: false,
                 sort_order: idx as i32,
+                category_order,
                 created_at: None,
             }
         })

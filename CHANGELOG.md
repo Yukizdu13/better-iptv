@@ -15,11 +15,25 @@ All notable changes to Better IPTV will be documented in this file.
   - Filter resets to "All" when switching content type tabs
   - Supports filtering within Live TV, Movies, and Series tabs independently
 
+- **Provider Category Ordering** - Categories now display in the provider's original order
+  - New `category_order` column in channels table stores provider's category position
+  - Xtream API categories are fetched and indexed before streams
+  - Database migration auto-adds column for existing installations
+  - Categories sorted by `MIN(category_order)` instead of alphabetically
+
 - **Category Tests** - 2 new Rust unit tests for `get_channel_groups()` function
 
 ### Changed
 
 - Channel filtering logic now includes category filter layer between content type and search
+
+### Fixed
+
+- **Xtream Category Names** - Fixed missing category names from Xtream API
+  - Xtream API returns `category_id` in streams but not `category_name`
+  - Now fetches categories separately (`get_live_categories`, `get_vod_categories`, `get_series_categories`)
+  - Builds category ID → name map before processing streams
+  - Users need to re-import playlist for categories to appear
 
 ## [2.1.1] - 2025-12-02
 

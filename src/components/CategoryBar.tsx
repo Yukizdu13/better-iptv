@@ -12,7 +12,7 @@ export function CategoryBar() {
 
   return (
     <div
-      className="flex gap-2 overflow-x-auto px-4 py-2 bg-gray-800/50 scrollbar-hide"
+      className="flex gap-2 overflow-x-auto px-4 py-3 pb-6 bg-gray-800/50 scrollbar-hide"
       role="tablist"
       aria-label="Channel categories"
     >

@@ -32,11 +32,18 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
             content_type TEXT DEFAULT 'live',
             is_favorite BOOLEAN DEFAULT 0,
             sort_order INTEGER DEFAULT 0,
+            category_order INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
         )",
         [],
     )?;
+
+    // Migration: Add category_order column if it doesn't exist (for existing databases)
+    let _ = conn.execute(
+        "ALTER TABLE channels ADD COLUMN category_order INTEGER DEFAULT 0",
+        [],
+    );
 
     // EPG Programs table
     conn.execute(

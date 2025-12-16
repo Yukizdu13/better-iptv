@@ -1,0 +1,15 @@
+# GitHub Sponsors configuration
+# This adds a "Sponsor" button to your repository
+
+# Ko-fi
+ko_fi: R6R21I53PD
+
+# Other supported platforms (uncomment and add if you use them):
+# github: [your-github-username]
+# patreon: your-patreon-username
+# open_collective: your-collective
+# tidelift: npm/package-name
+# community_bridge: project-name
+# liberapay: your-liberapay-username
+# issuehunt: your-issuehunt-username
+# custom: ['https://your-custom-donation-link.com']

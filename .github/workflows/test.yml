@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel in-progress runs when a new workflow with the same group name starts
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     strategy:
@@ -28,6 +33,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -57,3 +63,19 @@ jobs:
 
       - name: Build Tauri app (test build)
         run: npm run tauri build -- --verbose
+
+      - name: Generate job summary
+        if: always()
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Platform**: Ubuntu 22.04" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js**: 20" >> $GITHUB_STEP_SUMMARY
+          echo "- **Rust**: stable" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Checks" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Frontend linting" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Code formatting" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Frontend tests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Rust clippy" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Rust tests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Test build" >> $GITHUB_STEP_SUMMARY

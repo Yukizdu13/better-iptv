@@ -6,6 +6,11 @@ on:
       - 'v*' # Triggers on version tags like v1.0.0
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
+# Ensure only one release build runs at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     permissions:
@@ -42,6 +47,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable

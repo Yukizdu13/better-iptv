@@ -1,0 +1,130 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this bug! Please fill out the form below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear description of what the bug is
+      placeholder: When I try to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this bug?
+      placeholder: |
+        1. Open Better IPTV
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: The channel should play...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: The app crashed...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Which OS are you running?
+      options:
+        - Linux (AppImage)
+        - Linux (Flatpak)
+        - Linux (AUR)
+        - Linux (Built from source)
+        - Windows (MSI installer)
+        - Windows (Portable)
+        - macOS (DMG)
+        - macOS (Built from source)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Better IPTV Version
+      description: Which version are you using? (Check in Settings or GitHub release)
+      placeholder: e.g., 2.2.0
+    validations:
+      required: true
+
+  - type: input
+    id: mpv-version
+    attributes:
+      label: MPV Version
+      description: Run `mpv --version` in terminal
+      placeholder: e.g., mpv 0.36.0
+    validations:
+      required: false
+
+  - type: dropdown
+    id: content-type
+    attributes:
+      label: Content Type
+      description: Which type of content does this affect?
+      options:
+        - Live TV
+        - Movies (VOD)
+        - TV Series
+        - EPG (Program Guide)
+        - Playlist Import
+        - All/General
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log File
+      description: |
+        Please attach or paste relevant log entries:
+        - **Linux**: `~/.local/share/better-ip-tv/logs/better-ip-tv.log`
+        - **Windows**: `%APPDATA%\com.m0s.better-ip-tv\logs\better-ip-tv.log`
+        - **macOS**: `~/Library/Application Support/com.m0s.better-ip-tv/logs/better-ip-tv.log`
+      placeholder: Paste log content here...
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain the problem
+      placeholder: Drag and drop images here
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information that might be relevant
+      placeholder: This happens when using VPN, playlist has 50k+ channels, etc.
+    validations:
+      required: false

@@ -76,7 +76,7 @@ fn parse_extinf_line(line: &str) -> HashMap<String, String> {
     }
 
     // Extract channel name (after last comma)
-    if let Some(name) = line.split(',').last() {
+    if let Some(name) = line.split(',').next_back() {
         info.insert("name".to_string(), name.trim().to_string());
     }
 

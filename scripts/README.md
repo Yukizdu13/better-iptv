@@ -221,6 +221,160 @@ Test build the package? (y/n) y
 
 ## 🤖 Automation
 
+### ci-test-local.sh
+
+**Local CI test runner** - Runs the same checks as GitHub Actions locally to catch issues before pushing.
+
+#### Usage
+
+```bash
+# Run all CI checks (fast - no build)
+./scripts/ci-test-local.sh
+
+# Run all CI checks + build test (slower but comprehensive)
+./scripts/ci-test-local.sh --with-build
+```
+
+#### What It Does
+
+Runs exactly the same checks as GitHub Actions CI:
+
+**Frontend Checks:**
+
+- `npm run lint` - ESLint checks
+- `npm run format:check` - Prettier formatting
+- `npm run test:run` - Vitest unit tests
+
+**Rust Checks:**
+
+- `cargo clippy --all-targets -- -D warnings` - Rust linting
+- `cargo test` - Rust unit tests
+
+**Optional Build Test:**
+
+- `npm run tauri build` - Full production build (with `--with-build` flag)
+
+#### Example Output
+
+```bash
+$ ./scripts/ci-test-local.sh
+
+🧪 Running Local CI Tests
+=========================
+
+📦 Frontend Checks
+==================
+
+▶ Running: Frontend linting
+✅ PASSED: Frontend linting
+
+▶ Running: Frontend formatting
+✅ PASSED: Frontend formatting
+
+▶ Running: Frontend tests
+✅ PASSED: Frontend tests
+
+🦀 Rust Checks
+===============
+
+▶ Running: Rust clippy
+✅ PASSED: Rust clippy
+
+▶ Running: Rust tests
+✅ PASSED: Rust tests
+
+=========================
+📊 Test Summary
+=========================
+
+✅ All tests passed! (5/5)
+🚀 Safe to push to GitHub!
+```
+
+#### When To Use
+
+**Before every push:**
+
+```bash
+# Quick check (recommended before every push)
+./scripts/ci-test-local.sh
+
+# If passed, push
+git push
+```
+
+**Before important commits:**
+
+```bash
+# Comprehensive check including build
+./scripts/ci-test-local.sh --with-build
+```
+
+**After making changes:**
+
+- Changed TypeScript code → Run to catch lint/format errors
+- Changed Rust code → Run to catch clippy warnings
+- Before creating PR → Always run with `--with-build`
+
+---
+
+### setup-git-hooks.sh
+
+**Git hooks installer** - Automatically runs CI tests before every commit.
+
+#### Usage
+
+```bash
+# Install pre-commit hook (one-time setup)
+./scripts/setup-git-hooks.sh
+```
+
+#### What It Does
+
+Installs a **pre-commit hook** that:
+
+1. Runs `ci-test-local.sh` before allowing commit
+2. Blocks commit if any check fails
+3. Provides clear error messages
+4. Can be bypassed with `--no-verify` (not recommended)
+
+#### Example
+
+```bash
+$ git commit -m "fix: update feature"
+
+🧪 Running pre-commit checks...
+
+📦 Frontend Checks
+==================
+✅ PASSED: Frontend linting
+✅ PASSED: Frontend formatting
+✅ PASSED: Frontend tests
+
+🦀 Rust Checks
+===============
+✅ PASSED: Rust clippy
+✅ PASSED: Rust tests
+
+✅ Pre-commit checks passed!
+[main abc1234] fix: update feature
+```
+
+#### Bypass Hook (Emergency Only)
+
+```bash
+# Skip pre-commit checks (NOT RECOMMENDED)
+git commit --no-verify -m "emergency fix"
+```
+
+#### Uninstall Hook
+
+```bash
+rm .git/hooks/pre-commit
+```
+
+---
+
 ### dependabot-automerge.sh
 
 **Dependabot PR auto-merger** - Automatically merges safe Dependabot PRs and flags critical updates for review.
@@ -398,6 +552,8 @@ git commit -m "fix: critical bug"
 | `release.sh` | git, node | - |
 | `sync-version.cjs` | node | - |
 | `update-aur.sh` | git, curl, makepkg, sha256sum | - |
+| `ci-test-local.sh` | npm, cargo | - |
+| `setup-git-hooks.sh` | git | - |
 | `dependabot-automerge.sh` | gh (GitHub CLI) | jq (for parsing) |
 
 ### Installing Dependencies

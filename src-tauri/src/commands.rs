@@ -309,7 +309,7 @@ pub async fn import_xtream_playlist(
         debug!(
             "Inserted batch {}/{}",
             batch_num + 1,
-            (total_channels + BATCH_SIZE - 1) / BATCH_SIZE
+            total_channels.div_ceil(BATCH_SIZE)
         );
     }
 

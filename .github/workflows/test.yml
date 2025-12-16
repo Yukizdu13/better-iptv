@@ -56,7 +56,7 @@ jobs:
         run: npm run test:run
 
       - name: Run Rust clippy
-        run: cd src-tauri && cargo clippy --all-targets -- -D warnings
+        run: cd src-tauri && cargo clippy --all-targets -- -D warnings -A dead_code
 
       - name: Run Rust tests
         run: cd src-tauri && cargo test

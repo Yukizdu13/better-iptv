@@ -88,6 +88,27 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
         [],
     )?;
 
+    // Composite index for channel sorting (used in get_channels ORDER BY)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_channels_sorting
+         ON channels(playlist_id, sort_order, name)",
+        [],
+    )?;
+
+    // Index for content type filtering (used in category queries and content type tabs)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_channels_content_type
+         ON channels(playlist_id, content_type)",
+        [],
+    )?;
+
+    // Composite index for category queries with content type filter
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_channels_category
+         ON channels(playlist_id, content_type, group_name, category_order)",
+        [],
+    )?;
+
     // Watch History table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS watch_history (

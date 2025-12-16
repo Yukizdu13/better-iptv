@@ -30,6 +30,7 @@ pub struct Channel {
     pub created_at: Option<String>,
 }
 
+#[allow(dead_code)] // Planned functionality
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpgProgram {
     pub id: Option<i64>,

@@ -2,7 +2,7 @@ use crate::http::get_http_client;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use flate2::read::GzDecoder;
-use log::{info, debug, warn};
+use log::{info, warn};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use rusqlite::{Connection, OptionalExtension};
@@ -91,20 +91,18 @@ fn parse_xmltv(xml: &str) -> Result<Vec<EpgProgram>> {
                         let mut start_time = None;
                         let mut end_time = None;
 
-                        for attr in e.attributes() {
-                            if let Ok(attr) = attr {
-                                match attr.key.as_ref() {
-                                    b"channel" => {
-                                        channel_id = String::from_utf8_lossy(&attr.value).to_string();
-                                    }
-                                    b"start" => {
-                                        start_time = parse_xmltv_time(&attr.value);
-                                    }
-                                    b"stop" => {
-                                        end_time = parse_xmltv_time(&attr.value);
-                                    }
-                                    _ => {}
+                        for attr in e.attributes().flatten() {
+                            match attr.key.as_ref() {
+                                b"channel" => {
+                                    channel_id = String::from_utf8_lossy(&attr.value).to_string();
                                 }
+                                b"start" => {
+                                    start_time = parse_xmltv_time(&attr.value);
+                                }
+                                b"stop" => {
+                                    end_time = parse_xmltv_time(&attr.value);
+                                }
+                                _ => {}
                             }
                         }
 

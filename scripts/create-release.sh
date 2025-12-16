@@ -95,10 +95,23 @@ echo ""
 
 # Ask for release notes
 echo "📝 Release notes for v$current_version:"
-echo "   (Use the commits above as reference)"
-echo "   (Press Ctrl+D when done, or Ctrl+C to cancel)"
+echo "   (Enter multi-line release notes. Type 'END' on a new line when done)"
+echo "   (Use the commits above as reference, or Ctrl+C to cancel)"
 echo ""
-release_notes=$(cat)
+
+# Read multi-line input until "END"
+release_notes=""
+while IFS= read -r line; do
+    if [ "$line" = "END" ]; then
+        break
+    fi
+    if [ -n "$release_notes" ]; then
+        release_notes="$release_notes
+$line"
+    else
+        release_notes="$line"
+    fi
+done
 
 if [ -z "$release_notes" ]; then
     release_notes="Release v$current_version"

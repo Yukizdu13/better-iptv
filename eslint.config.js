@@ -41,6 +41,8 @@ export default [
         HTMLDivElement: 'readonly',
         alert: 'readonly',
         React: 'readonly',
+        AbortController: 'readonly',
+        AbortSignal: 'readonly',
         // Node/Test globals
         global: 'readonly',
         process: 'readonly',

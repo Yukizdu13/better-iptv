@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { usePlayerStore } from '../stores/player-store';
 import { getChannelEpg } from '../lib/tauri';
 import { logger } from '../lib/logger';
@@ -12,6 +12,10 @@ const EPG_CONFIG = {
   BATCH_SIZE: 10,
   /** Interval between full EPG refreshes (ms) */
   REFRESH_INTERVAL: 300000, // 5 minutes
+  /** Debounce delay for channel list changes (ms) */
+  DEBOUNCE_DELAY: 500,
+  /** Maximum channels to fetch EPG for at once */
+  MAX_CHANNELS: 100,
 };
 
 /**
@@ -28,34 +32,49 @@ interface UseEpgDataResult {
  * Custom hook for managing EPG (Electronic Program Guide) data
  *
  * Consolidates all EPG-related logic:
- * - Fetches EPG for visible live channels
+ * - Fetches EPG for visible live channels with debouncing
  * - Batches requests to avoid overwhelming the backend
  * - Periodic refresh every 5 minutes
  * - Responds to external refresh triggers
+ * - Skips channels that already have cached EPG data
  */
 export function useEpgData(channels: Channel[]): UseEpgDataResult {
   const { channelEpgData, setChannelEpg, epgRefreshTrigger, triggerEpgRefresh } = usePlayerStore();
 
   // Track if we're currently fetching to avoid duplicate requests
   const isFetchingRef = useRef(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Fetch EPG for visible channels with EPG IDs
-  useEffect(() => {
-    const fetchVisibleChannelEpg = async () => {
+  // Fetch EPG for channels with debouncing
+  const fetchEpgForChannels = useCallback(
+    async (channelsToFetch: Channel[], forceRefresh = false) => {
       if (isFetchingRef.current) return;
 
-      // Get unique live channels with EPG IDs
-      const channelsWithEpg = channels.filter(
+      // Filter to live channels with EPG IDs
+      let channelsWithEpg = channelsToFetch.filter(
         (c) => c.epg_id && c.id && c.content_type === 'live'
       );
+
+      // Skip channels that already have cached data (unless force refresh)
+      if (!forceRefresh) {
+        channelsWithEpg = channelsWithEpg.filter((c) => c.id && !channelEpgData.has(c.id));
+      }
+
+      // Limit to MAX_CHANNELS to avoid overwhelming the backend
+      channelsWithEpg = channelsWithEpg.slice(0, EPG_CONFIG.MAX_CHANNELS);
 
       if (channelsWithEpg.length === 0) return;
 
       isFetchingRef.current = true;
+      abortControllerRef.current = new AbortController();
 
       try {
         // Fetch EPG in batches
         for (let i = 0; i < channelsWithEpg.length; i += EPG_CONFIG.BATCH_SIZE) {
+          // Check if aborted
+          if (abortControllerRef.current?.signal.aborted) break;
+
           const batch = channelsWithEpg.slice(i, i + EPG_CONFIG.BATCH_SIZE);
 
           await Promise.all(
@@ -74,14 +93,44 @@ export function useEpgData(channels: Channel[]): UseEpgDataResult {
         }
       } finally {
         isFetchingRef.current = false;
+        abortControllerRef.current = null;
+      }
+    },
+    [channelEpgData, setChannelEpg]
+  );
+
+  // Debounced fetch when channels change
+  useEffect(() => {
+    if (channels.length === 0) return;
+
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Cancel ongoing fetch if channel list changed
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Debounce the fetch
+    debounceTimerRef.current = setTimeout(() => {
+      fetchEpgForChannels(channels, false);
+    }, EPG_CONFIG.DEBOUNCE_DELAY);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
     };
+  }, [channels, fetchEpgForChannels]);
 
-    // Only fetch if we have channels
-    if (channels.length > 0) {
-      fetchVisibleChannelEpg();
+  // Handle manual refresh trigger (force refresh all)
+  useEffect(() => {
+    if (epgRefreshTrigger > 0 && channels.length > 0) {
+      fetchEpgForChannels(channels, true);
     }
-  }, [channels, setChannelEpg, epgRefreshTrigger]);
+  }, [epgRefreshTrigger, channels, fetchEpgForChannels]);
 
   // Periodic EPG refresh
   useEffect(() => {
@@ -91,6 +140,18 @@ export function useEpgData(channels: Channel[]): UseEpgDataResult {
 
     return () => clearInterval(interval);
   }, [triggerEpgRefresh]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return {
     channelEpgData,

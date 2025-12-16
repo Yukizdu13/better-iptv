@@ -12,7 +12,7 @@ export function CategoryBar() {
 
   return (
     <div
-      className="flex gap-2 overflow-x-auto px-4 py-3 pb-6 bg-gray-800/50 scrollbar-hide"
+      className="scrollbar-hide flex gap-2 overflow-x-auto bg-gray-800/50 px-4 py-3 pb-6"
       role="tablist"
       aria-label="Channel categories"
     >
@@ -21,15 +21,11 @@ export function CategoryBar() {
         onClick={() => setCategoryFilter(null)}
         role="tab"
         aria-selected={categoryFilter === null}
-        className={`
-          shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900
-          ${
-            categoryFilter === null
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }
-        `}
+        className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+          categoryFilter === null
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+        } `}
       >
         All
       </button>
@@ -41,16 +37,11 @@ export function CategoryBar() {
           onClick={() => setCategoryFilter(category)}
           role="tab"
           aria-selected={categoryFilter === category}
-          className={`
-            shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors
-            whitespace-nowrap
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900
-            ${
-              categoryFilter === category
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }
-          `}
+          className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            categoryFilter === category
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          } `}
         >
           {category}
         </button>

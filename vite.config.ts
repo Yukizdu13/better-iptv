@@ -29,4 +29,43 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+
+  // Build optimizations
+  build: {
+    // Use esbuild for fast minification
+    minify: "esbuild",
+    // Target modern browsers for smaller bundle
+    target: "esnext",
+    // Chunk splitting for better caching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunk for React
+          "react-vendor": ["react", "react-dom"],
+          // UI libraries chunk
+          "ui-vendor": ["lucide-react"],
+          // State management chunk
+          "state-vendor": ["zustand"],
+          // Virtual scrolling chunk
+          "virtual-vendor": ["@tanstack/react-virtual"],
+        },
+      },
+    },
+    // Enable source maps for production debugging (optional)
+    sourcemap: false,
+    // Chunk size warning limit (kB)
+    chunkSizeWarningLimit: 500,
+  },
+
+  // Optimize dependencies
+  optimizeDeps: {
+    // Pre-bundle these dependencies for faster dev startup
+    include: [
+      "react",
+      "react-dom",
+      "zustand",
+      "lucide-react",
+      "@tanstack/react-virtual",
+    ],
+  },
 }));

@@ -17,11 +17,7 @@ interface SearchBarProps {
  * - Responsive width
  * - Dark mode support
  */
-export function SearchBar({
-  value,
-  onChange,
-  placeholder = 'Search channels...',
-}: SearchBarProps) {
+export function SearchBar({ value, onChange, placeholder = 'Search channels...' }: SearchBarProps) {
   return (
     <div className="border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
       <div className="mx-auto px-2">

@@ -21,9 +21,7 @@ export function ChannelHeader({ channelCount, onSettingsClick }: ChannelHeaderPr
       <div className="mx-auto flex items-center justify-between px-2">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Better IPTV</h1>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {channelCount} channels
-          </span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">{channelCount} channels</span>
           <button
             onClick={onSettingsClick}
             className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"

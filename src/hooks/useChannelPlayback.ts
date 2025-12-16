@@ -148,14 +148,7 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
         throw err;
       }
     },
-    [
-      currentChannel,
-      isPlaying,
-      setCurrentChannel,
-      setIsPlaying,
-      setCurrentProgram,
-      setNextProgram,
-    ]
+    [currentChannel, isPlaying, setCurrentChannel, setIsPlaying, setCurrentProgram, setNextProgram]
   );
 
   // Stop playback

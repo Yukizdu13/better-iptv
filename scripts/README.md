@@ -86,6 +86,118 @@ Fixed critical bug
 
 ---
 
+### create-release.sh
+
+**Quick release for current version** - Creates a release tag for the version already in package.json without bumping.
+
+#### Usage
+
+```bash
+./scripts/create-release.sh
+```
+
+#### When To Use
+
+Use this script when you've **already updated the version** in package.json and just want to create a release:
+
+- Version already bumped manually (e.g., from 2.1.0 to 2.2.0)
+- Want to release the current version without changing it
+- Quick release workflow without interactive version selection
+
+For bumping version + creating release in one go, use `release.sh` instead.
+
+#### What It Does
+
+1. **Pre-flight checks:**
+   - Verifies you're in a git repository
+   - Checks for uncommitted changes (prompts to commit if needed)
+   - Verifies the tag doesn't already exist
+
+2. **Version verification:**
+   - Reads current version from `package.json`
+   - Checks version sync across `Cargo.toml` and `tauri.conf.json`
+   - Offers to sync versions if mismatched
+
+3. **Release documentation:**
+   - Shows commits since last release
+   - Prompts for release notes
+   - Creates annotated git tag with release notes
+
+4. **GitHub integration:**
+   - Offers to push tag to GitHub (triggers CI/CD)
+   - Provides next steps guidance
+
+#### Example Session
+
+```bash
+$ ./scripts/create-release.sh
+
+🚀 Better IPTV - Create Release for Current Version
+====================================================
+
+📦 Current version in codebase: v2.2.0
+
+📋 Changes since last release:
+================================
+   Since v2.1.0:
+   3f554fe chore: add development tooling and documentation
+   f3f3a4c chore: add .serena/ to gitignore
+================================
+
+📝 Release notes for v2.2.0:
+   (Use the commits above as reference)
+   (Press Ctrl+D when done, or Ctrl+C to cancel)
+
+Added local CI testing script
+Improved development workflow
+Enhanced documentation
+
+📋 Summary:
+  Version to release: v2.2.0
+  Release notes:
+  ---
+Added local CI testing script
+Improved development workflow
+Enhanced documentation
+  ---
+
+Create release for v2.2.0? (y/n) y
+
+🏷️  Creating git tag v2.2.0...
+✅ Release tag created successfully!
+
+Push to GitHub now? (y/n) y
+📤 Pushing to GitHub...
+🎉 Done! Check GitHub Actions for build progress
+
+💡 Next development cycle:
+   Use ./scripts/release.sh to bump version for next development cycle
+```
+
+#### Requirements
+
+- Node.js installed (for version detection)
+- Git repository with at least one commit
+- Version already updated in `package.json`
+
+#### Workflow Comparison
+
+**create-release.sh** (This script):
+```bash
+# You've already bumped version to 2.2.0 in package.json
+./scripts/create-release.sh
+# → Creates release for v2.2.0 (no version change)
+```
+
+**release.sh** (Version bumping):
+```bash
+# Version is 2.1.0, want to release 2.2.0
+./scripts/release.sh
+# → Bumps to 2.2.0 AND creates release
+```
+
+---
+
 ### sync-version.cjs
 
 **Version synchronization utility** - Ensures version consistency across all project files.
@@ -493,8 +605,10 @@ Edit the script to adjust what's considered "safe":
 
 ### Complete Release Workflow
 
+**Option 1: Bump Version + Release (One Step)**
+
 ```bash
-# 1. Create release
+# 1. Create release (bumps version automatically)
 ./scripts/release.sh
 # Bumps version, syncs across files, creates tag
 
@@ -507,6 +621,34 @@ Edit the script to adjust what's considered "safe":
 # 4. Update AUR package
 ./scripts/update-aur.sh
 # Updates Arch Linux package with new version
+```
+
+**Option 2: Manual Version Update + Release (Two Steps)**
+
+```bash
+# 1. Update version in package.json manually
+# Edit package.json: "version": "2.2.0"
+
+# 2. Sync version across all files
+npm run version:sync
+
+# 3. Commit version change
+git add package.json package-lock.json src-tauri/
+git commit -m "chore: bump version to 2.2.0"
+git push
+
+# 4. Create release for current version
+./scripts/create-release.sh
+# Creates tag for v2.2.0 without version bump
+
+# 5. GitHub Actions automatically builds packages
+# Wait for workflow to complete (~10-15 minutes)
+
+# 6. Publish GitHub release from draft
+# Go to: https://github.com/mewset/better-iptv/releases
+
+# 7. Update AUR package
+./scripts/update-aur.sh
 ```
 
 ### Weekly Maintenance Workflow
@@ -550,6 +692,7 @@ git commit -m "fix: critical bug"
 | Script | Dependencies | Optional |
 |--------|-------------|----------|
 | `release.sh` | git, node | - |
+| `create-release.sh` | git, node | - |
 | `sync-version.cjs` | node | - |
 | `update-aur.sh` | git, curl, makepkg, sha256sum | - |
 | `ci-test-local.sh` | npm, cargo | - |
@@ -586,10 +729,11 @@ sudo apt install gh jq
 
 ### Version Management
 
-- **Always use `release.sh`** - Don't manually edit version numbers
+- **Use scripts for releases** - Either `release.sh` (bump + release) or `create-release.sh` (release only)
 - **Keep package.json as source of truth** - All other versions sync from it
-- **Tag every release** - `release.sh` does this automatically
+- **Tag every release** - Scripts do this automatically
 - **Use semantic versioning** - MAJOR.MINOR.PATCH
+- **Sync versions** - Run `npm run version:sync` after manual version changes
 
 ### Release Process
 

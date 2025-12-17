@@ -31,10 +31,8 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": {
-      "windows": [
-        "../resources/mpv/*"
-      ]
-    }
+    "resources": [
+      "../resources/mpv/*"
+    ]
   }
 }

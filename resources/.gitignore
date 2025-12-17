@@ -1,0 +1,6 @@
+# Ignore bundled MPV (downloaded by script)
+mpv/*
+
+# Keep directory structure
+!mpv/.gitkeep
+!.gitignore

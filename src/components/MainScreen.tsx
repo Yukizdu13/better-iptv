@@ -18,6 +18,7 @@ import type { Channel } from '../types';
 import { logger } from '../lib/logger';
 import { useResponsiveGrid, getGridClasses } from '../hooks/useResponsiveGrid';
 import { useEpgData } from '../hooks/useEpgData';
+import { shouldBlockChannel } from '../lib/parentalControls';
 
 export default function MainScreen() {
   const {
@@ -42,6 +43,13 @@ export default function MainScreen() {
     setCurrentProgram,
     setNextProgram,
     setCategories,
+    parentalEnabled,
+    parentalUnlocked,
+    blockedChannelIds,
+    blockedCategories,
+    parentalAutoDetect,
+    parentalVisibility,
+    loadParentalSettings,
   } = usePlayerStore();
 
   // Use consolidated EPG hook for channel EPG data (with debouncing and caching)
@@ -53,6 +61,11 @@ export default function MainScreen() {
 
   // Responsive grid configuration
   const { columns, cardHeight, estimatedRowHeight } = useResponsiveGrid();
+
+  // Load parental settings on mount
+  useEffect(() => {
+    loadParentalSettings();
+  }, [loadParentalSettings]);
 
   // Fetch categories when playlist or content type changes
   useEffect(() => {
@@ -93,6 +106,20 @@ export default function MainScreen() {
       baseList = baseList.filter((channel) => channel.group_name === categoryFilter);
     }
 
+    // Apply parental controls filter
+    if (parentalEnabled && !parentalUnlocked) {
+      baseList = baseList.filter((channel) => {
+        const blocked = shouldBlockChannel(channel, {
+          enabled: parentalEnabled,
+          autoDetect: parentalAutoDetect,
+          blockedIds: blockedChannelIds,
+          blockedCategories: blockedCategories,
+          unlocked: parentalUnlocked,
+        });
+        return !blocked;
+      });
+    }
+
     // Apply search filter on top of pre-filtered list
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
@@ -114,6 +141,11 @@ export default function MainScreen() {
     vodChannels,
     seriesChannels,
     setFilteredChannels,
+    parentalEnabled,
+    parentalUnlocked,
+    parentalAutoDetect,
+    blockedChannelIds,
+    blockedCategories,
   ]);
 
   // Poll MPV playback status to detect when player is closed externally
@@ -445,16 +477,28 @@ export default function MainScreen() {
                     }}
                   >
                     <div className={`grid ${getGridClasses(columns)} gap-4`}>
-                      {rowItems.map((channel) => (
-                        <ChannelCard
-                          key={channel.id}
-                          channel={channel}
-                          isPlaying={currentChannel?.id === channel.id && isPlaying}
-                          onPlay={() => handlePlayChannel(channel)}
-                          currentProgram={channel.id ? channelEpgData.get(channel.id) : undefined}
-                          cardHeight={cardHeight}
-                        />
-                      ))}
+                      {rowItems.map((channel) => {
+                        const isChannelBlocked = shouldBlockChannel(channel, {
+                          enabled: parentalEnabled,
+                          autoDetect: parentalAutoDetect,
+                          blockedIds: blockedChannelIds,
+                          blockedCategories: blockedCategories,
+                          unlocked: parentalUnlocked,
+                        });
+
+                        return (
+                          <ChannelCard
+                            key={channel.id}
+                            channel={channel}
+                            isPlaying={currentChannel?.id === channel.id && isPlaying}
+                            onPlay={() => handlePlayChannel(channel)}
+                            currentProgram={channel.id ? channelEpgData.get(channel.id) : undefined}
+                            cardHeight={cardHeight}
+                            isBlocked={isChannelBlocked}
+                            parentalVisibility={parentalVisibility}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 );

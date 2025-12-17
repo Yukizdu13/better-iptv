@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { getSetting, setSetting, fetchEpgData } from '../lib/tauri';
+import { X, Lock } from 'lucide-react';
+import { getSetting, setSetting, fetchEpgData, resetParentalPin } from '../lib/tauri';
 import { usePlayerStore } from '../stores/player-store';
 import { logger } from '../lib/logger';
 import ProfileManager from './ProfileManager';
+import PinEntryModal from './modals/PinEntryModal';
+import ChannelBlockingModal from './modals/ChannelBlockingModal';
 
 interface SettingsProps {
   onClose: () => void;
@@ -33,7 +35,7 @@ const LANGUAGE_OPTIONS = [
 ];
 
 export default function Settings({ onClose }: SettingsProps) {
-  const { triggerEpgRefresh } = usePlayerStore();
+  const { triggerEpgRefresh, channels, loadParentalSettings } = usePlayerStore();
   const [epgUrl, setEpgUrl] = useState('https://iptv-epg.org/files/epg-se.xml.gz');
   const [originalEpgUrl, setOriginalEpgUrl] = useState('https://iptv-epg.org/files/epg-se.xml.gz');
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
@@ -41,6 +43,17 @@ export default function Settings({ onClose }: SettingsProps) {
   const [subtitleLang, setSubtitleLang] = useState('none');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Parental Controls state
+  const [parentalEnabled, setParentalEnabled] = useState(false);
+  const [hasPin, setHasPin] = useState(false);
+  const [blockedChannelIds, setBlockedChannelIds] = useState<Set<number>>(new Set());
+  const [blockedCategories, setBlockedCategories] = useState<string[]>([]);
+  const [parentalAutoDetect, setParentalAutoDetect] = useState(false);
+  const [parentalVisibility, setParentalVisibility] = useState<'hide' | 'lock' | 'blur'>('hide');
+  const [showSetPinModal, setShowSetPinModal] = useState(false);
+  const [showChangePinModal, setShowChangePinModal] = useState(false);
+  const [showChannelBlockingModal, setShowChannelBlockingModal] = useState(false);
 
   // Load settings on mount
   useEffect(() => {
@@ -66,6 +79,18 @@ export default function Settings({ onClose }: SettingsProps) {
           const subtitleLang = LANGUAGE_OPTIONS.find((l) => l.iso === savedSubtitleIso);
           if (subtitleLang) setSubtitleLang(subtitleLang.code);
         }
+
+        // Load parental controls settings
+        const { getParentalSettings, getBlockedChannels } = await import('../lib/tauri');
+        const parentalSettings = await getParentalSettings();
+        const blockedIds = await getBlockedChannels();
+
+        setParentalEnabled(parentalSettings.enabled);
+        setHasPin(parentalSettings.has_pin);
+        setBlockedChannelIds(new Set(blockedIds));
+        setBlockedCategories(parentalSettings.blocked_categories);
+        setParentalAutoDetect(parentalSettings.auto_detect);
+        setParentalVisibility(parentalSettings.visibility);
       } catch (err) {
         logger.error('Failed to load settings:', err);
       } finally {
@@ -75,6 +100,36 @@ export default function Settings({ onClose }: SettingsProps) {
 
     loadSettings();
   }, []);
+
+  // Parental Controls handlers
+  const handleResetPin = async () => {
+    if (
+      !window.confirm(
+        'Are you sure you want to reset the PIN? This will also disable parental controls.'
+      )
+    ) {
+      return;
+    }
+    try {
+      await resetParentalPin();
+      setHasPin(false);
+      setParentalEnabled(false);
+      logger.info('Parental PIN reset successfully');
+    } catch (err) {
+      logger.error('Failed to reset PIN:', err);
+      alert(`Failed to reset PIN: ${err}`);
+    }
+  };
+
+  const handlePinSet = async () => {
+    setHasPin(true);
+    await loadParentalSettings();
+    logger.info('Parental PIN set successfully');
+  };
+
+  const handleBlockedChannelsUpdate = (ids: Set<number>) => {
+    setBlockedChannelIds(ids);
+  };
 
   const handleSave = async () => {
     try {
@@ -87,6 +142,14 @@ export default function Settings({ onClose }: SettingsProps) {
       const subtitleIso = LANGUAGE_OPTIONS.find((l) => l.code === subtitleLang)?.iso || '';
       await setSetting('audio_language', audioIso);
       await setSetting('subtitle_language', subtitleIso);
+
+      // Save parental controls settings
+      await setSetting('parental_enabled', parentalEnabled.toString());
+      await setSetting('parental_auto_detect', parentalAutoDetect.toString());
+      await setSetting('parental_visibility', parentalVisibility);
+      const { setBlockedChannels } = await import('../lib/tauri');
+      await setBlockedChannels(Array.from(blockedChannelIds));
+      await setSetting('parental_blocked_categories', JSON.stringify(blockedCategories));
 
       // Only fetch EPG data if URL has actually changed
       const epgUrlChanged = epgUrl.trim() !== originalEpgUrl.trim();
@@ -271,6 +334,126 @@ export default function Settings({ onClose }: SettingsProps) {
               </div>
             </div>
           </div>
+
+          {/* Parental Controls */}
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+              Parental Controls
+            </h3>
+            <div className="space-y-4">
+              {/* Enable toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Enable Parental Controls
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Restrict access to channels with PIN protection
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={parentalEnabled}
+                  onChange={(e) => setParentalEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+                />
+              </div>
+
+              {parentalEnabled && (
+                <>
+                  {/* PIN Setup */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      PIN Code
+                    </label>
+                    {hasPin ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowChangePinModal(true)}
+                          className="rounded-lg bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
+                        >
+                          Change PIN
+                        </button>
+                        <button
+                          onClick={handleResetPin}
+                          className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                        >
+                          Reset PIN
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowSetPinModal(true)}
+                        className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                      >
+                        Set PIN
+                      </button>
+                    )}
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {hasPin ? 'PIN is currently set' : 'No PIN set - parental controls inactive'}
+                    </p>
+                  </div>
+
+                  {hasPin && (
+                    <>
+                      {/* Manual Channel Blocking */}
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Blocked Channels
+                        </label>
+                        <button
+                          onClick={() => setShowChannelBlockingModal(true)}
+                          className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
+                        >
+                          <Lock className="h-4 w-4" />
+                          <span>Select Channels ({blockedChannelIds.size} blocked)</span>
+                        </button>
+                      </div>
+
+                      {/* Auto-detection toggle */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Auto-detect 18+ Content
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Automatically blocks channels with +18, XXX, Adult in name
+                          </p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={parentalAutoDetect}
+                          onChange={(e) => setParentalAutoDetect(e.target.checked)}
+                          className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      {/* Visibility mode */}
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Visibility Mode
+                        </label>
+                        <select
+                          value={parentalVisibility}
+                          onChange={(e) =>
+                            setParentalVisibility(e.target.value as 'hide' | 'lock' | 'blur')
+                          }
+                          className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
+                        >
+                          <option value="hide">Hide completely</option>
+                          <option value="lock">Show with lock icon</option>
+                          <option value="blur">Show blurred</option>
+                        </select>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          How blocked channels appear in the list
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
@@ -290,6 +473,29 @@ export default function Settings({ onClose }: SettingsProps) {
           </button>
         </div>
       </div>
+
+      {/* Modals */}
+      <PinEntryModal
+        isOpen={showSetPinModal}
+        onClose={() => setShowSetPinModal(false)}
+        onSuccess={handlePinSet}
+        mode="set"
+      />
+
+      <PinEntryModal
+        isOpen={showChangePinModal}
+        onClose={() => setShowChangePinModal(false)}
+        onSuccess={handlePinSet}
+        mode="change"
+      />
+
+      <ChannelBlockingModal
+        isOpen={showChannelBlockingModal}
+        onClose={() => setShowChannelBlockingModal(false)}
+        channels={channels}
+        initialBlockedIds={blockedChannelIds}
+        onUpdate={handleBlockedChannelsUpdate}
+      />
     </div>
   );
 }

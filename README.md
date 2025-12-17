@@ -31,8 +31,19 @@ Better IPTV is a cross-platform desktop application that delivers the ultimate I
 
 - **Quick search** - Find channels instantly
 - **Content tabs** - Filter by Live TV, Movies, or Series
+- **Category quick-access** - Horizontal bar for instant category filtering
 - **Virtual scrolling** - Handle massive playlists smoothly
 - **Favorite marking** - Star your favorite channels
+
+### 🔒 Parental Controls
+
+- **PIN Protection** - Secure 4-6 digit PIN with industry-standard encryption
+- **Manual Channel Blocking** - Select specific channels to restrict
+- **Auto-Detection** - Automatically blocks channels with adult content markers (+18, XXX, Adult)
+- **Category Blocking** - Block entire channel categories at once
+- **Three Viewing Modes** - Hide, show with lock icon, or show blurred
+- **Session-Based Unlock** - Temporarily unlock with PIN (re-locks on app restart)
+- **Virtualized Performance** - Smooth operation even with 10,000+ channels
 
 ### 🎨 Modern User Experience
 

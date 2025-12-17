@@ -112,6 +112,13 @@ pub fn run() {
             // EPG commands
             fetch_epg_data,
             get_channel_epg,
+            // Parental controls commands
+            set_parental_pin,
+            verify_parental_pin,
+            reset_parental_pin,
+            get_blocked_channels,
+            set_blocked_channels,
+            get_parental_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

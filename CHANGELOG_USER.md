@@ -8,6 +8,23 @@ A simple overview of new features and improvements.
 
 ### New Features
 
+**Parental Controls 🔒**
+- Protect your family with PIN-protected content restrictions
+- **Set a secure PIN** (4-6 digits) to control access to restricted content
+- **Block specific channels** - Choose exactly which channels to restrict
+  - Easy-to-use channel selection with search
+  - Works smoothly even with thousands of channels
+- **Auto-detect adult content** - Automatically blocks channels with +18, XXX, or Adult in the name
+- **Block entire categories** - Block all channels in categories like "Adult" at once
+- **Three viewing modes**:
+  - Hide blocked channels completely (default)
+  - Show with a lock icon
+  - Show blurred with a lock icon
+- **Temporary unlock** - Enter PIN to temporarily access blocked content (locks again when you restart the app)
+- All settings easily managed from the Settings menu
+
+Perfect for families who want to ensure kids only see appropriate content!
+
 **No More MPV Installation on Windows! 🎉**
 - Windows users no longer need to install MPV separately
 - Everything you need is included in the installer

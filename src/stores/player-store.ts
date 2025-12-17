@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Channel, Playlist, SeriesInfo } from '../types';
+import { getParentalSettings, getBlockedChannels } from '../lib/tauri';
 
 interface PlayerState {
   // Playlists
@@ -64,6 +65,23 @@ interface PlayerState {
   setIsSetupComplete: (complete: boolean) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+
+  // Parental Controls
+  parentalEnabled: boolean;
+  parentalUnlocked: boolean;
+  parentalUnlockExpiry: number | null;
+  blockedChannelIds: Set<number>;
+  blockedCategories: string[];
+  parentalVisibility: 'hide' | 'lock' | 'blur';
+  parentalAutoDetect: boolean;
+  setParentalEnabled: (enabled: boolean) => void;
+  setParentalUnlocked: (unlocked: boolean, duration?: number) => void;
+  setBlockedChannelIds: (ids: Set<number>) => void;
+  setBlockedCategories: (categories: string[]) => void;
+  setParentalVisibility: (mode: 'hide' | 'lock' | 'blur') => void;
+  setParentalAutoDetect: (enabled: boolean) => void;
+  loadParentalSettings: () => Promise<void>;
+  checkChannelBlocked: (channel: Channel) => boolean;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
@@ -150,4 +168,50 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setIsSetupComplete: (complete) => set({ isSetupComplete: complete }),
   isLoading: false,
   setIsLoading: (loading) => set({ isLoading: loading }),
+
+  // Parental Controls
+  parentalEnabled: false,
+  parentalUnlocked: false,
+  parentalUnlockExpiry: null,
+  blockedChannelIds: new Set(),
+  blockedCategories: [],
+  parentalVisibility: 'hide',
+  parentalAutoDetect: false,
+
+  setParentalEnabled: (enabled) => set({ parentalEnabled: enabled }),
+
+  setParentalUnlocked: (unlocked, duration) => {
+    const expiry = duration ? Date.now() + duration : null;
+    set({ parentalUnlocked: unlocked, parentalUnlockExpiry: expiry });
+  },
+
+  setBlockedChannelIds: (ids) => set({ blockedChannelIds: ids }),
+  setBlockedCategories: (categories) => set({ blockedCategories: categories }),
+  setParentalVisibility: (mode) => set({ parentalVisibility: mode }),
+  setParentalAutoDetect: (enabled) => set({ parentalAutoDetect: enabled }),
+
+  loadParentalSettings: async () => {
+    try {
+      const settings = await getParentalSettings();
+      const blockedIds = await getBlockedChannels();
+
+      set({
+        parentalEnabled: settings.enabled,
+        blockedChannelIds: new Set(blockedIds),
+        blockedCategories: settings.blocked_categories,
+        parentalVisibility: settings.visibility,
+        parentalAutoDetect: settings.auto_detect,
+      });
+    } catch (error) {
+      console.error('Failed to load parental settings:', error);
+    }
+  },
+
+  checkChannelBlocked: (channel) => {
+    const state = usePlayerStore.getState();
+    if (!state.parentalEnabled || state.parentalUnlocked) return false;
+    if (channel.id && state.blockedChannelIds.has(channel.id)) return true;
+    if (channel.group_name && state.blockedCategories.includes(channel.group_name)) return true;
+    return false;
+  },
 }));

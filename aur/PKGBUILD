@@ -10,7 +10,7 @@ depends=('mpv' 'webkit2gtk' 'gtk3')
 provides=('better-iptv')
 conflicts=('better-iptv' 'better-iptv-git')
 source=("$pkgname-$pkgver.AppImage::https://github.com/mewset/better-iptv/releases/download/v${pkgver}/better-iptv_${pkgver}_amd64.AppImage")
-sha256sums=('SKIP')  # TODO: Add actual checksum after first release
+sha256sums=('SKIP')  # Automatically updated by scripts/update-aur.sh on release
 options=('!strip')
 
 prepare() {

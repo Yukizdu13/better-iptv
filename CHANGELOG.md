@@ -6,6 +6,34 @@ All notable changes to Better IPTV will be documented in this file.
 
 ### Added
 
+- **Parental Controls** - Comprehensive content restriction system with PIN protection
+  - **PIN Protection**: Secure 4-6 digit PIN with Argon2 hashing
+    - Backend: `set_parental_pin`, `verify_parental_pin`, `reset_parental_pin` commands
+    - Argon2 password hashing (memory-hard, GPU-resistant)
+    - Unique cryptographic salt per PIN
+  - **Manual Channel Blocking**: Select specific channels to block
+    - Virtualized channel selection modal for performance with 10,000+ channels
+    - Search and bulk select/deselect functionality
+    - Blocked channels stored as JSON array in settings
+  - **Auto-Detection**: Automatic blocking of adult content
+    - Regex patterns for +18, XXX, Adult, Erotic, Porn markers
+    - Configurable toggle in Settings
+  - **Category Blocking**: Block entire channel categories at once
+  - **Three Visibility Modes**:
+    - Hide: Blocked channels completely filtered from list (default)
+    - Lock Icon: Shows channel with lock icon overlay
+    - Blur: Shows blurred channel with lock icon
+  - **Session-Based Unlock**: Temporarily unlock with PIN (resets on app restart)
+  - **Filter Integration**: Parental filter applied between category and search filters
+  - Implementation:
+    - Backend: 6 new Tauri commands in `src-tauri/src/commands.rs` (~140 lines)
+    - Database: `delete_setting()` helper function
+    - Frontend: Extended Zustand store with parental state
+    - Utilities: `src/lib/parentalControls.ts` - Detection and filtering logic
+    - Modals: `PinEntryModal.tsx`, `ChannelBlockingModal.tsx`
+    - UI: Comprehensive Parental Controls section in Settings
+    - Visual: Lock/blur overlay system in `ChannelCard.tsx`
+
 - **Bundled MPV for Windows** - MPV player now included in Windows installer
   - Windows installer size increased from ~6MB to ~100MB
   - Latest MPV Windows build bundled in `resources/mpv/` directory
@@ -24,6 +52,14 @@ All notable changes to Better IPTV will be documented in this file.
 - **MPV Path Resolution (Windows)** - New platform-specific logic
   - Windows: Checks `resources/mpv/mpv.exe` first, falls back to system PATH
   - macOS/Linux: Uses system MPV only (unchanged behavior)
+
+### Performance
+
+- **Channel Blocking Modal Optimization** - Virtualized rendering for large channel lists
+  - Uses `@tanstack/react-virtual` for efficient DOM rendering
+  - Renders only ~10-15 visible items instead of all channels
+  - Smooth scrolling and instant search with 10,000+ channels
+  - 68px estimated item height with 5-item overscan buffer
 
 ## [2.2.0] - 2025-12-17
 

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Play, Square, Star, Clapperboard } from 'lucide-react';
+import { Play, Square, Star, Clapperboard, Lock } from 'lucide-react';
 
 interface ChannelCardProps {
   channel: {
@@ -19,6 +19,10 @@ interface ChannelCardProps {
   currentProgram?: string;
   /** Height of the card in pixels */
   cardHeight: number;
+  /** Whether this channel is blocked by parental controls */
+  isBlocked?: boolean;
+  /** Visibility mode for blocked channels */
+  parentalVisibility?: 'hide' | 'lock' | 'blur';
 }
 
 /**
@@ -37,6 +41,8 @@ export const ChannelCard = memo(function ChannelCard({
   onPlay,
   currentProgram,
   cardHeight,
+  isBlocked = false,
+  parentalVisibility = 'hide',
 }: ChannelCardProps) {
   // Calculate dynamic image height (approximately 45% of card height)
   const imageHeight = Math.max(80, Math.round(cardHeight * 0.45));
@@ -47,7 +53,7 @@ export const ChannelCard = memo(function ChannelCard({
 
   return (
     <div
-      className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+      className="relative flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
       style={{ height: `${cardHeight}px` }}
     >
       {/* Logo/Image section */}
@@ -138,6 +144,17 @@ export const ChannelCard = memo(function ChannelCard({
           )}
         </button>
       </div>
+
+      {/* Parental Controls Overlay */}
+      {isBlocked && parentalVisibility !== 'hide' && (
+        <div
+          className={`absolute inset-0 flex items-center justify-center ${
+            parentalVisibility === 'blur' ? 'bg-black/30 backdrop-blur-md' : 'bg-black/70'
+          }`}
+        >
+          <Lock className="h-12 w-12 text-white drop-shadow-lg" />
+        </div>
+      )}
     </div>
   );
 });

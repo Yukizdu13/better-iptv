@@ -141,3 +141,39 @@ export async function fetchEpgData(epgUrl: string): Promise<number> {
 export async function getChannelEpg(channelEpgId: string): Promise<[string | null, string | null]> {
   return await invoke('get_channel_epg', { channelEpgId });
 }
+
+// ========== Parental Controls Commands ==========
+
+export async function setParentalPin(pin: string): Promise<void> {
+  return await invoke('set_parental_pin', { pin });
+}
+
+export async function verifyParentalPin(pin: string): Promise<boolean> {
+  return await invoke('verify_parental_pin', { pin });
+}
+
+export async function resetParentalPin(): Promise<void> {
+  return await invoke('reset_parental_pin');
+}
+
+export async function getBlockedChannels(): Promise<number[]> {
+  return await invoke('get_blocked_channels');
+}
+
+export async function setBlockedChannels(channelIds: number[]): Promise<void> {
+  return await invoke('set_blocked_channels', { channelIds });
+}
+
+export interface ParentalSettings {
+  enabled: boolean;
+  has_pin: boolean;
+  auto_detect: boolean;
+  blocked_channels: number[];
+  blocked_categories: string[];
+  unlock_duration: string;
+  visibility: 'hide' | 'lock' | 'blur';
+}
+
+export async function getParentalSettings(): Promise<ParentalSettings> {
+  return await invoke('get_parental_settings');
+}

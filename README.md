@@ -5,7 +5,7 @@
 
   **Modern, cross-platform IPTV player built with Rust and Tauri**
 
-  [![Build Status](https://github.com/mewset/better-iptv/workflows/CI/badge.svg)](https://github.com/mewset/better-iptv/actions)
+  [![Test Build](https://github.com/mewset/better-iptv/workflows/Test%20Build/badge.svg)](https://github.com/mewset/better-iptv/actions)
   [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/mewset/better-iptv/actions)
   [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-blue.svg)](#-installation)
   [![AUR](https://img.shields.io/aur/version/better-iptv-bin?logo=archlinux&label=AUR)](https://aur.archlinux.org/packages/better-iptv-bin)

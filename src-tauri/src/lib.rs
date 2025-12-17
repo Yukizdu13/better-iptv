@@ -20,6 +20,14 @@ use tauri_plugin_log::{Target, TargetKind, RotationStrategy, TimezoneStrategy};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Workaround for WebKitGTK 2.50+ EGL display bug on Wayland
+    // See: https://github.com/tauri-apps/tauri/issues/11988
+    // See: https://bugs.webkit.org/show_bug.cgi?id=280239
+    #[cfg(target_os = "linux")]
+    {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(

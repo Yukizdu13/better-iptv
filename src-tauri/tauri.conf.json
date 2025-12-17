@@ -33,6 +33,17 @@
     ],
     "resources": [
       "../resources/mpv/*"
-    ]
+    ],
+    "linux": {
+      "deb": {
+        "desktopTemplate": "templates/better-iptv.desktop"
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      },
+      "rpm": {
+        "desktopTemplate": "templates/better-iptv.desktop"
+      }
+    }
   }
 }

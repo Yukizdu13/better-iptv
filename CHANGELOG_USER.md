@@ -45,6 +45,11 @@ Perfect for families who want to ensure kids only see appropriate content!
 
 **Note for Mac and Linux users**: You'll still install MPV the usual way (via Homebrew on Mac or your package manager on Linux). This change only affects Windows.
 
+**Fixed Linux Wayland Display Issue 🐧**
+- Fixed crash on startup for Linux users with Wayland display server
+- The app now automatically works around a WebKit bug that caused "EGL_BAD_PARAMETER" errors
+- No configuration needed - it just works!
+
 ---
 
 ## Version 2.2.0 (December 17, 2025)

@@ -1,87 +1,89 @@
-# 📺 Better IPTV
+<div align="center">
+  <img src="src/assets/logo/logo-256.png" alt="Better IPTV Logo" width="200"/>
 
-## **Modern, powerful IPTV player for Linux, Windows, and macOS**
+  # Better IPTV
 
-Better IPTV is a cross-platform desktop application that delivers the ultimate IPTV experience. Built with Rust and Tauri for maximum performance, and MPV for reliable video playback.
+  **Modern, cross-platform IPTV player built with Rust and Tauri**
+
+  [![Build Status](https://github.com/mewset/better-ip-tv/workflows/CI/badge.svg)](https://github.com/mewset/better-ip-tv/actions)
+  [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/mewset/better-ip-tv/actions)
+  [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-blue.svg)](#-installation)
+  [![AUR](https://img.shields.io/aur/version/better-iptv-bin?logo=archlinux&label=AUR)](https://aur.archlinux.org/packages/better-iptv-bin)
+  [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](LICENSE)
+
+  [Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [FAQ](#-faq) • [Contributing](#-contributing)
+</div>
+
+---
+
+## 📺 Overview
+
+Better IPTV is a powerful desktop IPTV player that combines the performance of Rust with the flexibility of a modern web UI. Built on MPV for reliable video playback, it handles everything from live TV to movies and series with ease.
+
+**Why Better IPTV?**
+- 🚀 **Fast & Efficient** - Rust backend handles 100,000+ channels without breaking a sweat
+- 🎯 **Smart Features** - EPG, parental controls, multi-profile support, and more
+- 🎨 **Modern UI** - Clean, responsive interface with dark/light themes
+- 🔒 **Privacy First** - All data stored locally, credentials never leave your device
+- 🌍 **Cross-Platform** - One app for Linux, Windows, and macOS
 
 ---
 
 ## ✨ Features
 
-### 🎬 Complete Content Support
+### 🎬 Complete Content Library
+- **Live TV** - Stream live channels with real-time Electronic Program Guide (EPG)
+- **Movies (VOD)** - Browse and watch thousands of on-demand movies
+- **TV Series** - Automatic episode playlists with season/episode organization
+- **Smart Search** - Instant filtering across all content types
+- **Virtual Scrolling** - Smooth performance with massive playlists (tested with 100K+ channels)
 
-- **Live TV** - Stream live channels with real-time EPG
-- **Movies (VOD)** - Thousands of movies on demand
-- **TV Series** - Binge-watch your favorite series with automatic playlist
+### 🔒 Family-Friendly Parental Controls
+> **New in v2.3.0**
+
+Protect your family with comprehensive content restrictions:
+- **Secure PIN Protection** - 4-6 digit PIN with industry-standard Argon2 encryption
+- **Manual Channel Blocking** - Select specific channels to restrict (with virtualized selection for smooth performance)
+- **Auto-Detection** - Automatically identifies and blocks adult content (+18, XXX, Adult markers)
+- **Category Blocking** - Block entire channel groups at once
+- **Three Viewing Modes**:
+  - **Hide** - Completely remove blocked channels from view
+  - **Lock Icon** - Show with lock indicator, unlock with PIN
+  - **Blur** - Show blurred thumbnail, unlock to watch
+- **Session-Based** - Temporary unlock during session, auto-locks on restart
 
 ### 📋 Flexible Playlist Management
+- **M3U/M3U8 Support** - Import from local files or URLs
+- **Xtream Codes Integration** - Direct connection to your IPTV provider
+- **Multi-Profile System** - Switch between multiple providers/playlists
+- **Favorites** - Star channels for quick access
+- **Category Quick-Access** - Horizontal bar for instant category filtering
 
-- **M3U/M3U8 files** - Import from file or URL
-- **Xtream Codes API** - Direct integration with your IPTV provider
-- Support for large playlists (100,000+ channels) without performance issues
+### 🌐 Language & Accessibility
+- **19 Language Support** - Audio and subtitle preferences for:
+  - Scandinavian: Swedish, Norwegian, Danish, Finnish
+  - European: English, German, French, Spanish, Italian, Portuguese, Dutch, Polish, Russian
+  - International: Arabic, Turkish, Japanese, Chinese, Korean
+- **Per-Profile Settings** - Different language preferences for each profile
 
-### 📺 EPG (Electronic Program Guide)
-
-- Shows what's airing **right now** on live channels
-- See what's coming up **next** in the schedule
-- Automatic updating and synchronization
-- XMLTV format with gzip compression support
-
-### 🎯 Smart Navigation
-
-- **Quick search** - Find channels instantly
-- **Content tabs** - Filter by Live TV, Movies, or Series
-- **Category quick-access** - Horizontal bar for instant category filtering
-- **Virtual scrolling** - Handle massive playlists smoothly
-- **Favorite marking** - Star your favorite channels
-
-### 🔒 Parental Controls
-
-- **PIN Protection** - Secure 4-6 digit PIN with industry-standard encryption
-- **Manual Channel Blocking** - Select specific channels to restrict
-- **Auto-Detection** - Automatically blocks channels with adult content markers (+18, XXX, Adult)
-- **Category Blocking** - Block entire channel categories at once
-- **Three Viewing Modes** - Hide, show with lock icon, or show blurred
-- **Session-Based Unlock** - Temporarily unlock with PIN (re-locks on app restart)
-- **Virtualized Performance** - Smooth operation even with 10,000+ channels
-
-### 🎨 Modern User Experience
-
-- Dark and light theme
-- Grid layout with channel logos
-- Visual program information on each channel
-- "Now Playing" bar with complete info
-- Responsive design
-
-### 📺 TV Series with Style
-
-- Dedicated series view with seasons and episodes
-- Visual episode images and descriptions
-- **Automatic playlist** - Start an episode, the rest plays in order
-- Complete metadata (plot, rating, genre)
-
-### 🚀 Performance & Stability
-
-- **MPV integration** - All video formats and codecs supported
-- **Hardware acceleration** - Automatic GPU usage
-- **Local database** - SQLite for fast access
-- **Batch processing** - Fast import of large playlists
-- **Cross-platform** - One codebase for all operating systems
+### 🚀 Performance & Reliability
+- **MPV Integration** - Industry-standard player with all codecs supported
+- **Hardware Acceleration** - Automatic GPU usage for smooth playback
+- **SQLite Database** - Lightning-fast local storage
+- **Batch Processing** - Efficiently handles large playlist imports
+- **Error Boundaries** - Graceful degradation, no full-app crashes
 
 ---
 
 ## 📥 Installation
 
-> **⚠️ Known Issue (Linux/Wayland):** Versions 2.0.0-2.0.1 may encounter `EGL_BAD_PARAMETER` error on newer systems running Wayland (especially Hyprland). This is a WebKit2GTK compatibility issue that has been fixed in the build pipeline. **Workaround:** Build locally (`npm run tauri build`) or wait for the next release (2.0.2+) which includes the fix.
-
 ### System Requirements
 
-#### **MPV (Media Player)**
+#### MPV Media Player
 
-Better IPTV uses MPV for video playback. First, install MPV:
+Better IPTV uses MPV for video playback. Installation varies by platform:
 
 **Linux:**
-
 ```bash
 # Ubuntu/Debian
 sudo apt install mpv
@@ -94,382 +96,349 @@ sudo dnf install mpv
 ```
 
 **macOS:**
-
 ```bash
 brew install mpv
 ```
 
 **Windows:**
+> **🎉 New in v2.3.0:** Windows users no longer need to install MPV separately! It's now bundled with the installer.
 
+If you prefer a manual installation or already have MPV:
 - Download from [mpv.io](https://mpv.io/installation/)
 - Or use Chocolatey: `choco install mpv`
 
-#### **Better IPTV App**
+### Download Better IPTV
 
-**Pre-built packages:**
+**Pre-built Packages:**
+1. Visit [Releases](https://github.com/mewset/better-ip-tv/releases/latest)
+2. Download for your platform:
+   - **Linux**: `.AppImage` (universal), `.deb` (Ubuntu/Debian), `.rpm` (Fedora/RHEL)
+   - **Windows**: `.msi` installer or `.exe` portable
+   - **macOS**: `.dmg` disk image
 
-1. Go to [Releases](https://github.com/mewset/better-ip-tv/releases)
-2. Download the appropriate package for your system:
-   - **Linux**: `.AppImage`, `.deb`, or `.rpm`
-   - **Windows**: `.msi` or `.exe`
-   - **macOS**: `.dmg`
-
-**Linux - AppImage:**
-
+**Linux AppImage:**
 ```bash
 chmod +x Better-IPTV.AppImage
 ./Better-IPTV.AppImage
 ```
 
-**Build from source:**
-
+**Build from Source:**
 ```bash
-# Clone repository
 git clone https://github.com/mewset/better-ip-tv.git
 cd better-ip-tv
-
-# Install dependencies
 npm install
-
-# Build application
 npm run tauri build
-
-# Build output location: src-tauri/target/release/bundle/
+# Output: src-tauri/target/release/bundle/
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
-### Step 1: First Launch
+### 1️⃣ Launch & Setup
 
-Launch Better IPTV. You'll be greeted with the setup screen where you can import your first playlist.
+On first launch, you'll see the setup screen. Choose your import method:
 
-### Step 2: Import Playlist
+### 2️⃣ Import Playlist
 
-#### **Option A: M3U/M3U8 File**
-
+**Option A: M3U/M3U8 File**
 1. Click **"Import M3U Playlist"**
-2. Enter a name for your playlist (e.g., "My IPTV")
+2. Enter a profile name (e.g., "My IPTV")
 3. Choose source:
-   - **Local file**: Browse and select your .m3u or .m3u8 file
-   - **URL**: Paste the link to your M3U file
-4. Click **"Import"**
-5. Wait while channels are imported
+   - **Local File**: Browse to your `.m3u`/`.m3u8` file
+   - **URL**: Paste your playlist URL
+4. Click **"Import"** and wait for channels to load
 
-#### **Option B: Xtream Codes**
-
+**Option B: Xtream Codes**
 1. Click **"Import Xtream Playlist"**
-2. Enter a name for your playlist
-3. Fill in your Xtream credentials:
+2. Enter a profile name
+3. Fill in credentials:
    - **Server URL**: `http://server.com:port`
    - **Username**: Your username
    - **Password**: Your password
-4. Click **"Import"**
-5. Wait while channels, movies AND series are imported
+4. Click **"Import"** (loads Live TV, Movies, and Series)
 
-### Step 3: Configure EPG (Optional)
+### 3️⃣ Configure EPG (Optional)
 
-1. Open settings (gear icon)
-2. Go to **EPG Settings**
-3. Enter URL to your XMLTV EPG file
+1. Open **Settings** (gear icon)
+2. Navigate to **EPG Settings**
+3. Enter your XMLTV EPG URL
 4. Click **"Fetch EPG"**
-5. EPG data will update automatically going forward
+5. EPG updates automatically going forward
 
-### Step 4: Start Watching
+### 4️⃣ Start Watching!
 
-- Browse the channel list or use the search function
-- Click **"Play"** to start a channel
-- MPV player opens in a new window
-- See program information directly on the channel card or in the "Now Playing" bar
+- **Browse**: Use tabs (All/Live TV/Movies/Series) and category bar
+- **Search**: Type in search box for instant filtering
+- **Play**: Click play button on any channel
+- **Enjoy**: MPV opens in separate window with full playback controls
 
 ---
 
-## 💡 Usage
+## 💡 Usage Tips
 
-### Navigate Between Content Types
+### Content Navigation
+- **Tabs**: Filter by All, Live TV, Movies, or Series
+- **Category Bar**: Horizontal scroll for quick category access
+- **Search**: Real-time filtering by channel/group name
+- **Favorites**: Click star icon to mark favorites
 
-Use the tabs at the top to filter content:
+### Watching Series
+1. Go to **Series** tab
+2. Select a series to open details
+3. Choose season from dropdown
+4. Click **Play** on any episode → remaining episodes auto-queue
 
-- **All** - Show everything
-- **Live TV** - Only live channels with EPG
-- **Movies** - VOD movies
-- **Series** - TV series
+### Multiple Profiles
+- Import multiple playlists as separate profiles
+- Switch profiles from setup screen
+- Each profile maintains independent channels, favorites, and settings
 
-### Search for Channels
-
-Use the search field to find channels quickly:
-
-- Searches both channel names and group names
-- Real-time filtering as you type
-- Works together with content tabs
-
-### Watch TV Series
-
-1. Go to the **Series** tab
-2. Click on a series to open the series view
-3. Select season in the season selector
-4. Click **"Play"** on an episode
-5. All following episodes in the season are automatically queued
-
-### Mark Favorites
-
-- Click the star icon on a channel card
-- Favorite channels display with a yellow star
-- Use the favorite filter to show only favorites
-
-### Change Theme
-
-1. Open settings (gear icon)
-2. Choose between **Light** or **Dark** mode
-3. Theme is saved automatically
-
-### Manage Multiple Playlists
-
-- Import multiple M3U or Xtream playlists
-- Switch between playlists in the setup screen
-- Delete old playlists by clicking the trash icon
+### Parental Controls
+1. Open **Settings** → **Parental Controls**
+2. Set a PIN (4-6 digits)
+3. Choose blocking method:
+   - Manual selection
+   - Auto-detect adult content
+   - Category blocking
+4. Select viewing mode (Hide/Lock/Blur)
+5. Save settings
 
 ---
 
 ## 🎮 Keyboard Shortcuts
 
-### (Works in the MPV player)
+*Within MPV player window:*
 
-- **Space** - Pause/Play
-- **F** - Fullscreen
-- **↑/↓** - Volume up/down
-- **←/→** - Seek backward/forward (10 seconds)
-- **M** - Mute/unmute
-- **Q** - Close player
-- **Esc** - Exit fullscreen
+| Key | Action |
+|-----|--------|
+| `Space` | Play/Pause |
+| `F` | Toggle Fullscreen |
+| `↑` / `↓` | Volume Up/Down |
+| `←` / `→` | Seek Backward/Forward (10s) |
+| `M` | Mute/Unmute |
+| `Q` | Quit Player |
+| `Esc` | Exit Fullscreen |
 
 ---
 
-## ❓ Frequently Asked Questions (FAQ)
+## ❓ FAQ
 
-### Why won't MPV open?
+<details>
+<summary><strong>Why won't MPV open?</strong></summary>
 
-**Answer:** MPV must be installed on your system. See [Installation](#-installation) above.
+MPV must be installed on your system (except Windows v2.3.0+ which includes it bundled).
 
-Verify that MPV is installed:
-
+Verify installation:
 ```bash
 mpv --version
 ```
 
-### Can I watch channels directly in the app?
+See [Installation](#-installation) for platform-specific instructions.
+</details>
 
-**Answer:** No, Better IPTV uses MPV as an external player. This provides better codec support and performance, but video is shown in a separate MPV window.
+<details>
+<summary><strong>Can I watch channels directly in the app?</strong></summary>
 
-### EPG data not showing?
+No, Better IPTV uses MPV as an external player. This provides superior codec support and performance, but video displays in a separate window.
+</details>
 
-**Answer:** Check that:
+<details>
+<summary><strong>EPG data not showing?</strong></summary>
 
-1. Your playlist contains EPG identifiers (tvg-id or tvg-name)
-2. You have configured an EPG URL in settings
-3. EPG data has been fetched (click "Fetch EPG" in settings)
+Check:
+1. Playlist contains EPG identifiers (`tvg-id` or `tvg-name`)
+2. EPG URL configured in Settings → EPG Settings
+3. EPG data fetched (click "Fetch EPG" button)
+4. Wait a minute for EPG refresh cycle
+</details>
 
-### How large playlists are supported?
+<details>
+<summary><strong>How many channels can it handle?</strong></summary>
 
-**Answer:** Better IPTV can handle 50.000+ channels without performance issues thanks to virtual scrolling and batch processing.
+Better IPTV uses virtual scrolling and batch processing to handle 50,000+ channels without performance degradation. Better-IPTV has been using a 150.000+ channel playlist during development without any problems.
+</details>
 
-### Does it work with VPN?
+<details>
+<summary><strong>Does it work with VPN?</strong></summary>
 
-**Answer:** Yes, Better IPTV works excellently with VPN. Make sure your VPN is active before starting streams.
+Yes! Ensure your VPN is active before launching streams.
+</details>
 
-### Are my Xtream credentials stored securely?
+<details>
+<summary><strong>Are my Xtream credentials secure?</strong></summary>
 
-**Answer:** Yes, all credentials are stored locally in a SQLite database on your computer. Nothing is sent to external servers.
+Absolutely. All credentials are stored locally in an SQLite database on your device. Nothing is sent to external servers. Logs automatically mask sensitive data.
+</details>
 
-### Can I play local video files?
+<details>
+<summary><strong>Can I play local video files?</strong></summary>
 
-**Answer:** No, Better IPTV is designed solely for IPTV streams. Use MPV directly for local files.
+No, Better IPTV is designed exclusively for IPTV streams. Use MPV directly for local media.
+</details>
 
 ---
 
 ## 🛠️ Troubleshooting
 
-### Channels constantly buffering
+### Channels Buffering
+- **Check internet connection** - Run speed test
+- **Try another channel** - May be provider/server issue
+- **Adjust MPV cache** - Advanced users: edit MPV config
 
-- **Solution 1**: Check your internet connection
-- **Solution 2**: Try another channel (could be server issue)
-- **Solution 3**: Increase cache size in MPV (advanced)
+### Series Not Importing (Xtream)
+- **Verify credentials** - Double-check username/password
+- **Check provider support** - Not all Xtream providers offer series
+- **Retry import** - Network issues may cause partial imports
 
-### Series not importing from Xtream
+### App Won't Start
+- **Linux**: Ensure `.AppImage` has execute permissions (`chmod +x`)
+- **Windows**: Run as administrator or check Windows Defender
+- **macOS**: Allow app in **System Preferences → Security & Privacy**
 
-- **Check**: That your Xtream provider supports series
-- **Verify**: Username and password are correct
-- **Try**: Import again if network was unstable
+### Parental Controls Issues
+- **Auto-detect not working?** - Re-save settings to trigger channel scan
+- **Lock mode not showing channels?** - Update to v2.3.0+ (bug fixed)
+- **PIN modal stuck?** - Restart app, issue resolved in v2.3.0
 
-### App won't start
+### Logs Location
+If you need to share logs for debugging:
 
-- **Linux**: Check that `.AppImage` has execute permissions
-- **Windows**: Run as administrator
-- **macOS**: Allow app in System Preferences > Security
+**Linux**: `~/.local/share/better-ip-tv/logs/better-ip-tv.log`
+**Windows**: `%APPDATA%\com.m0s.better-ip-tv\logs\better-ip-tv.log`
+**macOS**: `~/Library/Application Support/com.m0s.better-ip-tv/logs/better-ip-tv.log`
+
+*(Credentials are automatically masked in logs)*
 
 ---
 
-## 🤝 Contributing to the Project
+## 🤝 Contributing
 
-Better IPTV is open source and we welcome contributions!
+We welcome contributions! Better IPTV is open source and community-driven.
 
 ### Report Bugs
-
-Found a bug? [Create an issue](https://github.com/mewset/better-ip-tv/issues) with:
-
-- Detailed description of the problem
-- Steps to reproduce the bug
-- Your operating system and version
-- Screenshots if possible
-- **Log file** (helps diagnose issues):
-
-  **Linux:**
-  ```bash
-  ~/.local/share/better-ip-tv/logs/better-ip-tv.log
-  ```
-
-  **Windows:**
-  ```
-  %APPDATA%\com.m0s.better-ip-tv\logs\better-ip-tv.log
-  ```
-
-  **macOS:**
-  ```bash
-  ~/Library/Application Support/com.m0s.better-ip-tv/logs/better-ip-tv.log
-  ```
-
-  Attach the log file to your issue or paste relevant error lines.
+[Create an issue](https://github.com/mewset/better-ip-tv/issues/new) with:
+- Detailed description
+- Steps to reproduce
+- OS and app version
+- Screenshots if applicable
+- Log file (see [Troubleshooting](#-troubleshooting))
 
 ### Suggest Features
+[Open a feature request](https://github.com/mewset/better-ip-tv/issues/new) describing:
+- What you want
+- Why it's useful
+- How it should work
 
-Have an idea? [Open a feature request](https://github.com/mewset/better-ip-tv/issues) and describe:
+### Submit Code
 
-- What feature you want
-- Why it would be useful
-- How you envision it working
-
-### Contribute Code
-
-#### Preparation
-
-1. **Fork the repository**
-
-   ```bash
-   # Click "Fork" on GitHub
-   git clone https://github.com/mewset/better-ip-tv.git
-   cd better-ip-tv
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Create a feature branch**
-
-   ```bash
-   git checkout -b feature/my-new-feature
-   ```
-
-#### Development Environment
-
+**Development Setup:**
 ```bash
-# Start development server
+# Fork & clone
+git clone https://github.com/YOUR-USERNAME/better-ip-tv.git
+cd better-ip-tv
+
+# Install dependencies
+npm install
+
+# Run dev server
 npm run tauri dev
 
-# Run frontend tests
-npm run test
-
-# Run Rust tests
-cd src-tauri
-cargo test
+# Run tests
+npm run test          # Frontend tests
+cd src-tauri && cargo test  # Rust tests
 ```
 
-#### Code Standards
-
-- **TypeScript**: Follow ESLint configuration
+**Code Standards:**
+- **TypeScript**: Follow ESLint config (`npm run lint`)
 - **Rust**: Use `rustfmt` and `clippy`
-
   ```bash
   cargo fmt
   cargo clippy
   ```
-
 - **Commits**: Use [Conventional Commits](https://www.conventionalcommits.org/)
-
-  ```text
-  feat: add favorite filtering
-  fix: correct EPG timezone bug
-  docs: update README with FAQ
+  ```
+  feat: add category quick-access bar
+  fix: resolve EPG timezone bug
+  docs: update README installation steps
   ```
 
-#### Submit Pull Request
-
-1. **Commit your changes**
-
-   ```bash
-   git add .
-   git commit -m "feat: description of change"
-   ```
-
-2. **Push to your fork**
-
-   ```bash
-   git push origin feature/my-new-feature
-   ```
-
-3. **Create Pull Request on GitHub**
-   - Go to your fork on GitHub
-   - Click "New Pull Request"
-   - Describe your changes in detail
-   - Link related issues if applicable
-
-4. **Wait for code review**
-   - Project owner will review your code
-   - May request changes or improvements
-   - When approved, your PR will be merged
+**Pull Request Process:**
+1. Create feature branch: `git checkout -b feature/my-feature`
+2. Make changes with tests
+3. Run linters: `npm run lint && cargo clippy`
+4. Commit: `git commit -m "feat: description"`
+5. Push: `git push origin feature/my-feature`
+6. Open PR on GitHub with detailed description
 
 ### Community Guidelines
-
 - Be respectful and inclusive
-- Give constructive feedback
-- Help other users in issues
-- Document your changes
+- Provide constructive feedback
+- Help other users in issues/discussions
+- Document your changes clearly
+
+---
+
+## 📝 What's New
+
+### Version 2.3.0 (Current)
+
+**🔒 Parental Controls**
+- PIN-protected content restrictions with Argon2 encryption
+- Manual channel blocking with virtualized selection
+- Auto-detection of adult content markers
+- Category-level blocking
+- Three viewing modes: Hide, Lock, Blur
+- Session-based temporary unlock
+
+**🎉 Windows MPV Bundled**
+- Windows users no longer need separate MPV installation
+- Everything included in installer
+- Still compatible with existing MPV installations
+
+**🐛 Bug Fixes**
+- Auto-detect parental controls now properly adds channels to blocked list
+- Lock and Blur modes now correctly show channels (previously would hide them)
+- PIN modal no longer gets stuck on "Processing..." after multiple unlocks
+
+[See full changelog](CHANGELOG_USER.md)
 
 ---
 
 ## 📄 License
 
-GNU General Public License v2.0
+**GNU General Public License v2.0**
 
-Better IPTV is free software. You can use, modify, and distribute it under the terms of GPL v2.0.
+Better IPTV is free software. You can use, modify, and distribute it under GPL v2.0 terms.
 
 **Why GPL v2.0?**
-MPV is licensed under GPL v2+, which requires derivative works to also be GPL-licensed. We chose GPL v2.0 for compatibility and to promote open source.
+MPV is licensed under GPL v2+, requiring derivative works to also be GPL-licensed. We embrace this to promote open source values.
 
-See [LICENSE](./LICENSE) for full license text.
-
----
-
-## 🙏 Thanks To
-
-- **[MPV Project](https://mpv.io/)** - Fantastic media player with comprehensive codec support
-- **[Tauri](https://tauri.app/)** - Cross-platform framework that makes this possible
-- **[Open TV](https://github.com/Fredolx/open-tv)** - Inspiration and architectural reference
-- **IPTV Community** - For standards and protocol support
+See [LICENSE](LICENSE) for full text.
 
 ---
 
-## 📞 Contact & Support
+## 🙏 Acknowledgments
 
-- **GitHub Issues**: [Report bugs or suggest features](https://github.com/mewset/better-ip-tv/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/mewset/better-ip-tv/discussions)
-- **Email**: <support@better-iptv.com>
+- **[MPV Project](https://mpv.io/)** - Exceptional media player with comprehensive codec support
+- **[Tauri](https://tauri.app/)** - Cross-platform framework enabling this project
+- **[Open TV](https://github.com/Fredolx/open-tv)** - Architectural inspiration and reference
+- **IPTV Community** - Standards, protocols, and ongoing support
 
 ---
 
-## **Made with ❤️ for IPTV enthusiasts**
+## 📞 Support & Contact
 
-*Better IPTV is not affiliated with any IPTV provider. You are responsible for using the service in accordance with local laws and your IPTV provider's terms.*
+- **Issues**: [Report bugs or request features](https://github.com/mewset/better-ip-tv/issues)
+- **Discussions**: [Community discussions](https://github.com/mewset/better-ip-tv/discussions)
+
+---
+
+<div align="center">
+
+  **Made with ❤️ for IPTV enthusiasts**
+
+  *Better IPTV is not affiliated with any IPTV provider.
+  Users are responsible for compliance with local laws and provider terms.*
+
+</div>

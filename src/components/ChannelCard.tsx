@@ -148,9 +148,14 @@ export const ChannelCard = memo(function ChannelCard({
       {/* Parental Controls Overlay */}
       {isBlocked && parentalVisibility !== 'hide' && (
         <div
-          className={`absolute inset-0 flex items-center justify-center ${
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent card click
+            onPlay(); // Trigger PIN verification
+          }}
+          className={`absolute inset-0 flex cursor-pointer items-center justify-center transition-opacity hover:opacity-90 ${
             parentalVisibility === 'blur' ? 'bg-black/30 backdrop-blur-md' : 'bg-black/70'
           }`}
+          title="Click to unlock with PIN"
         >
           <Lock className="h-12 w-12 text-white drop-shadow-lg" />
         </div>

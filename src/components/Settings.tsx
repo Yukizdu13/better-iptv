@@ -53,6 +53,7 @@ export default function Settings({ onClose }: SettingsProps) {
   const [parentalVisibility, setParentalVisibility] = useState<'hide' | 'lock' | 'blur'>('hide');
   const [showSetPinModal, setShowSetPinModal] = useState(false);
   const [showChangePinModal, setShowChangePinModal] = useState(false);
+  const [showResetPinModal, setShowResetPinModal] = useState(false);
   const [showChannelBlockingModal, setShowChannelBlockingModal] = useState(false);
 
   // Load settings on mount
@@ -102,7 +103,14 @@ export default function Settings({ onClose }: SettingsProps) {
   }, []);
 
   // Parental Controls handlers
-  const handleResetPin = async () => {
+  const handleResetPin = () => {
+    // Show PIN modal to verify before allowing reset
+    setShowResetPinModal(true);
+  };
+
+  const handleResetPinSuccess = async () => {
+    // PIN verified, now confirm and reset
+    setShowResetPinModal(false);
     if (
       !window.confirm(
         'Are you sure you want to reset the PIN? This will also disable parental controls.'
@@ -147,9 +155,28 @@ export default function Settings({ onClose }: SettingsProps) {
       await setSetting('parental_enabled', parentalEnabled.toString());
       await setSetting('parental_auto_detect', parentalAutoDetect.toString());
       await setSetting('parental_visibility', parentalVisibility);
+
+      // If auto-detect is enabled, scan all channels and add adult content to blocked list
+      let updatedBlockedIds = new Set(blockedChannelIds);
+      if (parentalAutoDetect) {
+        const { isAdultContent } = await import('../lib/parentalControls');
+        channels.forEach((channel) => {
+          if (channel.id && isAdultContent(channel.name, channel.group_name)) {
+            updatedBlockedIds.add(channel.id);
+          }
+        });
+        logger.info(`Auto-detect found ${updatedBlockedIds.size - blockedChannelIds.size} additional adult channels`);
+      }
+
       const { setBlockedChannels } = await import('../lib/tauri');
-      await setBlockedChannels(Array.from(blockedChannelIds));
+      await setBlockedChannels(Array.from(updatedBlockedIds));
       await setSetting('parental_blocked_categories', JSON.stringify(blockedCategories));
+
+      // Update local state to reflect the changes
+      setBlockedChannelIds(updatedBlockedIds);
+
+      // Reload parental settings to sync with backend
+      await loadParentalSettings();
 
       // Only fetch EPG data if URL has actually changed
       const epgUrlChanged = epgUrl.trim() !== originalEpgUrl.trim();
@@ -487,6 +514,14 @@ export default function Settings({ onClose }: SettingsProps) {
         onClose={() => setShowChangePinModal(false)}
         onSuccess={handlePinSet}
         mode="change"
+      />
+
+      <PinEntryModal
+        isOpen={showResetPinModal}
+        onClose={() => setShowResetPinModal(false)}
+        onSuccess={handleResetPinSuccess}
+        mode="verify"
+        title="Enter PIN to reset parental controls"
       />
 
       <ChannelBlockingModal

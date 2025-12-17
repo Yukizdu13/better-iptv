@@ -14,6 +14,7 @@ import { ChannelCard } from './ChannelCard';
 import { Search, Tv, Film, Clapperboard, Settings as SettingsIcon, Square } from 'lucide-react';
 import SeriesView from './SeriesView';
 import SettingsModal from './Settings';
+import PinEntryModal from './modals/PinEntryModal';
 import type { Channel } from '../types';
 import { logger } from '../lib/logger';
 import { useResponsiveGrid, getGridClasses } from '../hooks/useResponsiveGrid';
@@ -57,6 +58,8 @@ export default function MainScreen() {
 
   const [selectedSeries, setSelectedSeries] = useState<Channel | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pendingChannel, setPendingChannel] = useState<Channel | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Responsive grid configuration
@@ -106,8 +109,8 @@ export default function MainScreen() {
       baseList = baseList.filter((channel) => channel.group_name === categoryFilter);
     }
 
-    // Apply parental controls filter
-    if (parentalEnabled && !parentalUnlocked) {
+    // Apply parental controls filter - only hide if visibility mode is 'hide'
+    if (parentalEnabled && !parentalUnlocked && parentalVisibility === 'hide') {
       baseList = baseList.filter((channel) => {
         const blocked = shouldBlockChannel(channel, {
           enabled: parentalEnabled,
@@ -146,6 +149,7 @@ export default function MainScreen() {
     parentalAutoDetect,
     blockedChannelIds,
     blockedCategories,
+    parentalVisibility,
   ]);
 
   // Poll MPV playback status to detect when player is closed externally
@@ -201,6 +205,22 @@ export default function MainScreen() {
     // If it's a series, open the series view instead of playing
     if (channel.content_type === 'series') {
       setSelectedSeries(channel);
+      return;
+    }
+
+    // Check if channel is blocked by parental controls
+    const isBlocked = shouldBlockChannel(channel, {
+      enabled: parentalEnabled,
+      autoDetect: parentalAutoDetect,
+      blockedIds: blockedChannelIds,
+      blockedCategories: blockedCategories,
+      unlocked: parentalUnlocked,
+    });
+
+    // If blocked and not unlocked, request PIN before playing
+    if (isBlocked && parentalEnabled && !parentalUnlocked) {
+      setPendingChannel(channel);
+      setShowPinModal(true);
       return;
     }
 
@@ -284,6 +304,23 @@ export default function MainScreen() {
       }
     } catch (err) {
       logger.error('Failed to play episode:', err);
+    }
+  };
+
+  const handlePinSuccess = () => {
+    setShowPinModal(false);
+    // After PIN is verified, play the pending channel
+    if (pendingChannel) {
+      // Play the channel directly (PIN has been verified)
+      playChannel(pendingChannel)
+        .then(() => {
+          setCurrentChannel(pendingChannel);
+          setIsPlaying(true);
+          setPendingChannel(null);
+        })
+        .catch((err) => {
+          logger.error('Failed to play channel after PIN:', err);
+        });
     }
   };
 
@@ -552,6 +589,18 @@ export default function MainScreen() {
 
       {/* Settings Modal */}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+
+      {/* PIN Entry Modal for blocked channels */}
+      <PinEntryModal
+        isOpen={showPinModal}
+        onClose={() => {
+          setShowPinModal(false);
+          setPendingChannel(null);
+        }}
+        onSuccess={handlePinSuccess}
+        mode="verify"
+        title="Enter PIN to access this channel"
+      />
     </div>
   );
 }

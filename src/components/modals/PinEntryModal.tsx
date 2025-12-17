@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { setParentalPin, verifyParentalPin } from '../../lib/tauri';
 import { validatePin } from '../../lib/parentalControls';
@@ -23,6 +23,17 @@ export default function PinEntryModal({
   const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentPin('');
+      setNewPin('');
+      setConfirmPin('');
+      setError('');
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
 
   const handleSubmit = async () => {
     setError('');
@@ -83,6 +94,7 @@ export default function PinEntryModal({
     setNewPin('');
     setConfirmPin('');
     setError('');
+    setIsSubmitting(false);
   };
 
   const handleClose = () => {

@@ -21,8 +21,13 @@ All notable changes to Better IPTV will be documented in this file.
   - **Category Blocking**: Block entire channel categories at once
   - **Three Visibility Modes**:
     - Hide: Blocked channels completely filtered from list (default)
-    - Lock Icon: Shows channel with lock icon overlay
-    - Blur: Shows blurred channel with lock icon
+    - Lock Icon: Shows channel with lock icon overlay (clickable to unlock)
+    - Blur: Shows blurred channel with lock icon (clickable to unlock)
+  - **PIN Verification Before Playback**: Blocked channels require PIN before streaming
+    - Click on blocked channel (or lock overlay) triggers PIN modal
+    - Correct PIN unlocks and starts playback
+    - Incorrect PIN shows error, prevents playback
+  - **Secure PIN Reset**: Must verify current PIN before resetting parental controls
   - **Session-Based Unlock**: Temporarily unlock with PIN (resets on app restart)
   - **Filter Integration**: Parental filter applied between category and search filters
   - Implementation:
@@ -60,6 +65,33 @@ All notable changes to Better IPTV will be documented in this file.
   - Renders only ~10-15 visible items instead of all channels
   - Smooth scrolling and instant search with 10,000+ channels
   - 68px estimated item height with 5-item overscan buffer
+
+### Fixed
+
+- **Parental Controls - Auto-detect now actually blocks channels**
+  - Auto-detect toggle now scans all channels and adds adult content to blocked list when saving settings
+  - Previously only filtered at runtime without persisting to blocked channels list
+  - Now logs: `"Auto-detect found X additional adult channels"`
+  - Implementation: `Settings.tsx` handleSave() scans channels using `isAdultContent()` when auto-detect enabled
+
+- **Parental Controls - Visibility modes now work correctly**
+  - "Lock Icon" and "Blur" modes now show channels with visual overlay
+  - Previously all blocked channels were hidden regardless of visibility mode
+  - Filter now only hides channels when `parentalVisibility === 'hide'`
+  - Implementation: `MainScreen.tsx` line 110 - Added visibility mode check to parental filter
+
+- **Parental Controls - Lock overlay now clickable**
+  - Click anywhere on locked channel card to trigger PIN verification
+  - Added visual hover feedback (opacity change) to indicate clickability
+  - Tooltip: "Click to unlock with PIN"
+  - Implementation: `ChannelCard.tsx` - Added onClick handler to parental overlay div
+
+- **PIN Modal - State reset between uses**
+  - PIN modal now resets all state (PIN input, error, isSubmitting) when reopened
+  - Previously would show "Processing..." if reopened after successful verification
+  - Added useEffect hook that resets state when `isOpen` changes to true
+  - Also updated `resetForm()` to include `isSubmitting` state
+  - Implementation: `PinEntryModal.tsx` lines 27-36 and line 86
 
 ## [2.2.0] - 2025-12-17
 

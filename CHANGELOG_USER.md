@@ -15,15 +15,26 @@ A simple overview of new features and improvements.
   - Easy-to-use channel selection with search
   - Works smoothly even with thousands of channels
 - **Auto-detect adult content** - Automatically blocks channels with +18, XXX, or Adult in the name
+  - Now actually adds channels to your blocked list when you save settings!
 - **Block entire categories** - Block all channels in categories like "Adult" at once
 - **Three viewing modes**:
   - Hide blocked channels completely (default)
-  - Show with a lock icon
-  - Show blurred with a lock icon
+  - Show with a lock icon - Click the lock to unlock with PIN
+  - Show blurred with a lock icon - Click to unlock with PIN
+- **PIN required to watch blocked content** - Enter your PIN before any blocked channel can play
+- **Secure PIN reset** - Must enter current PIN before you can reset parental controls
 - **Temporary unlock** - Enter PIN to temporarily access blocked content (locks again when you restart the app)
 - All settings easily managed from the Settings menu
 
 Perfect for families who want to ensure kids only see appropriate content!
+
+### Improvements
+
+**Parental Controls Work Better Now! 🔧**
+- **Auto-detect actually works** - When you enable auto-detect and save, the app now scans all your channels and adds adult content to the blocked list (it didn't do this before!)
+- **Lock and Blur modes now show channels** - Previously these modes would hide channels just like "Hide" mode. Now they actually show the channels with a lock icon or blur effect, and you can click them to unlock!
+- **Easier to unlock channels** - Just click anywhere on a locked channel card to enter your PIN and watch
+- **PIN modal works smoothly** - Fixed a bug where the PIN entry would get stuck on "Processing..." if you unlocked multiple channels in a row
 
 **No More MPV Installation on Windows! 🎉**
 - Windows users no longer need to install MPV separately

@@ -4,6 +4,21 @@ A simple overview of new features and improvements.
 
 ---
 
+## Version 2.3.0 (Coming Soon)
+
+### New Features
+
+**No More MPV Installation on Windows! 🎉**
+- Windows users no longer need to install MPV separately
+- Everything you need is included in the installer
+- Just download, install, and start watching - that's it!
+- The app will automatically use the included video player
+- If you already have MPV installed, the app will still work perfectly
+
+**Note for Mac and Linux users**: You'll still install MPV the usual way (via Homebrew on Mac or your package manager on Linux). This change only affects Windows.
+
+---
+
 ## Version 2.2.0 (December 17, 2025)
 
 ### New Features

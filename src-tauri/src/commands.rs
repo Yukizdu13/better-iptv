@@ -6,7 +6,7 @@ use crate::playlist::{
     XtreamCredentials,
 };
 use crate::state::AppState;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
@@ -572,7 +572,15 @@ pub async fn verify_parental_pin(state: State<'_, AppState>, pin: String) -> Res
 
     // Verify the PIN
     let argon2 = Argon2::default();
-    Ok(argon2.verify_password(pin.as_bytes(), &parsed_hash).is_ok())
+    let is_valid = argon2.verify_password(pin.as_bytes(), &parsed_hash).is_ok();
+
+    if is_valid {
+        info!("Parental control PIN verified successfully");
+    } else {
+        warn!("Failed parental control PIN verification attempt");
+    }
+
+    Ok(is_valid)
 }
 
 #[tauri::command]

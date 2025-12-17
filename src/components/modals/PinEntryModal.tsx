@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { setParentalPin, verifyParentalPin } from '../../lib/tauri';
 import { validatePin } from '../../lib/parentalControls';
+import { logger } from '../../lib/logger';
 
 interface PinEntryModalProps {
   isOpen: boolean;
@@ -44,10 +45,12 @@ export default function PinEntryModal({
         // Verify existing PIN
         const isValid = await verifyParentalPin(currentPin);
         if (!isValid) {
+          logger.warn('PIN verification failed in unlock modal');
           setError('Incorrect PIN');
           setIsSubmitting(false);
           return;
         }
+        logger.info('PIN verified successfully in unlock modal');
         onSuccess();
         onClose();
       } else {
@@ -56,10 +59,12 @@ export default function PinEntryModal({
           // Verify current PIN first
           const isValid = await verifyParentalPin(currentPin);
           if (!isValid) {
+            logger.warn('Current PIN verification failed when attempting to change PIN');
             setError('Incorrect current PIN');
             setIsSubmitting(false);
             return;
           }
+          logger.info('Current PIN verified successfully for PIN change');
         }
 
         // Validate new PIN

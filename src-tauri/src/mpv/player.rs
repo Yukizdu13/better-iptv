@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::process::{Child, Command};
 use std::time::Duration;
 use anyhow::{Context, Result};
@@ -59,6 +60,38 @@ fn mask_sensitive_data(input: &str) -> String {
         .to_string()
 }
 
+/// Get the path to MPV executable
+///
+/// On Windows, checks for bundled MPV first, then falls back to system PATH.
+/// On macOS/Linux, uses system MPV only.
+fn get_mpv_path() -> PathBuf {
+    #[cfg(target_os = "windows")]
+    {
+        // Try bundled MPV first (Windows only)
+        // Bundled MPV is in resources/mpv/mpv.exe relative to the executable
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                // Check if mpv.exe exists in the bundle
+                let bundled_mpv = exe_dir.join("mpv").join("mpv.exe");
+                if bundled_mpv.exists() {
+                    info!("Using bundled MPV at: {}", bundled_mpv.display());
+                    return bundled_mpv;
+                }
+            }
+        }
+
+        // Fallback to system MPV
+        info!("Bundled MPV not found, falling back to system MPV");
+        PathBuf::from("mpv.exe")
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // macOS and Linux: Use system MPV only
+        PathBuf::from("mpv")
+    }
+}
+
 /// MPV player controller using external process approach
 pub struct MpvPlayer {
     process: Option<Child>,
@@ -79,7 +112,7 @@ impl MpvPlayer {
 
     /// Check if MPV is installed on the system
     pub fn check_installed() -> bool {
-        Command::new("mpv")
+        Command::new(get_mpv_path())
             .arg("--version")
             .output()
             .is_ok()
@@ -159,7 +192,7 @@ impl MpvPlayer {
         self.stop()?;
 
         // Build MPV command
-        let mut cmd = Command::new("mpv");
+        let mut cmd = Command::new(get_mpv_path());
         Self::apply_default_args(&mut cmd);
         Self::apply_playback_options(&mut cmd, &MpvPlaybackOptions {
             title,
@@ -197,7 +230,7 @@ impl MpvPlayer {
         self.stop()?;
 
         // Build MPV command
-        let mut cmd = Command::new("mpv");
+        let mut cmd = Command::new(get_mpv_path());
         Self::apply_default_args(&mut cmd);
         Self::apply_playback_options(&mut cmd, &MpvPlaybackOptions {
             title,

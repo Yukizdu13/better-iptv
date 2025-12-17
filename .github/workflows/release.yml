@@ -53,6 +53,28 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Download MPV for Windows bundling
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          echo "📥 Downloading MPV Windows build..."
+          MPV_VERSION="0.39.0"
+          MPV_URL="https://sourceforge.net/projects/mpv-player-windows/files/64bit/mpv-x86_64-${MPV_VERSION}.7z/download"
+
+          # Download MPV
+          curl -L "$MPV_URL" -o mpv-windows.7z
+
+          # Extract with 7z (pre-installed on Windows runners)
+          7z x mpv-windows.7z -o"./resources-temp"
+
+          # Find extracted folder and rename to 'mpv'
+          mkdir -p resources
+          mv ./resources-temp/mpv-x86_64-* ./resources/mpv
+
+          # Verify
+          ls -la ./resources/mpv/mpv.exe
+          echo "✅ MPV bundled for Windows build"
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:

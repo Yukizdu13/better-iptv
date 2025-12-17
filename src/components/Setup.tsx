@@ -4,6 +4,8 @@ import { usePlayerStore } from '../stores/player-store';
 import { listen } from '@tauri-apps/api/event';
 import { logger } from '../lib/logger';
 import type { Playlist } from '../types';
+import LoadingScreen from './LoadingScreen';
+import logoImage from '../assets/logo/logo-256.webp';
 
 type ImportType = 'm3u' | 'xtream';
 
@@ -105,6 +107,22 @@ export default function Setup({ onComplete, onCancel }: SetupProps = {}) {
     }
   };
 
+  // Calculate total loaded channels for progress display
+  const totalLoaded = importProgress
+    ? importProgress.live_count + importProgress.vod_count + importProgress.series_count
+    : 0;
+
+  // Show full-screen loading when importing (initial setup mode)
+  if (isLoading && !onCancel) {
+    return (
+      <LoadingScreen
+        message="Importing playlist..."
+        progress={totalLoaded > 0 ? totalLoaded : undefined}
+        details={importProgress || undefined}
+      />
+    );
+  }
+
   return (
     <div
       className={
@@ -116,27 +134,15 @@ export default function Setup({ onComplete, onCancel }: SetupProps = {}) {
       <div
         className={`rounded-lg bg-white p-8 shadow-xl dark:bg-gray-800 ${onCancel ? 'w-full max-w-md' : 'w-full max-w-md'} relative`}
       >
-        {isLoading && (
+        {/* Modal mode loading overlay */}
+        {isLoading && onCancel && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/80 backdrop-blur-sm dark:bg-gray-800/80">
             <div className="text-center">
               <div className="mx-auto mb-4 h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
               <p className="font-medium text-gray-700 dark:text-gray-300">Importing playlist...</p>
-              {importProgress && (
-                <div className="mt-3 space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                  {importProgress.live_count > 0 && (
-                    <p>Fetched {importProgress.live_count.toLocaleString()} live streams</p>
-                  )}
-                  {importProgress.vod_count > 0 && (
-                    <p>Fetched {importProgress.vod_count.toLocaleString()} VOD streams</p>
-                  )}
-                  {importProgress.series_count > 0 && (
-                    <p>Fetched {importProgress.series_count.toLocaleString()} series</p>
-                  )}
-                </div>
-              )}
-              {!importProgress && (
-                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                  This may take a few moments
+              {importProgress && totalLoaded > 0 && (
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Loaded {totalLoaded.toLocaleString()} channels
                 </p>
               )}
             </div>
@@ -154,6 +160,11 @@ export default function Setup({ onComplete, onCancel }: SetupProps = {}) {
         )}
 
         <div className="mb-8 text-center">
+          {/* Logo */}
+          <div className="mb-4 flex justify-center">
+            <img src={logoImage} alt="Better-IPTV Logo" className="h-24 w-24" />
+          </div>
+
           <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
             {onCancel ? 'Add New Profile' : 'Better IPTV'}
           </h1>

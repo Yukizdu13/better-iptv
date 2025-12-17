@@ -165,7 +165,9 @@ export default function Settings({ onClose }: SettingsProps) {
             updatedBlockedIds.add(channel.id);
           }
         });
-        logger.info(`Auto-detect found ${updatedBlockedIds.size - blockedChannelIds.size} additional adult channels`);
+        logger.info(
+          `Auto-detect found ${updatedBlockedIds.size - blockedChannelIds.size} additional adult channels`
+        );
       }
 
       const { setBlockedChannels } = await import('../lib/tauri');

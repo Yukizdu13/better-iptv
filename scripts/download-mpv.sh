@@ -14,12 +14,15 @@ echo "================================"
 echo ""
 
 # MPV version and download URL
-MPV_VERSION="0.39.0"
-MPV_URL="https://sourceforge.net/projects/mpv-player-windows/files/64bit/mpv-x86_64-${MPV_VERSION}.7z/download"
+# Format: mpv-x86_64-YYYYMMDD-git-HASH.7z
+# Check latest at: https://sourceforge.net/projects/mpv-player-windows/files/64bit/
+MPV_VERSION="${1:-20251214-git-f7be2ee}"  # Default to latest known, or use first argument
+MPV_FILENAME="mpv-x86_64-${MPV_VERSION}.7z"
+MPV_URL="https://sourceforge.net/projects/mpv-player-windows/files/64bit/${MPV_FILENAME}/download"
 MPV_DIR="$PROJECT_ROOT/resources/mpv"
 TEMP_FILE="/tmp/mpv-windows.7z"
 
-echo "📦 MPV Version: $MPV_VERSION"
+echo "📦 MPV Build: $MPV_VERSION"
 echo "📁 Install Directory: $MPV_DIR"
 echo ""
 
@@ -113,4 +116,8 @@ echo ""
 echo "Next steps:"
 echo "  1. Run 'npm run tauri build' to build Windows installer with bundled MPV"
 echo "  2. The Windows installer will now include MPV automatically"
+echo ""
+echo "To download a different MPV build:"
+echo "  ./scripts/download-mpv.sh 20251214-git-f7be2ee"
+echo "  (Check https://sourceforge.net/projects/mpv-player-windows/files/64bit/ for latest)"
 echo ""

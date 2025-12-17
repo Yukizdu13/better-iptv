@@ -8,11 +8,12 @@ All notable changes to Better IPTV will be documented in this file.
 
 - **Bundled MPV for Windows** - MPV player now included in Windows installer
   - Windows installer size increased from ~6MB to ~100MB
-  - MPV 0.39.0 bundled in `resources/mpv/` directory
+  - Latest MPV Windows build bundled in `resources/mpv/` directory
+  - MPV uses date-based builds (format: `mpv-x86_64-YYYYMMDD-git-HASH.7z`)
   - Automatic fallback to system MPV if bundled version fails
   - Eliminates need for manual MPV installation on Windows
   - Implementation:
-    - `scripts/download-mpv.sh`: Downloads latest MPV Windows build
+    - `scripts/download-mpv.sh`: Downloads MPV Windows build (supports version argument)
     - `src-tauri/tauri.conf.json`: Bundles MPV in Windows resources
     - `src-tauri/src/mpv/player.rs`: `get_mpv_path()` checks bundled path first on Windows
     - `.github/workflows/release.yml`: Downloads MPV during Windows build

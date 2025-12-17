@@ -5,8 +5,8 @@
 
   **Modern, cross-platform IPTV player built with Rust and Tauri**
 
-  [![Build Status](https://github.com/mewset/better-ip-tv/workflows/CI/badge.svg)](https://github.com/mewset/better-ip-tv/actions)
-  [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/mewset/better-ip-tv/actions)
+  [![Build Status](https://github.com/mewset/better-iptv/workflows/CI/badge.svg)](https://github.com/mewset/better-iptv/actions)
+  [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/mewset/better-iptv/actions)
   [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-blue.svg)](#-installation)
   [![AUR](https://img.shields.io/aur/version/better-iptv-bin?logo=archlinux&label=AUR)](https://aur.archlinux.org/packages/better-iptv-bin)
   [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](LICENSE)
@@ -110,7 +110,7 @@ If you prefer a manual installation or already have MPV:
 ### Download Better IPTV
 
 **Pre-built Packages:**
-1. Visit [Releases](https://github.com/mewset/better-ip-tv/releases/latest)
+1. Visit [Releases](https://github.com/mewset/better-iptv/releases/latest)
 2. Download for your platform:
    - **Linux**: `.AppImage` (universal), `.deb` (Ubuntu/Debian), `.rpm` (Fedora/RHEL)
    - **Windows**: `.msi` installer or `.exe` portable
@@ -124,8 +124,8 @@ chmod +x Better-IPTV.AppImage
 
 **Build from Source:**
 ```bash
-git clone https://github.com/mewset/better-ip-tv.git
-cd better-ip-tv
+git clone https://github.com/mewset/better-iptv.git
+cd better-iptv
 npm install
 npm run tauri build
 # Output: src-tauri/target/release/bundle/
@@ -317,7 +317,7 @@ If you need to share logs for debugging:
 We welcome contributions! Better IPTV is open source and community-driven.
 
 ### Report Bugs
-[Create an issue](https://github.com/mewset/better-ip-tv/issues/new) with:
+[Create an issue](https://github.com/mewset/better-iptv/issues/new) with:
 - Detailed description
 - Steps to reproduce
 - OS and app version
@@ -325,7 +325,7 @@ We welcome contributions! Better IPTV is open source and community-driven.
 - Log file (see [Troubleshooting](#-troubleshooting))
 
 ### Suggest Features
-[Open a feature request](https://github.com/mewset/better-ip-tv/issues/new) describing:
+[Open a feature request](https://github.com/mewset/better-iptv/issues/new) describing:
 - What you want
 - Why it's useful
 - How it should work
@@ -335,8 +335,8 @@ We welcome contributions! Better IPTV is open source and community-driven.
 **Development Setup:**
 ```bash
 # Fork & clone
-git clone https://github.com/YOUR-USERNAME/better-ip-tv.git
-cd better-ip-tv
+git clone https://github.com/YOUR-USERNAME/better-iptv.git
+cd better-iptv
 
 # Install dependencies
 npm install
@@ -429,8 +429,8 @@ See [LICENSE](LICENSE) for full text.
 
 ## 📞 Support & Contact
 
-- **Issues**: [Report bugs or request features](https://github.com/mewset/better-ip-tv/issues)
-- **Discussions**: [Community discussions](https://github.com/mewset/better-ip-tv/discussions)
+- **Issues**: [Report bugs or request features](https://github.com/mewset/better-iptv/issues)
+- **Discussions**: [Community discussions](https://github.com/mewset/better-iptv/discussions)
 
 ---
 

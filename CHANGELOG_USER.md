@@ -30,6 +30,15 @@ Perfect for families who want to ensure kids only see appropriate content!
 
 ### Improvements
 
+**Smoother User Experience 🎨**
+- **Professional modal dialogs** - Replaced old-style browser popups with beautiful custom dialogs
+  - All confirmation and error messages now appear in sleek, modern modals
+  - Consistent design across the entire app
+  - Works great in both light and dark modes
+- **Clearer EPG setup** - EPG URL field is now empty by default with a helpful recommendation link to iptv-epg.org
+  - No more confusing pre-filled URLs
+  - Easy to find EPG sources if your provider doesn't include them
+
 **Parental Controls Work Better Now! 🔧**
 - **Auto-detect actually works** - When you enable auto-detect and save, the app now scans all your channels and adds adult content to the blocked list (it didn't do this before!)
 - **Lock and Blur modes now show channels** - Previously these modes would hide channels just like "Hide" mode. Now they actually show the channels with a lock icon or blur effect, and you can click them to unlock!

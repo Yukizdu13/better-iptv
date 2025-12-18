@@ -3,6 +3,7 @@ import { usePlayerStore } from '../stores/player-store';
 import { setActiveProfileId, deletePlaylist, renamePlaylist, getChannels } from '../lib/tauri';
 import { logger } from '../lib/logger';
 import Setup from './Setup';
+import ErrorModal from './modals/ErrorModal';
 import type { Playlist } from '../types';
 
 interface ProfileManagerProps {
@@ -24,6 +25,11 @@ export default function ProfileManager({ onClose }: ProfileManagerProps) {
   const [editName, setEditName] = useState('');
   const [showDeleteWarning, setShowDeleteWarning] = useState<number | null>(null);
 
+  // Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorTitle, setErrorTitle] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
   // Switch to a different profile
   const handleActivateProfile = async (playlist: Playlist) => {
     try {
@@ -43,7 +49,9 @@ export default function ProfileManager({ onClose }: ProfileManagerProps) {
       logger.info(`Profile switched successfully: ${channels.length} channels loaded`);
     } catch (err) {
       logger.error('Failed to switch profile:', err);
-      alert(`Failed to switch profile: ${err}`);
+      setErrorTitle('Failed to Switch Profile');
+      setErrorMessage(`Failed to switch profile: ${err}`);
+      setShowErrorModal(true);
     }
   };
 
@@ -56,7 +64,9 @@ export default function ProfileManager({ onClose }: ProfileManagerProps) {
   // Save renamed profile
   const handleSaveRename = async (id: number) => {
     if (!editName.trim()) {
-      alert('Profile name cannot be empty');
+      setErrorTitle('Invalid Profile Name');
+      setErrorMessage('Profile name cannot be empty');
+      setShowErrorModal(true);
       return;
     }
 
@@ -73,7 +83,9 @@ export default function ProfileManager({ onClose }: ProfileManagerProps) {
       logger.info(`Profile ID ${id} renamed to: ${editName.trim()}`);
     } catch (err) {
       logger.error('Failed to rename profile:', err);
-      alert(`Failed to rename profile: ${err}`);
+      setErrorTitle('Failed to Rename Profile');
+      setErrorMessage(`Failed to rename profile: ${err}`);
+      setShowErrorModal(true);
     }
   };
 
@@ -114,7 +126,9 @@ export default function ProfileManager({ onClose }: ProfileManagerProps) {
       logger.info(`Profile ID ${id} deleted`);
     } catch (err) {
       logger.error('Failed to delete profile:', err);
-      alert(`Failed to delete profile: ${err}`);
+      setErrorTitle('Failed to Delete Profile');
+      setErrorMessage(`Failed to delete profile: ${err}`);
+      setShowErrorModal(true);
     }
   };
 
@@ -133,7 +147,9 @@ export default function ProfileManager({ onClose }: ProfileManagerProps) {
       logger.info('Last profile deleted, returning to setup');
     } catch (err) {
       logger.error('Failed to delete last profile:', err);
-      alert(`Failed to delete profile: ${err}`);
+      setErrorTitle('Failed to Delete Profile');
+      setErrorMessage(`Failed to delete profile: ${err}`);
+      setShowErrorModal(true);
     }
   };
 
@@ -292,6 +308,14 @@ export default function ProfileManager({ onClose }: ProfileManagerProps) {
           </div>
         </div>
       )}
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title={errorTitle}
+        message={errorMessage}
+      />
     </>
   );
 }

@@ -54,6 +54,28 @@ All notable changes to Better IPTV will be documented in this file.
 
 ### Changed
 
+- **Modal System - Replaced native browser dialogs**
+  - Created reusable modal components: `ConfirmationModal.tsx` and `ErrorModal.tsx`
+  - Replaced all `window.confirm()` and `alert()` calls across the application
+  - Affected components:
+    - `Settings.tsx`: PIN reset confirmation, save error handling
+    - `ProfileManager.tsx`: Profile operations errors (5 instances)
+    - `ChannelBlockingModal.tsx`: Save error handling
+  - Features:
+    - Consistent styling with app theme (light/dark mode support)
+    - Customizable titles, messages, and button labels
+    - Danger variant for destructive actions (red styling with AlertTriangle icon)
+    - Proper z-index layering for nested modals
+  - Implementation:
+    - `ConfirmationModal`: Supports danger/primary variants, custom button text
+    - `ErrorModal`: Red AlertCircle icon, single action button
+
+- **EPG URL Settings - Removed hardcoded default**
+  - EPG URL field now starts empty instead of pre-filled with `https://iptv-epg.org/files/epg-se.xml.gz`
+  - Added helpful recommendation text with clickable link to iptv-epg.org
+  - Prevents confusion for users whose Xtream providers include EPG data
+  - Implementation: `Settings.tsx` lines 39-40 (state initialization) and lines 246-256 (help text)
+
 - **MPV Path Resolution (Windows)** - New platform-specific logic
   - Windows: Checks `resources/mpv/mpv.exe` first, falls back to system PATH
   - macOS/Linux: Uses system MPV only (unchanged behavior)

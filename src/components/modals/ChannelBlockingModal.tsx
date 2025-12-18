@@ -3,6 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { X, Search, Lock, Unlock } from 'lucide-react';
 import type { Channel } from '../../types';
 import { setBlockedChannels } from '../../lib/tauri';
+import ErrorModal from './ErrorModal';
 
 interface ChannelBlockingModalProps {
   isOpen: boolean;
@@ -23,6 +24,11 @@ export default function ChannelBlockingModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorTitle, setErrorTitle] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Filter channels by search query
   const filteredChannels = useMemo(() => {
@@ -91,7 +97,9 @@ export default function ChannelBlockingModal({
       onClose();
     } catch (error) {
       console.error('Failed to save blocked channels:', error);
-      alert(`Failed to save: ${error}`);
+      setErrorTitle('Failed to Save');
+      setErrorMessage(`Failed to save: ${error}`);
+      setShowErrorModal(true);
     } finally {
       setIsSaving(false);
     }
@@ -239,6 +247,14 @@ export default function ChannelBlockingModal({
           </div>
         </div>
       </div>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title={errorTitle}
+        message={errorMessage}
+      />
     </div>
   );
 }

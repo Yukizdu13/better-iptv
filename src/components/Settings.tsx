@@ -6,6 +6,8 @@ import { logger } from '../lib/logger';
 import ProfileManager from './ProfileManager';
 import PinEntryModal from './modals/PinEntryModal';
 import ChannelBlockingModal from './modals/ChannelBlockingModal';
+import ConfirmationModal from './modals/ConfirmationModal';
+import ErrorModal from './modals/ErrorModal';
 
 interface SettingsProps {
   onClose: () => void;
@@ -36,8 +38,8 @@ const LANGUAGE_OPTIONS = [
 
 export default function Settings({ onClose }: SettingsProps) {
   const { triggerEpgRefresh, channels, loadParentalSettings } = usePlayerStore();
-  const [epgUrl, setEpgUrl] = useState('https://iptv-epg.org/files/epg-se.xml.gz');
-  const [originalEpgUrl, setOriginalEpgUrl] = useState('https://iptv-epg.org/files/epg-se.xml.gz');
+  const [epgUrl, setEpgUrl] = useState('');
+  const [originalEpgUrl, setOriginalEpgUrl] = useState('');
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
   const [audioLang, setAudioLang] = useState('none');
   const [subtitleLang, setSubtitleLang] = useState('none');
@@ -54,7 +56,13 @@ export default function Settings({ onClose }: SettingsProps) {
   const [showSetPinModal, setShowSetPinModal] = useState(false);
   const [showChangePinModal, setShowChangePinModal] = useState(false);
   const [showResetPinModal, setShowResetPinModal] = useState(false);
+  const [showResetPinConfirmation, setShowResetPinConfirmation] = useState(false);
   const [showChannelBlockingModal, setShowChannelBlockingModal] = useState(false);
+
+  // Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorTitle, setErrorTitle] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Load settings on mount
   useEffect(() => {
@@ -109,15 +117,13 @@ export default function Settings({ onClose }: SettingsProps) {
   };
 
   const handleResetPinSuccess = async () => {
-    // PIN verified, now confirm and reset
+    // PIN verified, now show confirmation modal
     setShowResetPinModal(false);
-    if (
-      !window.confirm(
-        'Are you sure you want to reset the PIN? This will also disable parental controls.'
-      )
-    ) {
-      return;
-    }
+    setShowResetPinConfirmation(true);
+  };
+
+  const handleConfirmReset = async () => {
+    // User confirmed reset, proceed with resetting PIN
     try {
       await resetParentalPin();
       setHasPin(false);
@@ -125,7 +131,9 @@ export default function Settings({ onClose }: SettingsProps) {
       logger.info('Parental PIN reset successfully');
     } catch (err) {
       logger.error('Failed to reset PIN:', err);
-      alert(`Failed to reset PIN: ${err}`);
+      setErrorTitle('Failed to Reset PIN');
+      setErrorMessage(`Failed to reset PIN: ${err}`);
+      setShowErrorModal(true);
     }
   };
 
@@ -199,7 +207,9 @@ export default function Settings({ onClose }: SettingsProps) {
       onClose();
     } catch (err) {
       logger.error('Failed to save settings:', err);
-      alert(`Failed to save settings: ${err}. Please check the EPG URL and try again.`);
+      setErrorTitle('Failed to Save Settings');
+      setErrorMessage(`Failed to save settings: ${err}. Please check the EPG URL and try again.`);
+      setShowErrorModal(true);
     } finally {
       setIsSaving(false);
     }
@@ -244,7 +254,15 @@ export default function Settings({ onClose }: SettingsProps) {
                   className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Leave empty to use Xtream API EPG (if available)
+                  If EPG data is not provided with Xtream, we recommend using:{' '}
+                  <a
+                    href="https://iptv-epg.org/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    https://iptv-epg.org/
+                  </a>
                 </p>
               </div>
             </div>
@@ -526,12 +544,30 @@ export default function Settings({ onClose }: SettingsProps) {
         title="Enter PIN to reset parental controls"
       />
 
+      <ConfirmationModal
+        isOpen={showResetPinConfirmation}
+        onClose={() => setShowResetPinConfirmation(false)}
+        onConfirm={handleConfirmReset}
+        title="Reset PIN?"
+        message="Are you sure you want to reset the PIN? This will also disable parental controls."
+        confirmText="Reset PIN"
+        cancelText="Cancel"
+        confirmVariant="danger"
+      />
+
       <ChannelBlockingModal
         isOpen={showChannelBlockingModal}
         onClose={() => setShowChannelBlockingModal(false)}
         channels={channels}
         initialBlockedIds={blockedChannelIds}
         onUpdate={handleBlockedChannelsUpdate}
+      />
+
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title={errorTitle}
+        message={errorMessage}
       />
     </div>
   );

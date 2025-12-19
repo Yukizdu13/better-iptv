@@ -86,6 +86,7 @@ pub fn rename_playlist(conn: &Connection, playlist_id: i64, new_name: &str) -> R
 
 // ========== Channel Operations ==========
 
+#[allow(dead_code)] // Planned functionality
 pub fn create_channel(conn: &Connection, channel: &Channel) -> Result<i64> {
     conn.execute(
         "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order, category_order)

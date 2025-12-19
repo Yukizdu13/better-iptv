@@ -43,6 +43,7 @@ pub struct EpgProgram {
     pub icon: Option<String>,
 }
 
+#[allow(dead_code)] // Planned functionality
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WatchHistory {
     pub id: Option<i64>,
@@ -51,6 +52,7 @@ pub struct WatchHistory {
     pub duration_seconds: i32,
 }
 
+#[allow(dead_code)] // Planned functionality
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Setting {
     pub key: String,
@@ -58,6 +60,7 @@ pub struct Setting {
     pub updated_at: Option<String>,
 }
 
+#[allow(dead_code)] // Planned functionality
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpgSource {
     pub id: Option<i64>,

@@ -173,6 +173,7 @@ impl MpvPlayer {
     }
 
     /// Play a stream URL with optional title
+    #[allow(dead_code)] // Convenience method for future use
     pub fn play(&mut self, url: &str) -> Result<()> {
         self.play_with_title(url, None, None, None)
     }

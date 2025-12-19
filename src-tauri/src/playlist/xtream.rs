@@ -68,6 +68,7 @@ pub struct SeriesMetadata {
 
 #[derive(Debug, Deserialize)]
 struct XtreamStream {
+    #[allow(dead_code)] // May be used in future for stream ordering
     num: Option<i64>,
     name: String,
     #[serde(alias = "series_id")]
@@ -149,6 +150,7 @@ where
 }
 
 /// Fetch channels from Xtream Codes API (without progress)
+#[allow(dead_code)] // Convenience function for future use
 pub async fn fetch_xtream_channels(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
     fetch_xtream_channels_with_progress(creds, |_| {}).await
 }
@@ -349,6 +351,7 @@ fn build_stream_url(creds: &XtreamCredentials, stream_id: i64, content_type: &st
 }
 
 /// Generate M3U URL from Xtream credentials
+#[allow(dead_code)] // Alternative playlist format for future use
 pub fn get_xtream_m3u_url(creds: &XtreamCredentials) -> String {
     format!(
         "{}/get.php?username={}&password={}&type=m3u_plus&output=ts",
@@ -372,6 +375,7 @@ pub async fn fetch_series_info(creds: &XtreamCredentials, series_id: i64) -> Res
 }
 
 /// Build episode playback URL
+#[allow(dead_code)] // Helper function for future episode playback features
 pub fn build_episode_url(creds: &XtreamCredentials, episode_id: &str, extension: &str) -> String {
     format!(
         "{}/series/{}/{}/{}.{}",

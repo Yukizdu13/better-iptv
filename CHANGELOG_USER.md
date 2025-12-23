@@ -59,6 +59,14 @@ Perfect for families who want to ensure kids only see appropriate content!
 - The app now automatically works around a WebKit bug that caused "EGL_BAD_PARAMETER" errors
 - No configuration needed - it just works!
 
+**Better Settings Organization 📑**
+- Settings menu now uses clean tabs instead of a long scrolling list
+- Four organized tabs: General, Playback, Parental, and Profiles
+- Much easier to find what you're looking for!
+- Smooth navigation with keyboard shortcuts (Ctrl+1, Ctrl+2, Ctrl+3, Ctrl+4)
+- No more jumping around when switching between settings - everything stays in place
+- Modern, minimal design that matches the rest of the app
+
 ---
 
 ## Version 2.2.0 (December 17, 2025)

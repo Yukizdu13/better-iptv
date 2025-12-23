@@ -8,6 +8,7 @@ import PinEntryModal from './modals/PinEntryModal';
 import ChannelBlockingModal from './modals/ChannelBlockingModal';
 import ConfirmationModal from './modals/ConfirmationModal';
 import ErrorModal from './modals/ErrorModal';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 
 interface SettingsProps {
   onClose: () => void;
@@ -45,6 +46,7 @@ export default function Settings({ onClose }: SettingsProps) {
   const [subtitleLang, setSubtitleLang] = useState('none');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('general');
 
   // Parental Controls state
   const [parentalEnabled, setParentalEnabled] = useState(false);
@@ -108,6 +110,35 @@ export default function Settings({ onClose }: SettingsProps) {
     }
 
     loadSettings();
+  }, []);
+
+  // Keyboard navigation support (Ctrl+1-4 for tab switching)
+  useEffect(() => {
+    const handleKeyDown = (e: { ctrlKey: boolean; metaKey: boolean; key: string; preventDefault: () => void }) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case '1':
+            e.preventDefault();
+            setActiveTab('general');
+            break;
+          case '2':
+            e.preventDefault();
+            setActiveTab('playback');
+            break;
+          case '3':
+            e.preventDefault();
+            setActiveTab('parental');
+            break;
+          case '4':
+            e.preventDefault();
+            setActiveTab('profiles');
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Parental Controls handlers
@@ -230,277 +261,293 @@ export default function Settings({ onClose }: SettingsProps) {
         </div>
 
         {/* Content */}
-        <div className="space-y-6 p-6">
-          {/* Profile Management */}
-          <div>
-            <ProfileManager onClose={onClose} />
-          </div>
+        <div className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList>
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="playback">Playback</TabsTrigger>
+              <TabsTrigger value="parental">Parental</TabsTrigger>
+              <TabsTrigger value="profiles">Profiles</TabsTrigger>
+            </TabsList>
 
-          {/* EPG Settings */}
-          <div>
-            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-              Electronic Program Guide (EPG)
-            </h3>
-            <div className="space-y-4">
+            {/* Tab 1: General - EPG, Theme, Language */}
+            <TabsContent value="general" className="space-y-6">
+              {/* EPG Settings */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  EPG URL (XMLTV format)
-                </label>
-                <input
-                  type="url"
-                  value={epgUrl}
-                  onChange={(e) => setEpgUrl(e.target.value)}
-                  placeholder="http://example.com/epg.xml"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  If EPG data is not provided with Xtream, we recommend using:{' '}
-                  <a
-                    href="https://iptv-epg.org/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    https://iptv-epg.org/
-                  </a>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Appearance Settings */}
-          <div>
-            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Appearance</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Theme
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    onClick={() => setTheme('light')}
-                    className={`rounded-lg border px-4 py-2 ${
-                      theme === 'light'
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                    }`}
-                  >
-                    Light
-                  </button>
-                  <button
-                    onClick={() => setTheme('dark')}
-                    className={`rounded-lg border px-4 py-2 ${
-                      theme === 'dark'
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                    }`}
-                  >
-                    Dark
-                  </button>
-                  <button
-                    onClick={() => setTheme('system')}
-                    className={`rounded-lg border px-4 py-2 ${
-                      theme === 'system'
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                    }`}
-                  >
-                    System
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Playback Settings */}
-          <div>
-            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Playback</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Hardware Acceleration
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Use GPU for video decoding (recommended)
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Language Settings */}
-          <div>
-            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-              Language Settings
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Default Audio Language
-                </label>
-                <select
-                  value={audioLang}
-                  onChange={(e) => setAudioLang(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
-                >
-                  {LANGUAGE_OPTIONS.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Preferred audio track language (if available in stream)
-                </p>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Default Subtitles Language
-                </label>
-                <select
-                  value={subtitleLang}
-                  onChange={(e) => setSubtitleLang(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
-                >
-                  {LANGUAGE_OPTIONS.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Preferred subtitle language (if available in stream)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Parental Controls */}
-          <div>
-            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-              Parental Controls
-            </h3>
-            <div className="space-y-4">
-              {/* Enable toggle */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Enable Parental Controls
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Restrict access to channels with PIN protection
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={parentalEnabled}
-                  onChange={(e) => setParentalEnabled(e.target.checked)}
-                  className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
-                />
-              </div>
-
-              {parentalEnabled && (
-                <>
-                  {/* PIN Setup */}
+                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                  Electronic Program Guide (EPG)
+                </h3>
+                <div className="space-y-4">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      PIN Code
+                      EPG URL (XMLTV format)
                     </label>
-                    {hasPin ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setShowChangePinModal(true)}
-                          className="rounded-lg bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
-                        >
-                          Change PIN
-                        </button>
-                        <button
-                          onClick={handleResetPin}
-                          className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-                        >
-                          Reset PIN
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setShowSetPinModal(true)}
-                        className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                      >
-                        Set PIN
-                      </button>
-                    )}
+                    <input
+                      type="url"
+                      value={epgUrl}
+                      onChange={(e) => setEpgUrl(e.target.value)}
+                      placeholder="http://example.com/epg.xml"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      {hasPin ? 'PIN is currently set' : 'No PIN set - parental controls inactive'}
+                      If EPG data is not provided with Xtream, we recommend using:{' '}
+                      <a
+                        href="https://iptv-epg.org/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        https://iptv-epg.org/
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Appearance Settings */}
+              <div>
+                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Appearance</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Theme
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button
+                        onClick={() => setTheme('light')}
+                        className={`rounded-lg border px-4 py-2 ${
+                          theme === 'light'
+                            ? 'border-blue-600 bg-blue-600 text-white'
+                            : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                        }`}
+                      >
+                        Light
+                      </button>
+                      <button
+                        onClick={() => setTheme('dark')}
+                        className={`rounded-lg border px-4 py-2 ${
+                          theme === 'dark'
+                            ? 'border-blue-600 bg-blue-600 text-white'
+                            : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                        }`}
+                      >
+                        Dark
+                      </button>
+                      <button
+                        onClick={() => setTheme('system')}
+                        className={`rounded-lg border px-4 py-2 ${
+                          theme === 'system'
+                            ? 'border-blue-600 bg-blue-600 text-white'
+                            : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                        }`}
+                      >
+                        System
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Language Settings */}
+              <div>
+                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                  Language Settings
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Default Audio Language
+                    </label>
+                    <select
+                      value={audioLang}
+                      onChange={(e) => setAudioLang(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
+                    >
+                      {LANGUAGE_OPTIONS.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Preferred audio track language (if available in stream)
                     </p>
                   </div>
 
-                  {hasPin && (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Default Subtitles Language
+                    </label>
+                    <select
+                      value={subtitleLang}
+                      onChange={(e) => setSubtitleLang(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
+                    >
+                      {LANGUAGE_OPTIONS.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Preferred subtitle language (if available in stream)
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Tab 2: Playback - Hardware Acceleration */}
+            <TabsContent value="playback" className="space-y-6">
+              <div>
+                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Playback</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Hardware Acceleration
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Use GPU for video decoding (recommended)
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      defaultChecked
+                      className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Tab 3: Parental - All parental controls */}
+            <TabsContent value="parental" className="space-y-6">
+              <div>
+                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                  Parental Controls
+                </h3>
+                <div className="space-y-4">
+                  {/* Enable toggle */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Enable Parental Controls
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Restrict access to channels with PIN protection
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={parentalEnabled}
+                      onChange={(e) => setParentalEnabled(e.target.checked)}
+                      className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {parentalEnabled && (
                     <>
-                      {/* Manual Channel Blocking */}
+                      {/* PIN Setup */}
                       <div>
                         <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Blocked Channels
+                          PIN Code
                         </label>
-                        <button
-                          onClick={() => setShowChannelBlockingModal(true)}
-                          className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
-                        >
-                          <Lock className="h-4 w-4" />
-                          <span>Select Channels ({blockedChannelIds.size} blocked)</span>
-                        </button>
-                      </div>
-
-                      {/* Auto-detection toggle */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Auto-detect 18+ Content
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Automatically blocks channels with +18, XXX, Adult in name
-                          </p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={parentalAutoDetect}
-                          onChange={(e) => setParentalAutoDetect(e.target.checked)}
-                          className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
-                        />
-                      </div>
-
-                      {/* Visibility mode */}
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Visibility Mode
-                        </label>
-                        <select
-                          value={parentalVisibility}
-                          onChange={(e) =>
-                            setParentalVisibility(e.target.value as 'hide' | 'lock' | 'blur')
-                          }
-                          className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
-                        >
-                          <option value="hide">Hide completely</option>
-                          <option value="lock">Show with lock icon</option>
-                          <option value="blur">Show blurred</option>
-                        </select>
+                        {hasPin ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setShowChangePinModal(true)}
+                              className="rounded-lg bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
+                            >
+                              Change PIN
+                            </button>
+                            <button
+                              onClick={handleResetPin}
+                              className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                            >
+                              Reset PIN
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setShowSetPinModal(true)}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                          >
+                            Set PIN
+                          </button>
+                        )}
                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          How blocked channels appear in the list
+                          {hasPin ? 'PIN is currently set' : 'No PIN set - parental controls inactive'}
                         </p>
                       </div>
+
+                      {hasPin && (
+                        <>
+                          {/* Manual Channel Blocking */}
+                          <div>
+                            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Blocked Channels
+                            </label>
+                            <button
+                              onClick={() => setShowChannelBlockingModal(true)}
+                              className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
+                            >
+                              <Lock className="h-4 w-4" />
+                              <span>Select Channels ({blockedChannelIds.size} blocked)</span>
+                            </button>
+                          </div>
+
+                          {/* Auto-detection toggle */}
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Auto-detect 18+ Content
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Automatically blocks channels with +18, XXX, Adult in name
+                              </p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={parentalAutoDetect}
+                              onChange={(e) => setParentalAutoDetect(e.target.checked)}
+                              className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+                            />
+                          </div>
+
+                          {/* Visibility mode */}
+                          <div>
+                            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Visibility Mode
+                            </label>
+                            <select
+                              value={parentalVisibility}
+                              onChange={(e) =>
+                                setParentalVisibility(e.target.value as 'hide' | 'lock' | 'blur')
+                              }
+                              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
+                            >
+                              <option value="hide">Hide completely</option>
+                              <option value="lock">Show with lock icon</option>
+                              <option value="blur">Show blurred</option>
+                            </select>
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                              How blocked channels appear in the list
+                            </p>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
-                </>
-              )}
-            </div>
-          </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Tab 4: Profiles - Profile Manager */}
+            <TabsContent value="profiles">
+              <ProfileManager onClose={onClose} />
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Footer */}

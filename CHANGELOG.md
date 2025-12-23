@@ -168,6 +168,23 @@ All notable changes to Better IPTV will be documented in this file.
   - **Developer Experience**: Idiomatic Rust patterns, clear module boundaries
   - **Zero Regressions**: All Tauri commands maintain identical signatures
 
+### Improved
+
+- **Settings UI - Tab-based Navigation**
+  - Replaced long scrolling form with clean tab-based layout
+  - Four organized tabs: General (EPG, Theme, Language), Playback (Hardware Acceleration), Parental (All parental controls), Profiles (Profile Manager)
+  - Keyboard shortcuts: Ctrl+1 (General), Ctrl+2 (Playback), Ctrl+3 (Parental), Ctrl+4 (Profiles)
+  - Fixed content height (`min-h-[700px]`) eliminates jumping when switching tabs
+  - Modern design with border-bottom navigation instead of filled backgrounds
+  - Active tab indicated by blue underline (`border-blue-600`)
+  - Improved organization reduces cognitive load: ~175 lines per tab vs 574 all at once
+  - Implementation:
+    - New components: `src/components/ui/tabs.tsx` (Radix UI Tabs primitives)
+    - New utility: `src/lib/utils.ts` (classname merging with `clsx` + `tailwind-merge`)
+    - Dependencies: `@radix-ui/react-tabs`, `clsx`, `tailwind-merge`
+    - Controlled tab state with keyboard event listener for shortcuts
+    - File: `src/components/Settings.tsx` (~580 lines)
+
 ### Fixed
 
 - **Parental Controls - Auto-detect now actually blocks channels**

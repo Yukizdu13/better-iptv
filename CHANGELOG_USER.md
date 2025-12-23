@@ -64,8 +64,6 @@ Perfect for families who want to ensure kids only see appropriate content!
 - Four organized tabs: General, Playback, Parental, and Profiles
 - Much easier to find what you're looking for!
 - Smooth navigation with keyboard shortcuts (Ctrl+1, Ctrl+2, Ctrl+3, Ctrl+4)
-- No more jumping around when switching between settings - everything stays in place
-- Modern, minimal design that matches the rest of the app
 
 ---
 

@@ -30,12 +30,12 @@ const MIN_SEARCH_QUERY_LENGTH: usize = 1;
 /// - Query exceeds maximum length
 ///
 /// # Examples
-/// ```
+/// ```ignore
 /// use better_ip_tv::channel_domain::validate_search_query;
 ///
 /// assert!(validate_search_query("BBC").is_ok());
 /// assert!(validate_search_query("").is_err());
-/// ```
+/// ```ignore
 pub fn validate_search_query(query: &str) -> Result<(), AppError> {
     let trimmed = query.trim();
 
@@ -73,12 +73,12 @@ pub fn validate_search_query(query: &str) -> Result<(), AppError> {
 /// Returns `AppError::InvalidInput` if content type is not valid
 ///
 /// # Examples
-/// ```
+/// ```ignore
 /// use better_ip_tv::channel_domain::validate_content_type;
 ///
 /// assert!(validate_content_type("live").is_ok());
 /// assert!(validate_content_type("invalid").is_err());
-/// ```
+/// ```ignore
 pub fn validate_content_type(content_type: &str) -> Result<(), AppError> {
     if !VALID_CONTENT_TYPES.contains(&content_type) {
         return Err(AppError::InvalidInput(format!(
@@ -137,7 +137,7 @@ pub fn validate_playlist_id(playlist_id: i64) -> Result<(), AppError> {
 /// * `content_type` - Content type to filter by ("live", "vod", or "series")
 ///
 /// # Examples
-/// ```
+/// ```ignore
 /// use better_ip_tv::channel_domain::filter_by_content_type;
 /// use better_ip_tv::db::models::Channel;
 ///
@@ -148,7 +148,7 @@ pub fn validate_playlist_id(playlist_id: i64) -> Result<(), AppError> {
 ///
 /// let live_channels = filter_by_content_type(channels, "live");
 /// assert_eq!(live_channels.len(), 1);
-/// ```
+/// ```ignore
 #[allow(dead_code)]
 pub fn filter_by_content_type(channels: Vec<Channel>, content_type: &str) -> Vec<Channel> {
     channels

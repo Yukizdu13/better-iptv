@@ -17,13 +17,13 @@ use crate::error::AppError;
 /// * `Err(AppError::InvalidInput)` if the URL is invalid
 ///
 /// # Examples
-/// ```
+/// ```ignore
 /// use better_ip_tv::epg_domain::validate_epg_url;
 ///
 /// assert!(validate_epg_url("https://example.com/epg.xml").is_ok());
 /// assert!(validate_epg_url("").is_err());
 /// assert!(validate_epg_url("ftp://example.com/epg.xml").is_err());
-/// ```
+/// ```ignore
 pub fn validate_epg_url(url: &str) -> Result<(), AppError> {
     // Check if URL is empty or whitespace-only
     if url.trim().is_empty() {

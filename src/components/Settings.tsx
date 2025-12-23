@@ -114,7 +114,12 @@ export default function Settings({ onClose }: SettingsProps) {
 
   // Keyboard navigation support (Ctrl+1-4 for tab switching)
   useEffect(() => {
-    const handleKeyDown = (e: { ctrlKey: boolean; metaKey: boolean; key: string; preventDefault: () => void }) => {
+    const handleKeyDown = (e: {
+      ctrlKey: boolean;
+      metaKey: boolean;
+      key: string;
+      preventDefault: () => void;
+    }) => {
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case '1':
@@ -306,7 +311,9 @@ export default function Settings({ onClose }: SettingsProps) {
 
               {/* Appearance Settings */}
               <div>
-                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Appearance</h3>
+                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                  Appearance
+                </h3>
                 <div className="space-y-4">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -400,7 +407,9 @@ export default function Settings({ onClose }: SettingsProps) {
             {/* Tab 2: Playback - Hardware Acceleration */}
             <TabsContent value="playback" className="space-y-6">
               <div>
-                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Playback</h3>
+                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                  Playback
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -477,7 +486,9 @@ export default function Settings({ onClose }: SettingsProps) {
                           </button>
                         )}
                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          {hasPin ? 'PIN is currently set' : 'No PIN set - parental controls inactive'}
+                          {hasPin
+                            ? 'PIN is currently set'
+                            : 'No PIN set - parental controls inactive'}
                         </p>
                       </div>
 

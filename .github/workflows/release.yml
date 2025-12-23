@@ -55,12 +55,26 @@ jobs:
         if: matrix.platform == 'windows-latest'
         shell: bash
         run: |
-          echo "📥 Downloading MPV Windows build..."
-          MPV_VERSION="0.39.0"
-          MPV_URL="https://sourceforge.net/projects/mpv-player-windows/files/64bit/mpv-x86_64-${MPV_VERSION}.7z/download"
+          echo "📥 Downloading MPV Windows build from shinchiro..."
+
+          # Get latest MPV release from shinchiro's GitHub releases
+          MPV_URL=$(curl -s https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/latest | \
+            grep "browser_download_url.*mpv-x86_64.*7z\"" | \
+            head -1 | \
+            cut -d '"' -f 4)
+
+          echo "Found MPV URL: $MPV_URL"
 
           # Download MPV
           curl -L "$MPV_URL" -o mpv-windows.7z
+
+          # Verify download size (should be >30MB)
+          FILE_SIZE=$(stat -c%s mpv-windows.7z 2>/dev/null || stat -f%z mpv-windows.7z)
+          echo "Downloaded file size: $FILE_SIZE bytes"
+          if [ "$FILE_SIZE" -lt 30000000 ]; then
+            echo "❌ Error: Downloaded file is too small (likely not a valid archive)"
+            exit 1
+          fi
 
           # Extract with 7z (pre-installed on Windows runners)
           7z x mpv-windows.7z -o"./resources-temp"

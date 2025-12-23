@@ -28,6 +28,7 @@ CLAUDE.md
 .claude/
 *.claude
 .serena/
+claudedocs/
 
 ## MISC
 VERSION.md

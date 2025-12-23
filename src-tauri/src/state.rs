@@ -34,7 +34,7 @@ pub struct AppState {
     pub current_channel: Arc<RwLock<Option<CurrentChannel>>>,
 
     /// MPV player instance
-    pub mpv_player: Arc<Mutex<crate::mpv::player::MpvPlayer>>,
+    pub mpv_player: Arc<Mutex<crate::playback::mpv::MpvPlayer>>,
 }
 
 impl AppState {
@@ -42,7 +42,7 @@ impl AppState {
         Self {
             db: Arc::new(Mutex::new(db)),
             current_channel: Arc::new(RwLock::new(None)),
-            mpv_player: Arc::new(Mutex::new(crate::mpv::player::MpvPlayer::new())),
+            mpv_player: Arc::new(Mutex::new(crate::playback::mpv::MpvPlayer::new())),
         }
     }
 }

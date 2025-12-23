@@ -1,10 +1,15 @@
+mod channel_domain;
 mod commands;
 mod db;
 mod epg;
+mod epg_domain;
 pub mod error;
 mod http;
-mod mpv;
+mod parental_domain;
+mod playback;
 mod playlist;
+mod playlist_domain;
+mod series_domain;
 mod state;
 mod utils;
 
@@ -75,7 +80,7 @@ pub fn run() {
                 .expect("Failed to ensure active profile setting");
 
             // Update EPG IDs for existing channels (for migration)
-            match db::operations::update_channel_epg_ids(&conn) {
+            match db::mutations::update_channel_epg_ids(&conn) {
                 Ok(count) => {
                     if count > 0 {
                         info!("Updated EPG IDs for {} channels", count);

@@ -1,0 +1,102 @@
+use crate::error::AppError;
+use crate::playlist::{fetch_series_info, SeriesInfo, XtreamCredentials};
+use crate::series_domain::{self, PlaylistEpisode};
+use crate::state::AppState;
+use log::info;
+use tauri::State;
+
+/// Get language settings from database (audio and subtitle languages)
+/// This is used by multiple commands to avoid code duplication
+fn get_language_settings(
+    db: &rusqlite::Connection,
+) -> Result<(Option<String>, Option<String>), AppError> {
+    let settings =
+        crate::db::queries::get_multiple_settings(db, &["audio_language", "subtitle_language"])?;
+
+    let audio = settings
+        .get("audio_language")
+        .filter(|s| !s.is_empty())
+        .cloned();
+    let subtitle = settings
+        .get("subtitle_language")
+        .filter(|s| !s.is_empty())
+        .cloned();
+
+    Ok((audio, subtitle))
+}
+
+// ========== Series Commands ==========
+
+#[tauri::command]
+pub async fn get_series_info(
+    server_url: String,
+    username: String,
+    password: String,
+    series_id: i64,
+) -> Result<SeriesInfo, AppError> {
+    // Validate inputs
+    series_domain::validate_server_url(&server_url)?;
+    series_domain::validate_credentials(&username, &password)?;
+
+    let creds = XtreamCredentials {
+        server_url,
+        username,
+        password,
+    };
+
+    fetch_series_info(&creds, series_id)
+        .await
+        .map_err(|e| AppError::Http(e.to_string()))
+}
+
+#[tauri::command]
+pub async fn play_episode_with_season(
+    state: State<'_, AppState>,
+    server_url: String,
+    username: String,
+    password: String,
+    episodes: Vec<PlaylistEpisode>,
+) -> Result<(), AppError> {
+    // Validate inputs
+    series_domain::validate_episodes(&episodes)?;
+    series_domain::validate_server_url(&server_url)?;
+    series_domain::validate_credentials(&username, &password)?;
+
+    // Build URLs for all episodes
+    let urls = series_domain::build_episode_urls(&server_url, &username, &password, &episodes);
+
+    // Use first episode's title for the window
+    let first_title = &episodes[0].title;
+
+    // Set current channel (use first episode info with lightweight struct)
+    {
+        let mut current = state.current_channel.write().await;
+        *current = Some(crate::state::CurrentChannel {
+            id: None,
+            name: first_title.clone(),
+            url: urls[0].clone(),
+            content_type: "series".to_string(),
+        });
+    }
+
+    // Retrieve language settings from database
+    let (audio_lang, subtitle_lang) = {
+        let db = state.db.lock().await;
+        get_language_settings(&db)?
+    };
+
+    // Play playlist with language preferences
+    let mut player = state.mpv_player.lock().await;
+    player
+        .play_with_playlist(
+            &urls,
+            Some(first_title),
+            audio_lang.as_deref(),
+            subtitle_lang.as_deref(),
+        )
+        .map_err(|e| AppError::Mpv(e.to_string()))?;
+
+    info!("Playing series episode: {}", first_title);
+
+    Ok(())
+}

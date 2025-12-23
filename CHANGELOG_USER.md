@@ -4,7 +4,7 @@ A simple overview of new features and improvements.
 
 ---
 
-## Version 2.3.0 (Coming Soon)
+## Version 2.3.0 (December 23, 2025)
 
 ### New Features
 

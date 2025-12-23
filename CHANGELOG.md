@@ -2,6 +2,16 @@
 
 All notable changes to Better IPTV will be documented in this file.
 
+## [2.4.0] - TBD
+
+### Added
+
+### Improved
+
+### Fixed
+
+### Changed
+
 ## [2.3.0] - 2025-12-23
 
 ### Added

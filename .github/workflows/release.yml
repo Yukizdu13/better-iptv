@@ -34,7 +34,8 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
             librsvg2-dev \
-            patchelf
+            patchelf \
+            libfuse2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -85,16 +86,17 @@ jobs:
 
           # Move extracted content to resources/mpv
           # The archive structure varies - mpv.exe may be directly in root or in a subfolder
-          mkdir -p resources
+          mkdir -p resources/mpv
           if [ -f "./resources-temp/mpv.exe" ]; then
             # mpv.exe is directly in resources-temp (current shinchiro structure)
             echo "Found mpv.exe directly in resources-temp"
-            # Use cp instead of mv - mv can fail on Windows with cross-device errors
-            cp -r ./resources-temp ./resources/mpv
+            # Copy contents (not the folder itself) to resources/mpv
+            cp -r ./resources-temp/* ./resources/mpv/
           elif ls -d ./resources-temp/mpv-x86_64-* 1>/dev/null 2>&1; then
             # mpv.exe is in a subfolder like mpv-x86_64-YYYYMMDD
             echo "Found mpv-x86_64-* folder"
-            cp -r ./resources-temp/mpv-x86_64-* ./resources/mpv
+            MPV_FOLDER=$(ls -d ./resources-temp/mpv-x86_64-* | head -1)
+            cp -r "$MPV_FOLDER"/* ./resources/mpv/
           else
             echo "❌ Error: Could not find mpv.exe in extracted files"
             ls -laR ./resources-temp/

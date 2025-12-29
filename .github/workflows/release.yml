@@ -89,11 +89,12 @@ jobs:
           if [ -f "./resources-temp/mpv.exe" ]; then
             # mpv.exe is directly in resources-temp (current shinchiro structure)
             echo "Found mpv.exe directly in resources-temp"
-            mv ./resources-temp ./resources/mpv
+            # Use cp instead of mv - mv can fail on Windows with cross-device errors
+            cp -r ./resources-temp ./resources/mpv
           elif ls -d ./resources-temp/mpv-x86_64-* 1>/dev/null 2>&1; then
             # mpv.exe is in a subfolder like mpv-x86_64-YYYYMMDD
             echo "Found mpv-x86_64-* folder"
-            mv ./resources-temp/mpv-x86_64-* ./resources/mpv
+            cp -r ./resources-temp/mpv-x86_64-* ./resources/mpv
           else
             echo "❌ Error: Could not find mpv.exe in extracted files"
             ls -laR ./resources-temp/

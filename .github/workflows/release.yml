@@ -80,8 +80,19 @@ jobs:
           7z x mpv-windows.7z -o"./resources-temp"
 
           # Find extracted folder and rename to 'mpv'
+          # The archive may extract to a subfolder or directly
           mkdir -p resources
-          mv ./resources-temp/mpv-x86_64-* ./resources/mpv
+          if ls ./resources-temp/mpv-x86_64-*/mpv.exe 1>/dev/null 2>&1; then
+            # Extracted to subfolder
+            mv ./resources-temp/mpv-x86_64-* ./resources/mpv
+          elif ls ./resources-temp/mpv.exe 1>/dev/null 2>&1; then
+            # Extracted directly to resources-temp
+            mv ./resources-temp ./resources/mpv
+          else
+            echo "❌ Error: Could not find mpv.exe in extracted files"
+            find ./resources-temp -name "*.exe" || true
+            exit 1
+          fi
 
           # Verify
           ls -la ./resources/mpv/mpv.exe

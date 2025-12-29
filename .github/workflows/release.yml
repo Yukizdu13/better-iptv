@@ -82,18 +82,19 @@ jobs:
           # Debug: Show what was extracted
           echo "📂 Contents of resources-temp:"
           ls -la ./resources-temp/ || true
-          find ./resources-temp -type f -name "*.exe" 2>/dev/null || true
 
-          # Find mpv.exe wherever it is and move the containing folder
+          # Move mpv folder to resources
+          # The archive extracts to: resources-temp/mpv/ or resources-temp/mpv-x86_64-.../
           mkdir -p resources
-          MPV_EXE=$(find ./resources-temp -name "mpv.exe" -type f 2>/dev/null | head -1)
-          if [ -n "$MPV_EXE" ]; then
-            MPV_DIR=$(dirname "$MPV_EXE")
-            echo "Found mpv.exe at: $MPV_EXE"
-            echo "Moving $MPV_DIR to ./resources/mpv"
-            mv "$MPV_DIR" ./resources/mpv
+          if [ -d "./resources-temp/mpv" ]; then
+            echo "Found mpv folder directly"
+            mv ./resources-temp/mpv ./resources/mpv
+          elif ls -d ./resources-temp/mpv-x86_64-* 1>/dev/null 2>&1; then
+            echo "Found mpv-x86_64-* folder"
+            mv ./resources-temp/mpv-x86_64-* ./resources/mpv
           else
-            echo "❌ Error: Could not find mpv.exe in extracted files"
+            echo "❌ Error: Could not find mpv folder in extracted files"
+            ls -la ./resources-temp/
             exit 1
           fi
 

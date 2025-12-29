@@ -101,9 +101,65 @@ jobs:
             **Note:** Make sure MPV is installed on your system before running Better IPTV.
 
             ### Installation:
-            - **Linux**: Download `.AppImage`, make executable, and run
+            - **Linux (Arch/Manjaro)**: Download `*-arch.AppImage`, make executable, and run
+            - **Linux (Ubuntu/Debian)**: Download regular `.AppImage`, make executable, and run
             - **Windows**: Download `.msi` and install
             - **macOS**: Download `.dmg` and drag to Applications
           releaseDraft: true
           prerelease: false
           args: --verbose
+
+      - name: Create Arch-compatible AppImage (Linux only)
+        if: matrix.platform == 'ubuntu-24.04'
+        run: |
+          echo "📦 Creating Arch-compatible AppImage..."
+
+          # Find the built AppImage
+          APPIMAGE=$(find src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -1)
+          if [ -z "$APPIMAGE" ]; then
+            echo "❌ No AppImage found"
+            exit 1
+          fi
+          echo "Found AppImage: $APPIMAGE"
+
+          # Extract AppImage
+          chmod +x "$APPIMAGE"
+          "$APPIMAGE" --appimage-extract
+
+          # Remove bundled libs that cause EGL issues on Arch/newer distros
+          # These systems have newer WebKit that works better with native libs
+          echo "🔧 Removing bundled WebKit libs for Arch compatibility..."
+          rm -rf squashfs-root/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 || true
+          rm -rf squashfs-root/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0 || true
+          rm -rf squashfs-root/usr/lib/x86_64-linux-gnu/gio || true
+          rm -rf squashfs-root/usr/lib/x86_64-linux-gnu/gtk-3.0 || true
+          rm -f squashfs-root/usr/lib/libwayland-egl.so.1 || true
+
+          # Download appimagetool
+          echo "📥 Downloading appimagetool..."
+          curl -L -o appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+
+          # Repack as Arch-compatible AppImage
+          ARCH_APPIMAGE="${APPIMAGE%.AppImage}-arch.AppImage"
+          echo "📦 Repacking as: $ARCH_APPIMAGE"
+          ARCH=x86_64 ./appimagetool squashfs-root "$ARCH_APPIMAGE"
+
+          # Cleanup
+          rm -rf squashfs-root appimagetool
+
+          echo "✅ Arch-compatible AppImage created: $ARCH_APPIMAGE"
+          ls -la "$ARCH_APPIMAGE"
+
+      - name: Upload Arch AppImage to release (Linux only)
+        if: matrix.platform == 'ubuntu-24.04'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Find the Arch AppImage
+          ARCH_APPIMAGE=$(find src-tauri/target/release/bundle/appimage -name "*-arch.AppImage" | head -1)
+          if [ -n "$ARCH_APPIMAGE" ]; then
+            echo "📤 Uploading Arch AppImage to release..."
+            gh release upload "${{ github.ref_name }}" "$ARCH_APPIMAGE" --clobber
+            echo "✅ Uploaded: $ARCH_APPIMAGE"
+          fi

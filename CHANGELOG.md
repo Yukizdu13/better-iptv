@@ -12,6 +12,26 @@ All notable changes to Better IPTV will be documented in this file.
 
 ### Changed
 
+## [2.3.1] - 2025-12-29
+
+### Fixed
+
+- **Linux EGL Display Fix for Arch/Manjaro** - Fixed "Could not create default EGL display: EGL_BAD_PARAMETER" crash on Arch Linux and other rolling-release distros
+  - Root cause: Bundled WebKit libs from Ubuntu conflicted with Wayland/EGL on newer systems
+  - Solution: New Arch-compatible AppImage (`*-arch.AppImage`) without bundled WebKit libs
+  - Uses system WebKit which is properly integrated with the graphics stack
+  - Regular AppImage still available for Ubuntu/Debian users
+  - Implementation:
+    - `.github/workflows/release.yml`: Creates separate Arch AppImage after main build
+    - Extracts AppImage, removes bundled webkit2gtk/gdk-pixbuf/gio/gtk libs, repacks
+    - AUR package updated to use Arch-specific AppImage
+
+### Changed
+
+- **Release artifacts now include two Linux AppImage variants**:
+  - `Better.IPTV_x.x.x_amd64.AppImage` - Full bundle for Ubuntu/Debian
+  - `Better.IPTV_x.x.x_amd64-arch.AppImage` - Arch-compatible (uses system libs)
+
 ## [2.3.0] - 2025-12-23
 
 ### Added

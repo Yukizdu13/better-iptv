@@ -14,6 +14,27 @@ A simple overview of new features and improvements.
 
 ---
 
+## Version 2.3.1 (December 29, 2025)
+
+### Bug Fixes
+
+**Fixed Crash on Arch Linux / Manjaro**
+- Fixed a startup crash that showed "Could not create default EGL display" error
+- This affected users on Arch Linux, Manjaro, and other rolling-release distros using Wayland
+- The app now provides a special Arch-compatible version that works perfectly with your system
+
+### What's New for Linux Users
+
+**Two AppImage Options:**
+- **Arch/Manjaro/Fedora users**: Download the `*-arch.AppImage` version
+- **Ubuntu/Debian users**: Download the regular `.AppImage` version
+
+The Arch version uses your system's graphics libraries instead of bundled ones, which fixes the compatibility issue on newer Linux systems.
+
+**AUR users**: The package has been updated to use the Arch-compatible version automatically!
+
+---
+
 ## Version 2.3.0 (December 23, 2025)
 
 ### New Features

@@ -1,15 +1,16 @@
-Maintainer: mewset
+# Maintainer: mewset
 pkgname=better-iptv-bin
-pkgver=2.0.0
+pkgver=2.3.1
 pkgrel=1
 pkgdesc="Modern, powerful IPTV player for Linux, Windows, and macOS"
 arch=('x86_64')
 url="https://github.com/mewset/better-iptv"
 license=('GPL2')
-depends=('mpv' 'webkit2gtk' 'gtk3')
+depends=('mpv' 'webkit2gtk-4.1' 'gtk3')
 provides=('better-iptv')
 conflicts=('better-iptv' 'better-iptv-git')
-source=("$pkgname-$pkgver.AppImage::https://github.com/mewset/better-iptv/releases/download/v${pkgver}/better-iptv_${pkgver}_amd64.AppImage")
+# Use the Arch-compatible AppImage (without bundled WebKit libs)
+source=("$pkgname-$pkgver.AppImage::https://github.com/mewset/better-iptv/releases/download/v${pkgver}/Better.IPTV_${pkgver}_amd64-arch.AppImage")
 sha256sums=('SKIP')  # Automatically updated by scripts/update-aur.sh on release
 options=('!strip')
 
@@ -20,9 +21,15 @@ prepare() {
 }
 
 package() {
+    cd "$srcdir"
+
     # Install files
     install -dm755 "$pkgdir/opt/$pkgname"
     cp -r squashfs-root/* "$pkgdir/opt/$pkgname/"
+
+    # Fix executable permissions
+    chmod +x "$pkgdir/opt/$pkgname/AppRun"
+    chmod +x "$pkgdir/opt/$pkgname/AppRun.wrapped"
 
     # Create wrapper script
     install -dm755 "$pkgdir/usr/bin"
@@ -33,11 +40,11 @@ EOF
     chmod +x "$pkgdir/usr/bin/better-iptv"
 
     # Desktop entry
-    install -Dm644 squashfs-root/better-iptv.desktop \
+    install -Dm644 "squashfs-root/Better IPTV.desktop" \
         "$pkgdir/usr/share/applications/better-iptv.desktop"
 
     # Icon
-    install -Dm644 squashfs-root/better-iptv.png \
+    install -Dm644 "squashfs-root/Better IPTV.png" \
         "$pkgdir/usr/share/pixmaps/better-iptv.png"
 
     # Fix desktop entry paths

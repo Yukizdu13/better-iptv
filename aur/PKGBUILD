@@ -11,7 +11,7 @@ provides=('better-iptv')
 conflicts=('better-iptv' 'better-iptv-git')
 # Use the Arch-compatible AppImage (without bundled WebKit libs)
 source=("$pkgname-$pkgver.AppImage::https://github.com/mewset/better-iptv/releases/download/v${pkgver}/Better.IPTV_${pkgver}_amd64-arch.AppImage")
-sha256sums=('SKIP')  # Automatically updated by scripts/update-aur.sh on release
+sha256sums=('6a72463436ec404a3c1a854b8f4741014a33a696678157a580a21c29af2d70ec')
 options=('!strip')
 
 prepare() {

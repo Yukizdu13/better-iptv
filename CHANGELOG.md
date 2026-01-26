@@ -1,12 +1,50 @@
 # Changelog
 
 All notable changes to Better IPTV will be documented in this file.
+This file is a developer-changelog, aimed towards development changes.
 
 ## [2.4.0] - TBD
 
 ### Added
 
+- **Force EPG Update** - Manual EPG refresh button in Settings
+  - New "Update Now" button in Settings > General > EPG section
+  - Shows EPG status: last updated timestamp and program count
+  - Refreshes EPG data from configured URL without changing settings
+  - Useful when EPG source updates data or after network issues
+  - Loading spinner and disabled state during update
+  - Error handling with user-friendly messages
+  - Implementation:
+    - Backend: `force_refresh_epg` and `get_epg_status` commands in `commands/epg.rs`
+    - Database: `get_epg_program_count` query, `epg_last_fetched` setting
+    - Frontend: EPG status card with refresh button in `Settings.tsx`
+    - TypeScript: `EpgStatus` and `EpgRefreshResult` types in `lib/tauri.ts`
+
+- **Xtream EPG Auto-Population** - Automatic EPG URL setup for Xtream providers
+  - When importing Xtream playlist, EPG URL is auto-populated from provider
+  - Uses standard Xtream `xmltv.php` endpoint with credentials
+  - EPG URL defaults to Xtream provider when cleared (never empty for Xtream users)
+  - User can still override with custom EPG source in settings
+  - Implementation:
+    - Backend: `get_xtream_epg_url()` helper in `playlist/xtream.rs`
+    - Auto-save in `import_xtream_playlist` command after successful import
+    - Default fallback in `set_setting` command when `epg_url` is empty
+    - Database: `get_playlist_by_id` query in `queries.rs`
+    - Utility: `mask_credentials()` for safe logging of EPG URLs
+
 ### Improved
+
+- **Settings Component Refactoring** - Modular architecture for better maintainability
+  - Split 717-line monolith into focused tab components (~150 lines each)
+  - New structure: `src/components/settings/`
+    - `GeneralTab.tsx` - EPG, Theme, Language settings
+    - `PlaybackTab.tsx` - Hardware acceleration
+    - `ParentalTab.tsx` - PIN, channel blocking, visibility modes
+    - `constants.ts` - Shared types (Theme, LanguageCode, ParentalVisibility)
+    - `index.ts` - Barrel exports
+  - Main `Settings.tsx` now thin orchestrator (413 lines, handles state + modals)
+  - Tab components are pure presentation (props in, UI out) - easier to test
+  - Contributor-friendly: each feature area isolated in its own file
 
 ### Fixed
 

@@ -52,6 +52,12 @@ This file is a developer-changelog, aimed towards development changes.
   - Removed unused icon imports (Search, Tv, Film, Clapperboard, Square)
   - Better accessibility: NowPlayingBar has aria-label on stop button
 
+- **Consolidated Credential Masking** - Single implementation for URL credential masking
+  - Merged duplicate `mask_credentials()` (utils) and `mask_sensitive_data()` (mpv.rs)
+  - Uses `lazy_static` for one-time regex compilation (better performance)
+  - Now handles both query params (`?username=X`) and Xtream path-based URLs (`/series/user/pass/`)
+  - Removed regex dependency from playback/mpv.rs
+
 ### Fixed
 
 ### Changed

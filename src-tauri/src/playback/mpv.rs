@@ -3,8 +3,9 @@ use std::process::{Child, Command};
 use std::time::Duration;
 use anyhow::{Context, Result};
 use log::{debug, info, warn};
-use regex::Regex;
 use wait_timeout::ChildExt;
+
+use crate::utils::mask_credentials;
 
 /// Allowed URL schemes for stream playback
 const ALLOWED_SCHEMES: &[&str] = &["http://", "https://", "rtsp://", "rtmp://", "rtp://", "udp://"];
@@ -43,21 +44,6 @@ fn validate_stream_url(url: &str) -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Mask sensitive credentials in URLs for safe logging
-/// Replaces username and password parameters with ***
-fn mask_sensitive_data(input: &str) -> String {
-    // Mask username parameter: ?username=...&  or &username=...&
-    let masked = Regex::new(r"([?&]username=)[^&]*")
-        .unwrap()
-        .replace_all(input, "${1}***");
-
-    // Mask password parameter: ?password=...&  or &password=...&
-    Regex::new(r"([?&]password=)[^&]*")
-        .unwrap()
-        .replace_all(&masked, "${1}***")
-        .to_string()
 }
 
 /// Get the path to MPV executable
@@ -154,7 +140,7 @@ impl MpvPlayer {
     /// Log MPV command with masked credentials
     fn log_command(cmd: &Command, episode_count: Option<usize>) {
         let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().to_string()).collect();
-        let safe_args = args.iter().map(|arg| mask_sensitive_data(arg)).collect::<Vec<_>>();
+        let safe_args = args.iter().map(|arg| mask_credentials(arg)).collect::<Vec<_>>();
 
         if let Some(count) = episode_count {
             info!("MPV playlist command: {} episodes", count);
@@ -345,13 +331,4 @@ mod tests {
         assert!(validate_stream_url(&long_url).is_err());
     }
 
-    #[test]
-    fn test_mask_sensitive_data() {
-        let url = "http://server.com?username=secret&password=hunter2&action=play";
-        let masked = mask_sensitive_data(url);
-        assert!(!masked.contains("secret"));
-        assert!(!masked.contains("hunter2"));
-        assert!(masked.contains("username=***"));
-        assert!(masked.contains("password=***"));
-    }
 }

@@ -46,6 +46,12 @@ This file is a developer-changelog, aimed towards development changes.
   - Tab components are pure presentation (props in, UI out) - easier to test
   - Contributor-friendly: each feature area isolated in its own file
 
+- **MainScreen Component Cleanup** - Use existing extracted components
+  - Replaced inline code with existing `SearchBar`, `ContentTypeTabs`, `NowPlayingBar` components
+  - Reduced MainScreen.tsx from 606 to 503 lines (-103 lines)
+  - Removed unused icon imports (Search, Tv, Film, Clapperboard, Square)
+  - Better accessibility: NowPlayingBar has aria-label on stop button
+
 ### Fixed
 
 ### Changed

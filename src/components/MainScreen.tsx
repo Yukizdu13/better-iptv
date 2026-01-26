@@ -11,7 +11,10 @@ import {
 } from '../lib/tauri';
 import { CategoryBar } from './CategoryBar';
 import { ChannelCard } from './ChannelCard';
-import { Search, Tv, Film, Clapperboard, Settings as SettingsIcon, Square } from 'lucide-react';
+import { SearchBar } from './SearchBar';
+import { ContentTypeTabs } from './ContentTypeTabs';
+import { NowPlayingBar } from './NowPlayingBar';
+import { Settings as SettingsIcon } from 'lucide-react';
 import SeriesView from './SeriesView';
 import SettingsModal from './Settings';
 import PinEntryModal from './modals/PinEntryModal';
@@ -389,87 +392,10 @@ export default function MainScreen() {
       </div>
 
       {/* Search Bar */}
-      <div className="border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-        <div className="mx-auto px-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search channels..."
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-        </div>
-      </div>
+      <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
       {/* Content Type Tabs */}
-      <div className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="mx-auto px-6">
-          <div
-            className="flex gap-2 overflow-x-auto"
-            role="tablist"
-            aria-label="Content type filter"
-          >
-            <button
-              role="tab"
-              aria-selected={contentTypeFilter === 'all'}
-              aria-controls="channel-list"
-              onClick={() => setContentTypeFilter('all')}
-              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 font-medium transition-colors ${
-                contentTypeFilter === 'all'
-                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              All
-            </button>
-            <button
-              role="tab"
-              aria-selected={contentTypeFilter === 'live'}
-              aria-controls="channel-list"
-              onClick={() => setContentTypeFilter('live')}
-              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 font-medium transition-colors ${
-                contentTypeFilter === 'live'
-                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              <Tv className="h-4 w-4" aria-hidden="true" />
-              Live TV
-            </button>
-            <button
-              role="tab"
-              aria-selected={contentTypeFilter === 'vod'}
-              aria-controls="channel-list"
-              onClick={() => setContentTypeFilter('vod')}
-              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 font-medium transition-colors ${
-                contentTypeFilter === 'vod'
-                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              <Film className="h-4 w-4" aria-hidden="true" />
-              Movies
-            </button>
-            <button
-              role="tab"
-              aria-selected={contentTypeFilter === 'series'}
-              aria-controls="channel-list"
-              onClick={() => setContentTypeFilter('series')}
-              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 font-medium transition-colors ${
-                contentTypeFilter === 'series'
-                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              <Clapperboard className="h-4 w-4" aria-hidden="true" />
-              Series
-            </button>
-          </div>
-        </div>
-      </div>
+      <ContentTypeTabs activeFilter={contentTypeFilter} onFilterChange={setContentTypeFilter} />
 
       {/* Category Bar - horizontal scrollable chips */}
       <CategoryBar />
@@ -547,44 +473,15 @@ export default function MainScreen() {
 
       {/* Now Playing Bar */}
       {currentChannel && (
-        <div className="bg-blue-600 p-4 text-white">
-          <div className="mx-auto flex items-center justify-between px-2">
-            <div className="flex items-center gap-4">
-              {currentChannel.logo && (
-                <div className="flex h-12 w-12 items-center justify-center rounded bg-gray-900 p-1">
-                  <img
-                    src={currentChannel.logo}
-                    alt={currentChannel.name}
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
-              )}
-              <div>
-                <p className="font-medium">{currentChannel.name}</p>
-                <p className="text-sm text-blue-100">{currentChannel.group_name || 'Live TV'}</p>
-                {currentProgram && (
-                  <p className="mt-1 text-sm text-blue-200">
-                    <span className="font-medium">Now showing:</span> {currentProgram}
-                  </p>
-                )}
-                {nextProgram && (
-                  <p className="mt-0.5 text-xs text-blue-200">
-                    <span className="font-medium">Next up:</span> {nextProgram}
-                  </p>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={async () => {
-                await stopPlayback();
-                setIsPlaying(false);
-              }}
-              className="rounded-lg bg-white/20 p-2 transition-colors hover:bg-white/30"
-            >
-              <Square className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+        <NowPlayingBar
+          channel={currentChannel}
+          currentProgram={currentProgram}
+          nextProgram={nextProgram}
+          onStop={async () => {
+            await stopPlayback();
+            setIsPlaying(false);
+          }}
+        />
       )}
 
       {/* Settings Modal */}

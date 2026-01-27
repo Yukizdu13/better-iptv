@@ -27,7 +27,7 @@ import {
   type Theme,
   type LanguageCode,
   type ParentalVisibility,
-} from './settings';
+} from './settings/index';
 
 interface SettingsProps {
   onClose: () => void;

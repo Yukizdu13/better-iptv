@@ -40,3 +40,8 @@ wait-timeout = "0.2"
 argon2 = "0.5"  # PIN hashing for parental controls
 rand = "0.9"    # Salt generation for PIN hashing
 
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+

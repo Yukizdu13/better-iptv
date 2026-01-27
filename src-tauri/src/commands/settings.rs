@@ -1,7 +1,9 @@
 use crate::db::{queries, mutations};
 use crate::error::AppError;
+use crate::playlist::get_xtream_epg_url;
+use crate::playlist::XtreamCredentials;
 use crate::state::AppState;
-use log::{info, warn};
+use log::{debug, info, warn};
 use tauri::State;
 
 // ========== Settings Commands ==========
@@ -22,7 +24,45 @@ pub async fn set_setting(
     value: String,
 ) -> Result<(), AppError> {
     let db = state.db.lock().await;
-    Ok(mutations::set_setting(&db, &key, &value)?)
+
+    // Special handling for EPG URL: if empty, default to Xtream provider's EPG
+    let final_value = if key == "epg_url" && value.trim().is_empty() {
+        get_default_xtream_epg_url(&db).unwrap_or(value)
+    } else {
+        value
+    };
+
+    Ok(mutations::set_setting(&db, &key, &final_value)?)
+}
+
+/// Get the default EPG URL from the active Xtream playlist (if any)
+fn get_default_xtream_epg_url(db: &rusqlite::Connection) -> Option<String> {
+    // Get active profile ID
+    let active_id_str = queries::get_setting(db, "active_profile_id").ok()??;
+    let active_id: i64 = active_id_str.parse().ok()?;
+
+    // Get the playlist
+    let playlist = queries::get_playlist_by_id(db, active_id).ok()??;
+
+    // Check if it's an Xtream playlist (has username and server URL)
+    let server_url = playlist.url?;
+    let username = playlist.xtream_username?;
+    let password = playlist.xtream_password?;
+
+    // Generate EPG URL
+    let creds = XtreamCredentials {
+        server_url: server_url.clone(),
+        username: username.clone(),
+        password,
+    };
+    let epg_url = get_xtream_epg_url(&creds);
+
+    debug!(
+        "Defaulting to Xtream EPG URL: {}",
+        crate::utils::mask_credentials(&epg_url)
+    );
+
+    Some(epg_url)
 }
 
 // ========== Profile Management Commands ==========

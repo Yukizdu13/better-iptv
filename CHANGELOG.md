@@ -3,7 +3,7 @@
 All notable changes to Better IPTV will be documented in this file.
 This file is a developer-changelog, aimed towards development changes.
 
-## [2.4.0] - TBD
+## [2.4.0] - 2026-01-27
 
 ### Added
 

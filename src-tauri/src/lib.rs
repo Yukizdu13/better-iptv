@@ -72,6 +72,15 @@ pub fn run() {
             let conn = Connection::open(&db_path)
                 .expect("Failed to open database");
 
+            // Configure SQLite for optimal desktop performance
+            conn.execute_batch(
+                "PRAGMA journal_mode = WAL;
+                 PRAGMA synchronous = NORMAL;
+                 PRAGMA foreign_keys = ON;
+                 PRAGMA cache_size = 10000;
+                 PRAGMA temp_store = memory;"
+            ).expect("Failed to configure database pragmas");
+
             init_schema(&conn)
                 .expect("Failed to initialize database schema");
 
@@ -106,6 +115,8 @@ pub fn run() {
             import_xtream_playlist,
             get_playlists,
             delete_playlist,
+            refresh_playlist,
+            get_stale_playlist_ids,
             // Channel commands
             get_channels,
             get_channel_groups,
@@ -125,6 +136,8 @@ pub fn run() {
             // EPG commands
             fetch_epg_data,
             get_channel_epg,
+            get_epg_status,
+            force_refresh_epg,
             // Parental controls commands
             set_parental_pin,
             verify_parental_pin,

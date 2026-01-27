@@ -19,6 +19,10 @@ interface GeneralTabProps {
   onAudioLangChange: (lang: LanguageCode) => void;
   subtitleLang: LanguageCode;
   onSubtitleLangChange: (lang: LanguageCode) => void;
+
+  // Playlist refresh
+  onRefreshPlaylist?: () => void;
+  playlistName?: string;
 }
 
 export default function GeneralTab({
@@ -33,9 +37,37 @@ export default function GeneralTab({
   onAudioLangChange,
   subtitleLang,
   onSubtitleLangChange,
+  onRefreshPlaylist,
+  playlistName,
 }: GeneralTabProps) {
   return (
     <div className="space-y-6">
+      {/* Playlist Refresh */}
+      {onRefreshPlaylist && playlistName && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+            Playlist
+          </h3>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">{playlistName}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Refresh to sync with the latest channel list
+                </p>
+              </div>
+              <button
+                onClick={onRefreshPlaylist}
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* EPG Settings */}
       <section>
         <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">

@@ -30,6 +30,15 @@ pub struct Channel {
     pub created_at: Option<String>,
 }
 
+/// Result of a merge-based playlist refresh
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MergeResult {
+    pub added: usize,
+    pub updated: usize,
+    pub removed: usize,
+    pub total: usize,
+}
+
 #[allow(dead_code)] // Planned functionality
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpgProgram {

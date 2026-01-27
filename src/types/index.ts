@@ -83,6 +83,13 @@ export interface EpisodeInfo {
   rating?: number;
 }
 
+export interface MergeResult {
+  added: number;
+  updated: number;
+  removed: number;
+  total: number;
+}
+
 export interface SeriesMetadata {
   name: string;
   cover?: string;

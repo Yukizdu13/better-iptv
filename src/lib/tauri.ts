@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Channel, Playlist, SeriesInfo } from '../types';
+import type { Channel, Playlist, SeriesInfo, MergeResult } from '../types';
 
 // ========== MPV Commands ==========
 
@@ -45,6 +45,14 @@ export async function getPlaylists(): Promise<Playlist[]> {
 
 export async function deletePlaylist(id: number): Promise<void> {
   await invoke('delete_playlist', { id });
+}
+
+export async function refreshPlaylist(playlistId: number): Promise<MergeResult> {
+  return await invoke('refresh_playlist', { playlistId });
+}
+
+export async function getStalePlaylistIds(): Promise<number[]> {
+  return await invoke('get_stale_playlist_ids');
 }
 
 // ========== Channel Commands ==========
@@ -140,6 +148,27 @@ export async function fetchEpgData(epgUrl: string): Promise<number> {
 
 export async function getChannelEpg(channelEpgId: string): Promise<[string | null, string | null]> {
   return await invoke('get_channel_epg', { channelEpgId });
+}
+
+export interface EpgStatus {
+  has_url: boolean;
+  last_fetched: string | null;
+  program_count: number;
+}
+
+export interface EpgRefreshResult {
+  success: boolean;
+  programs_loaded: number;
+  timestamp: string;
+  error: string | null;
+}
+
+export async function getEpgStatus(): Promise<EpgStatus> {
+  return await invoke('get_epg_status');
+}
+
+export async function forceRefreshEpg(): Promise<EpgRefreshResult> {
+  return await invoke('force_refresh_epg');
 }
 
 // ========== Parental Controls Commands ==========

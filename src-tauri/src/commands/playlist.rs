@@ -1,6 +1,6 @@
 use crate::db::{models::*, queries, mutations};
 use crate::error::AppError;
-use crate::playlist::{fetch_xtream_channels_with_progress, parse_m3u, XtreamCredentials};
+use crate::playlist::{fetch_xtream_channels_with_progress, parse_m3u, get_xtream_epg_url, XtreamCredentials};
 use crate::playlist_domain;
 use crate::state::AppState;
 use log::{debug, error, info};
@@ -129,10 +129,100 @@ pub async fn import_xtream_playlist(
         total_channels
     );
 
+    // Auto-populate EPG URL from Xtream provider if not already set
+    let existing_epg_url = queries::get_setting(&db, "epg_url")?;
+    let has_epg_url = existing_epg_url
+        .as_ref()
+        .map(|u| !u.trim().is_empty())
+        .unwrap_or(false);
+
+    if !has_epg_url {
+        let epg_url = get_xtream_epg_url(&creds);
+        mutations::set_setting(&db, "epg_url", &epg_url)?;
+        info!(
+            "Auto-populated EPG URL from Xtream provider: {}",
+            crate::utils::mask_credentials(&epg_url)
+        );
+    } else {
+        debug!("EPG URL already configured, skipping auto-population");
+    }
+
     // Return playlist with ID
     let mut result = playlist;
     result.id = Some(playlist_id);
     Ok(result)
+}
+
+#[tauri::command]
+pub async fn refresh_playlist(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    playlist_id: i64,
+) -> Result<MergeResult, AppError> {
+    let db = state.db.lock().await;
+
+    // Get the playlist
+    let playlist = queries::get_playlist_by_id(&db, playlist_id)?
+        .ok_or(AppError::PlaylistNotFound(playlist_id))?;
+
+    let is_xtream = playlist.xtream_username.is_some();
+
+    // Drop db lock before async fetch
+    drop(db);
+
+    // Fetch fresh channels
+    let fresh_channels = if is_xtream {
+        let creds = XtreamCredentials {
+            server_url: playlist.url.clone().unwrap_or_default(),
+            username: playlist.xtream_username.clone().unwrap_or_default(),
+            password: playlist.xtream_password.clone().unwrap_or_default(),
+        };
+
+        info!("Refreshing Xtream playlist '{}' (ID {})", playlist.name, playlist_id);
+        fetch_xtream_channels_with_progress(&creds, |progress| {
+            let _ = app.emit("refresh-progress", progress);
+        })
+        .await
+        .map_err(|e| {
+            error!("Failed to fetch Xtream channels for refresh: {}", e);
+            AppError::Http(e.to_string())
+        })?
+    } else {
+        let source = playlist.url.as_deref().or(playlist.file_path.as_deref())
+            .ok_or_else(|| AppError::InvalidInput("Playlist has no URL or file path".to_string()))?;
+
+        info!("Refreshing M3U playlist '{}' (ID {})", playlist.name, playlist_id);
+        parse_m3u(source)
+            .await
+            .map_err(|e| {
+                error!("Failed to parse M3U for refresh: {}", e);
+                AppError::Parse(e.to_string())
+            })?
+    };
+
+    // Re-acquire db lock for merge
+    let db = state.db.lock().await;
+
+    let result = mutations::merge_channels(&db, playlist_id, &fresh_channels, is_xtream)?;
+
+    // Update last_updated timestamp
+    mutations::update_playlist_last_updated(&db, playlist_id)?;
+
+    info!(
+        "Playlist '{}' refreshed: {} added, {} updated, {} removed ({} total)",
+        playlist.name, result.added, result.updated, result.removed, result.total
+    );
+
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn get_stale_playlist_ids(
+    state: State<'_, AppState>,
+) -> Result<Vec<i64>, AppError> {
+    let db = state.db.lock().await;
+    let stale = queries::get_stale_playlists(&db, 7)?;
+    Ok(stale.iter().filter_map(|p| p.id).collect())
 }
 
 #[tauri::command]

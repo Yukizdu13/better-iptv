@@ -8,6 +8,25 @@ A simple overview of new features and improvements.
 
 ### New Features
 
+**Keyboard Shortcuts**
+- Press **Space** to play or stop the current channel
+- Press **/** to jump to the search bar instantly
+- Press **Escape** to stop playback
+- Shortcuts are disabled while typing in search or other input fields
+
+**Playlist Auto-Refresh**
+- The app now checks if your playlist is older than 7 days and offers to refresh it on startup
+- New **Refresh** button in Settings > General to manually update your channel list
+- Smart merge: new channels are added, removed channels are cleaned up, and your **favorites are preserved**
+- Shows a progress summary with how many channels were added, updated, or removed
+
+**Better EPG (TV Guide) Experience**
+- **Automatic setup for Xtream providers** - When you add an Xtream Codes playlist, the app now automatically configures your TV guide! No more manually finding and entering EPG URLs.
+- **Smart default** - If you clear the EPG URL field, it automatically falls back to your Xtream provider's TV guide. The EPG is always configured for Xtream users!
+- **Manual refresh button** - New "Update Now" button in Settings > General lets you refresh EPG data anytime without changing settings.
+- **EPG status display** - See at a glance when your TV guide was last updated and how many programs are loaded.
+- You can still use a custom EPG source if you prefer - just enter a different URL in Settings.
+
 ### Improvements
 
 ### Bug Fixes

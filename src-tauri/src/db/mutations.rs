@@ -107,6 +107,194 @@ pub fn delete_setting(conn: &Connection, key: &str) -> Result<()> {
     Ok(())
 }
 
+// ========== Playlist Refresh Mutations ==========
+
+/// Update the last_updated timestamp of a playlist to now
+pub fn update_playlist_last_updated(conn: &Connection, id: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE playlists SET last_updated = datetime('now') WHERE id = ?1",
+        params![id],
+    )?;
+    Ok(())
+}
+
+/// Extract stream_id from an Xtream-style URL.
+/// Pattern: /{live|movie|series}/user/pass/{stream_id}.{ext}
+fn extract_stream_id_from_url(url: &str) -> Option<i64> {
+    let path = url.rsplit('/').next()?;
+    let id_str = path.split('.').next()?;
+    id_str.parse::<i64>().ok()
+}
+
+/// Merge new channels into an existing playlist, preserving favorites.
+///
+/// - If `match_by_stream_id` is true (Xtream), channels are matched by stream_id extracted from URL.
+/// - Otherwise (M3U), channels are matched by `(name, group_name)` with `name`-only fallback.
+///
+/// Returns counts of added, updated, and removed channels.
+pub fn merge_channels(
+    conn: &Connection,
+    playlist_id: i64,
+    new_channels: &[Channel],
+    match_by_stream_id: bool,
+) -> Result<MergeResult> {
+    use std::collections::HashMap;
+    use std::collections::HashSet;
+
+    let tx = conn.unchecked_transaction()?;
+
+    // 1. Load existing channels for this playlist
+    let mut stmt = tx.prepare(
+        "SELECT id, name, url, group_name, is_favorite FROM channels WHERE playlist_id = ?1",
+    )?;
+
+    struct ExistingChannel {
+        id: i64,
+        name: String,
+        url: String,
+        group_name: Option<String>,
+        is_favorite: bool,
+    }
+
+    let existing: Vec<ExistingChannel> = stmt
+        .query_map(params![playlist_id], |row| {
+            Ok(ExistingChannel {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                url: row.get(2)?,
+                group_name: row.get(3)?,
+                is_favorite: row.get(4)?,
+            })
+        })?
+        .collect::<Result<Vec<_>>>()?;
+    drop(stmt);
+
+    // 2. Build lookup map from existing channels
+    // Maps a match key -> (db_id, is_favorite)
+    let mut lookup: HashMap<String, (i64, bool)> = HashMap::new();
+
+    if match_by_stream_id {
+        for ch in &existing {
+            if let Some(sid) = extract_stream_id_from_url(&ch.url) {
+                lookup.insert(format!("sid:{}", sid), (ch.id, ch.is_favorite));
+            }
+        }
+    } else {
+        // M3U: primary key = (name, group_name), fallback = name only
+        // Insert name-only first so (name, group_name) wins if both exist
+        for ch in &existing {
+            lookup.insert(format!("name:{}", ch.name), (ch.id, ch.is_favorite));
+        }
+        for ch in &existing {
+            let key = format!(
+                "namegroup:{}|{}",
+                ch.name,
+                ch.group_name.as_deref().unwrap_or("")
+            );
+            lookup.insert(key, (ch.id, ch.is_favorite));
+        }
+    }
+
+    // 3. Process new channels
+    let mut matched_ids: HashSet<i64> = HashSet::new();
+    let mut added: usize = 0;
+    let mut updated: usize = 0;
+
+    {
+        let mut update_stmt = tx.prepare_cached(
+            "UPDATE channels SET url=?1, logo=?2, group_name=?3, epg_id=?4, tvg_name=?5, sort_order=?6, category_order=?7 WHERE id=?8",
+        )?;
+
+        let mut insert_stmt = tx.prepare_cached(
+            "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, category_order)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        )?;
+
+        for ch in new_channels {
+            // Try to find a match
+            let matched = if match_by_stream_id {
+                extract_stream_id_from_url(&ch.url)
+                    .and_then(|sid| lookup.get(&format!("sid:{}", sid)))
+            } else {
+                // Try (name, group_name) first, then name only
+                let key = format!(
+                    "namegroup:{}|{}",
+                    ch.name,
+                    ch.group_name.as_deref().unwrap_or("")
+                );
+                lookup
+                    .get(&key)
+                    .or_else(|| lookup.get(&format!("name:{}", ch.name)))
+            };
+
+            if let Some(&(db_id, _is_favorite)) = matched {
+                // Update existing channel (preserve is_favorite)
+                update_stmt.execute(params![
+                    ch.url,
+                    ch.logo,
+                    ch.group_name,
+                    ch.epg_id,
+                    ch.tvg_name,
+                    ch.sort_order,
+                    ch.category_order,
+                    db_id,
+                ])?;
+                matched_ids.insert(db_id);
+                updated += 1;
+            } else {
+                // Insert new channel
+                insert_stmt.execute(params![
+                    playlist_id,
+                    ch.name,
+                    ch.url,
+                    ch.logo,
+                    ch.group_name,
+                    ch.epg_id,
+                    ch.tvg_name,
+                    ch.content_type,
+                    false, // new channels start unfavorited
+                    ch.sort_order,
+                    ch.category_order,
+                ])?;
+                added += 1;
+            }
+        }
+    }
+
+    // 4. Delete unmatched old channels
+    let removed = existing.len() - matched_ids.len();
+    if removed > 0 {
+        // Build list of IDs to keep
+        let ids_to_keep: Vec<String> = matched_ids.iter().map(|id| id.to_string()).collect();
+        if ids_to_keep.is_empty() {
+            // All old channels removed
+            tx.execute(
+                "DELETE FROM channels WHERE playlist_id = ?1",
+                params![playlist_id],
+            )?;
+        } else {
+            let placeholders = ids_to_keep.join(",");
+            tx.execute(
+                &format!(
+                    "DELETE FROM channels WHERE playlist_id = ?1 AND id NOT IN ({})",
+                    placeholders
+                ),
+                params![playlist_id],
+            )?;
+        }
+    }
+
+    tx.commit()?;
+
+    let total = added + updated;
+    Ok(MergeResult {
+        added,
+        updated,
+        removed,
+        total,
+    })
+}
+
 // ========== EPG Mutations ==========
 
 /// Update EPG IDs for all Swedish channels based on their names

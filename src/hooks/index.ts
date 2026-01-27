@@ -21,3 +21,6 @@ export { useChannelPlayback, type PlaylistEpisode } from './useChannelPlayback';
 
 // EPG data
 export { useEpgData, useChannelEpg } from './useEpgData';
+
+// Keyboard shortcuts
+export { useKeyboardShortcuts } from './useKeyboardShortcuts';

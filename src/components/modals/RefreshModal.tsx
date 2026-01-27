@@ -1,0 +1,167 @@
+import { useState, useEffect } from 'react';
+import { RefreshCw, CheckCircle, X } from 'lucide-react';
+import { listen } from '@tauri-apps/api/event';
+import { refreshPlaylist } from '../../lib/tauri';
+import { logger } from '../../lib/logger';
+import type { MergeResult } from '../../types';
+
+interface FetchProgress {
+  live_count: number;
+  vod_count: number;
+  series_count: number;
+}
+
+interface RefreshModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  playlistId: number;
+  playlistName: string;
+  /** Called after a successful refresh so the parent can reload channels */
+  onRefreshComplete?: (result: MergeResult) => void;
+}
+
+export default function RefreshModal({
+  isOpen,
+  onClose,
+  playlistId,
+  playlistName,
+  onRefreshComplete,
+}: RefreshModalProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [progress, setProgress] = useState<FetchProgress | null>(null);
+  const [result, setResult] = useState<MergeResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Listen for progress events
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const unlisten = listen<FetchProgress>('refresh-progress', (event) => {
+      setProgress(event.payload);
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [isOpen]);
+
+  // Start refresh when modal opens
+  useEffect(() => {
+    if (!isOpen || isRefreshing || result || error) return;
+
+    setIsRefreshing(true);
+    setProgress(null);
+    setResult(null);
+    setError(null);
+
+    refreshPlaylist(playlistId)
+      .then((mergeResult) => {
+        setResult(mergeResult);
+        onRefreshComplete?.(mergeResult);
+        logger.info(
+          `Playlist "${playlistName}" refreshed: +${mergeResult.added} ~${mergeResult.updated} -${mergeResult.removed}`
+        );
+      })
+      .catch((err) => {
+        const msg = typeof err === 'string' ? err : JSON.stringify(err);
+        setError(msg);
+        logger.error('Playlist refresh failed:', err);
+      })
+      .finally(() => {
+        setIsRefreshing(false);
+      });
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+        {/* Header */}
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            {result ? 'Refresh Complete' : 'Refreshing Playlist'}
+          </h3>
+          {(result || error) && (
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            </button>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="space-y-4">
+          {isRefreshing && (
+            <>
+              <div className="flex items-center gap-3">
+                <RefreshCw className="h-5 w-5 animate-spin text-blue-500" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  Refreshing "{playlistName}"...
+                </span>
+              </div>
+              {progress && (
+                <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                  {progress.live_count > 0 && <p>Live channels: {progress.live_count}</p>}
+                  {progress.vod_count > 0 && <p>VOD: {progress.vod_count}</p>}
+                  {progress.series_count > 0 && <p>Series: {progress.series_count}</p>}
+                </div>
+              )}
+            </>
+          )}
+
+          {result && (
+            <>
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <span className="text-gray-700 dark:text-gray-300">Refresh complete</span>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700/50">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {result.added}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">New</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {result.updated}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Updated</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                      {result.removed}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Removed</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+              >
+                Done
+              </button>
+            </>
+          )}
+
+          {error && (
+            <>
+              <p className="text-red-500 dark:text-red-400">Failed to refresh playlist: {error}</p>
+              <button
+                onClick={onClose}
+                className="w-full rounded-lg bg-gray-500 px-4 py-2 text-white transition-colors hover:bg-gray-600"
+              >
+                Close
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

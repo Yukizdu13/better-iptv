@@ -8,6 +8,8 @@ import {
   getChannelEpg,
   playEpisodeWithSeason,
   getChannelGroups,
+  getStalePlaylistIds,
+  getChannels,
 } from '../lib/tauri';
 import { CategoryBar } from './CategoryBar';
 import { ChannelCard } from './ChannelCard';
@@ -18,10 +20,13 @@ import { Settings as SettingsIcon } from 'lucide-react';
 import SeriesView from './SeriesView';
 import SettingsModal from './Settings';
 import PinEntryModal from './modals/PinEntryModal';
+import ConfirmationModal from './modals/ConfirmationModal';
+import RefreshModal from './modals/RefreshModal';
 import type { Channel } from '../types';
 import { logger } from '../lib/logger';
 import { useResponsiveGrid, getGridClasses } from '../hooks/useResponsiveGrid';
 import { useEpgData } from '../hooks/useEpgData';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { shouldBlockChannel } from '../lib/parentalControls';
 
 export default function MainScreen() {
@@ -54,6 +59,7 @@ export default function MainScreen() {
     parentalAutoDetect,
     parentalVisibility,
     loadParentalSettings,
+    setChannels,
   } = usePlayerStore();
 
   // Use consolidated EPG hook for channel EPG data (with debouncing and caching)
@@ -64,6 +70,13 @@ export default function MainScreen() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingChannel, setPendingChannel] = useState<Channel | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [showStalePrompt, setShowStalePrompt] = useState(false);
+  const [stalePlaylistId, setStalePlaylistId] = useState<number | null>(null);
+  const [showRefreshModal, setShowRefreshModal] = useState(false);
+
+  // Global keyboard shortcuts (Space=play/stop, /=focus search, Escape=stop)
+  useKeyboardShortcuts(searchInputRef);
 
   // Responsive grid configuration
   const { columns, cardHeight, estimatedRowHeight } = useResponsiveGrid();
@@ -72,6 +85,20 @@ export default function MainScreen() {
   useEffect(() => {
     loadParentalSettings();
   }, [loadParentalSettings]);
+
+  // Check for stale playlists on mount
+  useEffect(() => {
+    if (!currentPlaylist?.id) return;
+
+    getStalePlaylistIds()
+      .then((ids) => {
+        if (ids.includes(currentPlaylist.id!)) {
+          setStalePlaylistId(currentPlaylist.id!);
+          setShowStalePrompt(true);
+        }
+      })
+      .catch((err) => logger.error('Failed to check stale playlists:', err));
+  }, [currentPlaylist?.id]);
 
   // Fetch categories when playlist or content type changes
   useEffect(() => {
@@ -392,7 +419,7 @@ export default function MainScreen() {
       </div>
 
       {/* Search Bar */}
-      <SearchBar value={searchQuery} onChange={setSearchQuery} />
+      <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
 
       {/* Content Type Tabs */}
       <ContentTypeTabs activeFilter={contentTypeFilter} onFilterChange={setContentTypeFilter} />
@@ -498,6 +525,43 @@ export default function MainScreen() {
         mode="verify"
         title="Enter PIN to access this channel"
       />
+
+      {/* Stale playlist prompt */}
+      <ConfirmationModal
+        isOpen={showStalePrompt}
+        onClose={() => setShowStalePrompt(false)}
+        onConfirm={() => {
+          setShowStalePrompt(false);
+          setShowRefreshModal(true);
+        }}
+        title="Playlist Update Available"
+        message="Your playlist hasn't been updated in over 7 days. Would you like to refresh it now?"
+        confirmText="Refresh Now"
+        cancelText="Later"
+      />
+
+      {/* Refresh modal */}
+      {stalePlaylistId && currentPlaylist && (
+        <RefreshModal
+          isOpen={showRefreshModal}
+          onClose={() => {
+            setShowRefreshModal(false);
+            setStalePlaylistId(null);
+          }}
+          playlistId={stalePlaylistId}
+          playlistName={currentPlaylist.name}
+          onRefreshComplete={async () => {
+            if (currentPlaylist.id) {
+              try {
+                const freshChannels = await getChannels(currentPlaylist.id);
+                setChannels(freshChannels);
+              } catch (err) {
+                logger.error('Failed to reload channels after refresh:', err);
+              }
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

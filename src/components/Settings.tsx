@@ -7,6 +7,7 @@ import {
   resetParentalPin,
   getEpgStatus,
   forceRefreshEpg,
+  getChannels,
 } from '../lib/tauri';
 import type { EpgStatus } from '../lib/tauri';
 import { usePlayerStore } from '../stores/player-store';
@@ -16,6 +17,7 @@ import PinEntryModal from './modals/PinEntryModal';
 import ChannelBlockingModal from './modals/ChannelBlockingModal';
 import ConfirmationModal from './modals/ConfirmationModal';
 import ErrorModal from './modals/ErrorModal';
+import RefreshModal from './modals/RefreshModal';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import {
   GeneralTab,
@@ -32,7 +34,7 @@ interface SettingsProps {
 }
 
 export default function Settings({ onClose }: SettingsProps) {
-  const { triggerEpgRefresh, channels, loadParentalSettings } = usePlayerStore();
+  const { triggerEpgRefresh, channels, loadParentalSettings, currentPlaylist, setChannels } = usePlayerStore();
 
   // UI state
   const [activeTab, setActiveTab] = useState('general');
@@ -68,6 +70,7 @@ export default function Settings({ onClose }: SettingsProps) {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorTitle, setErrorTitle] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showRefreshModal, setShowRefreshModal] = useState(false);
 
   // Load settings on mount
   useEffect(() => {
@@ -308,6 +311,8 @@ export default function Settings({ onClose }: SettingsProps) {
                 onAudioLangChange={setAudioLang}
                 subtitleLang={subtitleLang}
                 onSubtitleLangChange={setSubtitleLang}
+                onRefreshPlaylist={currentPlaylist?.id ? () => setShowRefreshModal(true) : undefined}
+                playlistName={currentPlaylist?.name}
               />
             </TabsContent>
 
@@ -407,6 +412,26 @@ export default function Settings({ onClose }: SettingsProps) {
         title={errorTitle}
         message={errorMessage}
       />
+
+      {currentPlaylist?.id && (
+        <RefreshModal
+          isOpen={showRefreshModal}
+          onClose={() => setShowRefreshModal(false)}
+          playlistId={currentPlaylist.id}
+          playlistName={currentPlaylist.name}
+          onRefreshComplete={async () => {
+            // Reload channels after refresh
+            if (currentPlaylist.id) {
+              try {
+                const freshChannels = await getChannels(currentPlaylist.id);
+                setChannels(freshChannels);
+              } catch (err) {
+                logger.error('Failed to reload channels after refresh:', err);
+              }
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

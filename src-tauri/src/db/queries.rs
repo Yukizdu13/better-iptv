@@ -54,6 +54,33 @@ pub fn get_playlists(conn: &Connection) -> Result<Vec<Playlist>> {
     Ok(playlists)
 }
 
+/// Get a single playlist by ID
+pub fn get_playlist_by_id(conn: &Connection, id: i64) -> Result<Option<Playlist>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, url, file_path, last_updated, auto_refresh, xtream_username, xtream_password, created_at
+         FROM playlists
+         WHERE id = ?1"
+    )?;
+
+    let mut rows = stmt.query(params![id])?;
+
+    if let Some(row) = rows.next()? {
+        Ok(Some(Playlist {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            url: row.get(2)?,
+            file_path: row.get(3)?,
+            last_updated: row.get(4)?,
+            auto_refresh: row.get(5)?,
+            xtream_username: row.get(6)?,
+            xtream_password: row.get(7)?,
+            created_at: row.get(8)?,
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
 // ========== Channel Queries ==========
 
 pub fn get_channels(conn: &Connection, playlist_id: Option<i64>) -> Result<Vec<Channel>> {
@@ -134,6 +161,47 @@ pub fn get_multiple_settings(conn: &Connection, keys: &[&str]) -> Result<HashMap
     .collect::<Result<HashMap<_, _>, _>>()?;
 
     Ok(result)
+}
+
+// ========== EPG Queries ==========
+
+/// Get the total count of EPG programs in the database
+pub fn get_epg_program_count(conn: &Connection) -> Result<usize> {
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM epg_programs", [], |row| row.get(0))?;
+    Ok(count as usize)
+}
+
+// ========== Stale Playlist Queries ==========
+
+/// Get playlists that have a URL and haven't been updated in the given number of days
+pub fn get_stale_playlists(conn: &Connection, days: i64) -> Result<Vec<Playlist>> {
+    let mut stmt = conn.prepare(
+        &format!(
+            "SELECT id, name, url, file_path, last_updated, auto_refresh, xtream_username, xtream_password, created_at
+             FROM playlists
+             WHERE url IS NOT NULL
+               AND (last_updated IS NULL OR last_updated < datetime('now', '-{} days'))
+             ORDER BY created_at DESC",
+            days
+        )
+    )?;
+
+    let playlists = stmt.query_map([], |row| {
+        Ok(Playlist {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            url: row.get(2)?,
+            file_path: row.get(3)?,
+            last_updated: row.get(4)?,
+            auto_refresh: row.get(5)?,
+            xtream_username: row.get(6)?,
+            xtream_password: row.get(7)?,
+            created_at: row.get(8)?,
+        })
+    })?
+    .collect::<Result<Vec<_>>>()?;
+
+    Ok(playlists)
 }
 
 // ========== Category Queries ==========

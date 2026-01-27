@@ -7,6 +7,37 @@ This file is a developer-changelog, aimed towards development changes.
 
 ### Added
 
+- **Keyboard Shortcuts** - Global media shortcuts for faster navigation
+  - Space: Toggle play/stop (suppressed in input fields)
+  - `/`: Focus search bar
+  - Escape: Stop playback
+  - Guards against firing inside input/textarea/select elements
+  - Implementation:
+    - New `useKeyboardShortcuts` hook in `src/hooks/useKeyboardShortcuts.ts`
+    - `SearchBar` converted to `forwardRef` for keyboard focus support
+    - Hook activated in `MainScreen.tsx` with search input ref
+
+- **Playlist Auto-Refresh (Merge-based)** - Keep channel lists up to date
+  - Startup stale check: prompts user if playlist >7 days old
+  - Manual refresh button in Settings > General > Playlist section
+  - Merge strategy preserves favorites for existing channels
+  - Xtream match key: `stream_id` extracted from URL path
+  - M3U match key: `(name, group_name)` with `name`-only fallback
+  - Removed channels deleted from DB; new channels inserted; existing updated
+  - Progress modal with live/vod/series counts during fetch
+  - Summary modal showing added/updated/removed counts
+  - Implementation:
+    - Backend: `merge_channels()` in `mutations.rs` (single transaction)
+    - Backend: `extract_stream_id_from_url()` helper for Xtream URL parsing
+    - Backend: `update_playlist_last_updated()` in `mutations.rs`
+    - Backend: `get_stale_playlists()` query in `queries.rs`
+    - Backend: `refresh_playlist` and `get_stale_playlist_ids` commands in `commands/playlist.rs`
+    - Frontend: `RefreshModal` component in `src/components/modals/RefreshModal.tsx`
+    - Frontend: `refreshPlaylist()` and `getStalePlaylistIds()` IPC wrappers
+    - Frontend: `MergeResult` type in `src/types/index.ts`
+    - Frontend: Refresh button in `GeneralTab.tsx`, stale prompt in `MainScreen.tsx`
+    - Model: `MergeResult` struct in `db/models.rs`
+
 - **Force EPG Update** - Manual EPG refresh button in Settings
   - New "Update Now" button in Settings > General > EPG section
   - Shows EPG status: last updated timestamp and program count
@@ -33,6 +64,17 @@ This file is a developer-changelog, aimed towards development changes.
     - Utility: `mask_credentials()` for safe logging of EPG URLs
 
 ### Improved
+
+- **SQLite WAL Mode & PRAGMAs** - Database performance and correctness improvements
+  - Enabled WAL (Write-Ahead Logging) for better concurrent read/write performance
+  - Enabled `foreign_keys = ON` — CASCADE deletes were silently ignored without this
+  - Set `synchronous = NORMAL` (safe with WAL, faster than default FULL)
+  - Set `cache_size = 10000` (~40MB) and `temp_store = memory`
+  - Implementation: `lib.rs` — `execute_batch` after `Connection::open()`
+
+- **Release Profile Optimization** - Smaller and faster production binaries
+  - Added `[profile.release]` to `Cargo.toml`: `lto = true`, `codegen-units = 1`, `strip = true`
+  - Skipped `panic = 'abort'` — Tauri needs unwind for cleanup
 
 - **Settings Component Refactoring** - Modular architecture for better maintainability
   - Split 717-line monolith into focused tab components (~150 lines each)

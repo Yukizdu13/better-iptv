@@ -45,9 +45,7 @@ export default function GeneralTab({
       {/* Playlist Refresh */}
       {onRefreshPlaylist && playlistName && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-            Playlist
-          </h3>
+          <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Playlist</h3>
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700/50">
             <div className="flex items-center justify-between">
               <div>
@@ -101,9 +99,7 @@ export default function GeneralTab({
           {/* EPG Status Card */}
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700/50">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Status
-              </span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status</span>
               {epgStatus?.has_url && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {epgStatus.program_count.toLocaleString()} programs

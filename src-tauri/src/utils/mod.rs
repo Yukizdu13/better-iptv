@@ -1,4 +1,4 @@
-/// Utility functions shared across modules
+//! Utility functions shared across modules
 
 use lazy_static::lazy_static;
 use regex::Regex;

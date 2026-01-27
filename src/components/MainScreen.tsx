@@ -70,7 +70,7 @@ export default function MainScreen() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingChannel, setPendingChannel] = useState<Channel | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<globalThis.HTMLInputElement>(null);
   const [showStalePrompt, setShowStalePrompt] = useState(false);
   const [stalePlaylistId, setStalePlaylistId] = useState<number | null>(null);
   const [showRefreshModal, setShowRefreshModal] = useState(false);

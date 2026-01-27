@@ -34,7 +34,8 @@ interface SettingsProps {
 }
 
 export default function Settings({ onClose }: SettingsProps) {
-  const { triggerEpgRefresh, channels, loadParentalSettings, currentPlaylist, setChannels } = usePlayerStore();
+  const { triggerEpgRefresh, channels, loadParentalSettings, currentPlaylist, setChannels } =
+    usePlayerStore();
 
   // UI state
   const [activeTab, setActiveTab] = useState('general');
@@ -311,7 +312,9 @@ export default function Settings({ onClose }: SettingsProps) {
                 onAudioLangChange={setAudioLang}
                 subtitleLang={subtitleLang}
                 onSubtitleLangChange={setSubtitleLang}
-                onRefreshPlaylist={currentPlaylist?.id ? () => setShowRefreshModal(true) : undefined}
+                onRefreshPlaylist={
+                  currentPlaylist?.id ? () => setShowRefreshModal(true) : undefined
+                }
                 playlistName={currentPlaylist?.name}
               />
             </TabsContent>

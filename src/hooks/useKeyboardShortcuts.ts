@@ -17,7 +17,9 @@ import { logger } from '../lib/logger';
  * All shortcuts except Escape are suppressed when focus is inside an
  * input, textarea or select element.
  */
-export function useKeyboardShortcuts(searchInputRef?: React.RefObject<HTMLInputElement | null>) {
+export function useKeyboardShortcuts(
+  searchInputRef?: React.RefObject<globalThis.HTMLInputElement | null>
+) {
   const {
     isPlaying,
     currentChannel,
@@ -28,12 +30,12 @@ export function useKeyboardShortcuts(searchInputRef?: React.RefObject<HTMLInputE
   } = usePlayerStore();
 
   const handler = useCallback(
-    async (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
+    async (e: globalThis.KeyboardEvent) => {
+      const target = e.target as globalThis.HTMLElement;
       const isInput =
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement ||
+        target instanceof globalThis.HTMLInputElement ||
+        target instanceof globalThis.HTMLTextAreaElement ||
+        target instanceof globalThis.HTMLSelectElement ||
         target.isContentEditable;
 
       // Escape always works

@@ -24,8 +24,10 @@ import {
   PlaybackTab,
   ParentalTab,
   LANGUAGE_OPTIONS,
+  USER_AGENT_OPTIONS,
   type Theme,
   type LanguageCode,
+  type UserAgentMode,
   type ParentalVisibility,
 } from './settings/index';
 
@@ -50,6 +52,8 @@ export default function Settings({ onClose }: SettingsProps) {
   const [theme, setTheme] = useState<Theme>('system');
   const [audioLang, setAudioLang] = useState<LanguageCode>('none');
   const [subtitleLang, setSubtitleLang] = useState<LanguageCode>('none');
+  const [playlistUserAgentMode, setPlaylistUserAgentMode] = useState<UserAgentMode>('default');
+  const [playlistUserAgentCustom, setPlaylistUserAgentCustom] = useState('');
 
   // Playback tab state
   const [hardwareAcceleration, setHardwareAcceleration] = useState(true);
@@ -81,12 +85,24 @@ export default function Settings({ onClose }: SettingsProps) {
         const savedTheme = await getSetting('theme');
         const savedAudioIso = await getSetting('audio_language');
         const savedSubtitleIso = await getSetting('subtitle_language');
+        const savedPlaylistUserAgentMode = await getSetting('playlist_user_agent_mode');
+        const savedPlaylistUserAgentCustom = await getSetting('playlist_user_agent_custom');
 
         if (savedEpgUrl) {
           setEpgUrl(savedEpgUrl);
           setOriginalEpgUrl(savedEpgUrl);
         }
         if (savedTheme) setTheme(savedTheme as Theme);
+
+        if (
+          savedPlaylistUserAgentMode &&
+          USER_AGENT_OPTIONS.some((option) => option.mode === savedPlaylistUserAgentMode)
+        ) {
+          setPlaylistUserAgentMode(savedPlaylistUserAgentMode as UserAgentMode);
+        }
+        if (savedPlaylistUserAgentCustom) {
+          setPlaylistUserAgentCustom(savedPlaylistUserAgentCustom);
+        }
 
         // Convert ISO codes back to language codes for UI
         if (savedAudioIso) {
@@ -220,6 +236,23 @@ export default function Settings({ onClose }: SettingsProps) {
       await setSetting('audio_language', audioIso);
       await setSetting('subtitle_language', subtitleIso);
 
+      const sanitizedCustomUserAgent = playlistUserAgentCustom.trim();
+      if (playlistUserAgentMode === 'custom' && !sanitizedCustomUserAgent) {
+        showError('Invalid User-Agent', 'Custom User-Agent cannot be empty when Custom is selected.');
+        return;
+      }
+      if (/\r|\n/.test(sanitizedCustomUserAgent)) {
+        showError('Invalid User-Agent', 'Custom User-Agent cannot contain line breaks.');
+        return;
+      }
+      if (sanitizedCustomUserAgent.length > 512) {
+        showError('Invalid User-Agent', 'Custom User-Agent cannot be longer than 512 characters.');
+        return;
+      }
+
+      await setSetting('playlist_user_agent_mode', playlistUserAgentMode);
+      await setSetting('playlist_user_agent_custom', sanitizedCustomUserAgent);
+
       // Save parental controls settings
       await setSetting('parental_enabled', parentalEnabled.toString());
       await setSetting('parental_auto_detect', parentalAutoDetect.toString());
@@ -312,6 +345,10 @@ export default function Settings({ onClose }: SettingsProps) {
                 onAudioLangChange={setAudioLang}
                 subtitleLang={subtitleLang}
                 onSubtitleLangChange={setSubtitleLang}
+                playlistUserAgentMode={playlistUserAgentMode}
+                onPlaylistUserAgentModeChange={setPlaylistUserAgentMode}
+                playlistUserAgentCustom={playlistUserAgentCustom}
+                onPlaylistUserAgentCustomChange={setPlaylistUserAgentCustom}
                 onRefreshPlaylist={
                   currentPlaylist?.id ? () => setShowRefreshModal(true) : undefined
                 }

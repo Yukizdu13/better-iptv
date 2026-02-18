@@ -4,6 +4,26 @@ A simple overview of new features and improvements.
 
 ---
 
+## Version 2.5.0 (TBD)
+
+### New Features
+
+**Custom User-Agent for Playlist Requests**
+- New setting in **Settings > General > Playlist Requests**
+- Choose between **Default**, **TiviMate**, **VLC**, or **Custom** User-Agent
+- Add your own User-Agent string when a provider requires it
+- See a live preview of the exact header that will be sent
+
+### Improvements
+
+**Smarter EPG User-Agent Handling**
+- If your EPG comes from your active Xtream provider, the same selected User-Agent is used
+- If your EPG is from an external URL, the app does **not** force your custom/preset User-Agent
+
+### Bug Fixes
+
+---
+
 ## Version 2.4.0 (January 27, 2026)
 
 ### New Features

@@ -3,6 +3,37 @@
 All notable changes to Better IPTV will be documented in this file.
 This file is a developer-changelog, aimed towards development changes.
 
+## [2.5.0] - TBD
+
+### Added
+
+- **Playlist User-Agent Settings** - Configurable request identity for provider compatibility
+  - New setting in Settings > General > Playlist Requests
+  - Presets: `Default (Better-IP-TV)`, `TiviMate`, `VLC`, and `Custom`
+  - Custom value input with live preview of current HTTP header
+  - Input validation on frontend and backend (trim, max length, no line breaks)
+  - Implementation:
+    - Frontend: `GeneralTab.tsx`, `Settings.tsx`, `settings/constants.ts`
+    - Backend: validation in `commands/settings.rs`
+    - Backend: resolution utilities in `http.rs`
+
+### Changed
+
+- **Playlist/Xtream Request Behavior** - Selected User-Agent is now applied to playlist fetches
+  - M3U URL imports and refreshes send selected User-Agent
+  - Xtream API channel/category requests send selected User-Agent
+  - Implementation: `commands/playlist.rs`, `playlist/parser.rs`, `playlist/xtream.rs`
+
+- **EPG User-Agent Scope (Xtream-only)** - EPG requests reuse selected User-Agent only for active Xtream EPG URL
+  - If EPG URL matches active profile Xtream `xmltv.php` endpoint, playlist User-Agent is reused
+  - External/custom EPG URLs keep default HTTP behavior (no forced custom/preset override)
+  - Implementation: `commands/epg.rs`, `epg/xmltv.rs`
+
+### Improved
+
+- **User-Agent Fallback Safety** - Invalid custom values safely fall back to app default
+  - Prevents malformed header values from breaking imports/refresh
+
 ## [2.4.0] - 2026-01-27
 
 ### Added

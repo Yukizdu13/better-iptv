@@ -1,6 +1,42 @@
 import { RefreshCw } from 'lucide-react';
 import type { EpgStatus } from '../../lib/tauri';
-import { LANGUAGE_OPTIONS, type Theme, type LanguageCode } from './constants';
+import {
+  LANGUAGE_OPTIONS,
+  USER_AGENT_OPTIONS,
+  type Theme,
+  type LanguageCode,
+  type UserAgentMode,
+} from './constants';
+
+const DEFAULT_USER_AGENT =
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Better-IPTV/2.1.1';
+const MAX_CUSTOM_USER_AGENT_LENGTH = 512;
+const PRESET_USER_AGENTS: Record<Exclude<UserAgentMode, 'custom'>, string> = {
+  default: DEFAULT_USER_AGENT,
+  tivimate: 'TiviMate/4.7.0 (Linux;Android 10) ExoPlayerLib/2.18.1',
+  vlc: 'VLC/3.0.20 LibVLC/3.0.20',
+};
+
+function getUserAgentPreview(
+  mode: UserAgentMode,
+  customUserAgent: string
+): { value: string; usingFallback: boolean } {
+  if (mode !== 'custom') {
+    return { value: PRESET_USER_AGENTS[mode], usingFallback: false };
+  }
+
+  const normalizedCustom = customUserAgent.trim();
+  const invalidCustom =
+    !normalizedCustom ||
+    /\r|\n/.test(normalizedCustom) ||
+    normalizedCustom.length > MAX_CUSTOM_USER_AGENT_LENGTH;
+
+  if (invalidCustom) {
+    return { value: DEFAULT_USER_AGENT, usingFallback: true };
+  }
+
+  return { value: normalizedCustom, usingFallback: false };
+}
 
 interface GeneralTabProps {
   // EPG state
@@ -20,6 +56,12 @@ interface GeneralTabProps {
   subtitleLang: LanguageCode;
   onSubtitleLangChange: (lang: LanguageCode) => void;
 
+  // Playlist user-agent state
+  playlistUserAgentMode: UserAgentMode;
+  onPlaylistUserAgentModeChange: (mode: UserAgentMode) => void;
+  playlistUserAgentCustom: string;
+  onPlaylistUserAgentCustomChange: (value: string) => void;
+
   // Playlist refresh
   onRefreshPlaylist?: () => void;
   playlistName?: string;
@@ -37,9 +79,15 @@ export default function GeneralTab({
   onAudioLangChange,
   subtitleLang,
   onSubtitleLangChange,
+  playlistUserAgentMode,
+  onPlaylistUserAgentModeChange,
+  playlistUserAgentCustom,
+  onPlaylistUserAgentCustomChange,
   onRefreshPlaylist,
   playlistName,
 }: GeneralTabProps) {
+  const userAgentPreview = getUserAgentPreview(playlistUserAgentMode, playlistUserAgentCustom);
+
   return (
     <div className="space-y-6">
       {/* Playlist Refresh */}
@@ -65,6 +113,57 @@ export default function GeneralTab({
           </div>
         </section>
       )}
+
+      {/* Playlist Request Settings */}
+      <section>
+        <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+          Playlist Requests
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              User-Agent
+            </label>
+            <select
+              value={playlistUserAgentMode}
+              onChange={(e) => onPlaylistUserAgentModeChange(e.target.value as UserAgentMode)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
+            >
+              {USER_AGENT_OPTIONS.map((option) => (
+                <option key={option.mode} value={option.mode}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Used when downloading playlists and Xtream-provided EPG data
+            </p>
+            <p className="mt-2 break-all text-xs text-gray-500 dark:text-gray-400">
+              Current header: <span className="font-mono">{userAgentPreview.value}</span>
+            </p>
+            {userAgentPreview.usingFallback && (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                Custom value is currently invalid or empty, fallback to default will be used.
+              </p>
+            )}
+          </div>
+
+          {playlistUserAgentMode === 'custom' && (
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Custom User-Agent
+              </label>
+              <input
+                type="text"
+                value={playlistUserAgentCustom}
+                onChange={(e) => onPlaylistUserAgentCustomChange(e.target.value)}
+                placeholder="Mozilla/5.0 ..."
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* EPG Settings */}
       <section>

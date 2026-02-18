@@ -1,5 +1,6 @@
 use crate::db::{queries, mutations};
 use crate::error::AppError;
+use crate::http;
 use crate::playlist::get_xtream_epg_url;
 use crate::playlist::XtreamCredentials;
 use crate::state::AppState;
@@ -25,14 +26,51 @@ pub async fn set_setting(
 ) -> Result<(), AppError> {
     let db = state.db.lock().await;
 
+    let normalized_value = match key.as_str() {
+        "playlist_user_agent_mode" => validate_playlist_user_agent_mode(&value)?,
+        "playlist_user_agent_custom" => validate_playlist_user_agent_custom(&value)?,
+        _ => value,
+    };
+
     // Special handling for EPG URL: if empty, default to Xtream provider's EPG
-    let final_value = if key == "epg_url" && value.trim().is_empty() {
-        get_default_xtream_epg_url(&db).unwrap_or(value)
+    let final_value = if key == "epg_url" && normalized_value.trim().is_empty() {
+        get_default_xtream_epg_url(&db).unwrap_or(normalized_value)
     } else {
-        value
+        normalized_value
     };
 
     Ok(mutations::set_setting(&db, &key, &final_value)?)
+}
+
+fn validate_playlist_user_agent_mode(mode: &str) -> Result<String, AppError> {
+    let normalized_mode = mode.trim().to_ascii_lowercase();
+
+    if !http::is_valid_playlist_user_agent_mode(&normalized_mode) {
+        return Err(AppError::InvalidInput(
+            "User-Agent mode must be one of: default, tivimate, vlc, custom".to_string(),
+        ));
+    }
+
+    Ok(normalized_mode)
+}
+
+fn validate_playlist_user_agent_custom(value: &str) -> Result<String, AppError> {
+    let normalized = value.trim().to_string();
+
+    if normalized.contains('\r') || normalized.contains('\n') {
+        return Err(AppError::InvalidInput(
+            "Custom User-Agent cannot contain line breaks".to_string(),
+        ));
+    }
+
+    if normalized.len() > http::MAX_CUSTOM_USER_AGENT_LENGTH {
+        return Err(AppError::InvalidInput(format!(
+            "Custom User-Agent cannot be longer than {} characters",
+            http::MAX_CUSTOM_USER_AGENT_LENGTH
+        )));
+    }
+
+    Ok(normalized)
 }
 
 /// Get the default EPG URL from the active Xtream playlist (if any)

@@ -1,14 +1,21 @@
 use crate::db::models::Channel;
 use crate::http::get_http_client;
 use anyhow::{Context, Result};
+use reqwest::header::USER_AGENT;
 use std::collections::HashMap;
 
 /// Simple M3U playlist parser
-pub async fn parse_m3u(source: &str) -> Result<Vec<Channel>> {
+pub async fn parse_m3u(source: &str, user_agent: Option<&str>) -> Result<Vec<Channel>> {
     let content = if source.starts_with("http://") || source.starts_with("https://") {
         // Download from URL using shared HTTP client
-        get_http_client()
-            .get(source)
+        let request = get_http_client().get(source);
+        let request = if let Some(ua) = user_agent.filter(|ua| !ua.trim().is_empty()) {
+            request.header(USER_AGENT, ua)
+        } else {
+            request
+        };
+
+        request
             .send()
             .await
             .context("Failed to download M3U playlist")?

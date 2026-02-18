@@ -20,12 +20,18 @@ pub struct EpgProgram {
 }
 
 /// Fetch and parse XMLTV EPG data from a URL (async part)
-pub async fn fetch_and_parse_epg(url: &str) -> Result<Vec<EpgProgram>> {
+pub async fn fetch_and_parse_epg(url: &str, user_agent: Option<&str>) -> Result<Vec<EpgProgram>> {
     info!("Fetching EPG from: {}", url);
 
     // Download EPG file using shared HTTP client
-    let response = get_http_client()
-        .get(url)
+    let request = get_http_client().get(url);
+    let request = if let Some(ua) = user_agent.filter(|ua| !ua.trim().is_empty()) {
+        request.header(reqwest::header::USER_AGENT, ua)
+    } else {
+        request
+    };
+
+    let response = request
         .send()
         .await
         .context("Failed to download EPG file")?;

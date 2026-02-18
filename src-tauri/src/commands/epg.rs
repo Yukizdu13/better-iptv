@@ -1,9 +1,56 @@
 use crate::error::AppError;
 use crate::epg_domain;
+use crate::playlist::{get_xtream_epg_url, XtreamCredentials};
 use crate::state::AppState;
+use crate::db::queries;
 use log::{debug, info, warn};
 use serde::Serialize;
 use tauri::State;
+
+fn resolve_xtream_epg_user_agent(
+    db: &rusqlite::Connection,
+    target_epg_url: &str,
+) -> Result<Option<String>, AppError> {
+    let active_profile_id = queries::get_setting(db, "active_profile_id")?
+        .and_then(|id| id.parse::<i64>().ok());
+
+    let Some(profile_id) = active_profile_id else {
+        return Ok(None);
+    };
+
+    let Some(playlist) = queries::get_playlist_by_id(db, profile_id)? else {
+        return Ok(None);
+    };
+
+    let Some(server_url) = playlist.url else {
+        return Ok(None);
+    };
+    let Some(username) = playlist.xtream_username else {
+        return Ok(None);
+    };
+    let Some(password) = playlist.xtream_password else {
+        return Ok(None);
+    };
+
+    let xtream_epg_url = get_xtream_epg_url(&XtreamCredentials {
+        server_url,
+        username,
+        password,
+    });
+
+    if xtream_epg_url != target_epg_url {
+        return Ok(None);
+    }
+
+    let settings = queries::get_multiple_settings(
+        db,
+        &["playlist_user_agent_mode", "playlist_user_agent_custom"],
+    )?;
+    let mode = settings.get("playlist_user_agent_mode").map(|s| s.as_str());
+    let custom = settings.get("playlist_user_agent_custom").map(|s| s.as_str());
+
+    Ok(Some(crate::http::resolve_playlist_user_agent(mode, custom)))
+}
 
 /// EPG status information returned to frontend
 #[derive(Debug, Serialize)]
@@ -37,8 +84,13 @@ pub async fn fetch_epg_data(state: State<'_, AppState>, epg_url: String) -> Resu
     let normalized_url = epg_domain::normalize_epg_url(&epg_url);
     epg_domain::validate_epg_url(&normalized_url)?;
 
+    let playlist_user_agent = {
+        let db = state.db.lock().await;
+        resolve_xtream_epg_user_agent(&db, &normalized_url)?
+    };
+
     // Fetch and parse EPG data (async, no database lock)
-    let programs = crate::epg::fetch_and_parse_epg(&normalized_url)
+    let programs = crate::epg::fetch_and_parse_epg(&normalized_url, playlist_user_agent.as_deref())
         .await
         .map_err(|e| AppError::Epg(e.to_string()))?;
 
@@ -132,7 +184,17 @@ pub async fn force_refresh_epg(state: State<'_, AppState>) -> Result<EpgRefreshR
     }
 
     // Fetch and parse EPG data (async, no database lock)
-    let programs = match crate::epg::fetch_and_parse_epg(&normalized_url).await {
+    let playlist_user_agent = {
+        let db = state.db.lock().await;
+        resolve_xtream_epg_user_agent(&db, &normalized_url)?
+    };
+
+    let programs = match crate::epg::fetch_and_parse_epg(
+        &normalized_url,
+        playlist_user_agent.as_deref(),
+    )
+    .await
+    {
         Ok(p) => p,
         Err(e) => {
             warn!("Failed to fetch EPG: {}", e);

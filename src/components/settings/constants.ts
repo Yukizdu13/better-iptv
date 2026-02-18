@@ -21,6 +21,14 @@ export const LANGUAGE_OPTIONS = [
   { code: 'ko', name: 'Hangugeo (Korean)', iso: 'ko,kor' },
 ] as const;
 
+export const USER_AGENT_OPTIONS = [
+  { mode: 'default', label: 'Default (Better-IP-TV)' },
+  { mode: 'tivimate', label: 'TiviMate' },
+  { mode: 'vlc', label: 'VLC' },
+  { mode: 'custom', label: 'Custom' },
+] as const;
+
 export type LanguageCode = (typeof LANGUAGE_OPTIONS)[number]['code'];
+export type UserAgentMode = (typeof USER_AGENT_OPTIONS)[number]['mode'];
 export type Theme = 'light' | 'dark' | 'system';
 export type ParentalVisibility = 'hide' | 'lock' | 'blur';

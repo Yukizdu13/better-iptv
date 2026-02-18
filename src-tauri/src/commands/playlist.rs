@@ -6,6 +6,18 @@ use crate::state::AppState;
 use log::{debug, error, info};
 use tauri::{AppHandle, Emitter, State};
 
+fn get_playlist_user_agent(db: &rusqlite::Connection) -> Result<String, AppError> {
+    let settings = queries::get_multiple_settings(
+        db,
+        &["playlist_user_agent_mode", "playlist_user_agent_custom"],
+    )?;
+
+    let mode = settings.get("playlist_user_agent_mode").map(|s| s.as_str());
+    let custom = settings.get("playlist_user_agent_custom").map(|s| s.as_str());
+
+    Ok(crate::http::resolve_playlist_user_agent(mode, custom))
+}
+
 // ========== Playlist Commands ==========
 
 #[tauri::command]
@@ -18,8 +30,13 @@ pub async fn import_playlist(
     playlist_domain::validate_playlist_name(&name)?;
     playlist_domain::validate_playlist_source(&source)?;
 
+    let playlist_user_agent = {
+        let db = state.db.lock().await;
+        get_playlist_user_agent(&db)?
+    };
+
     // Parse M3U file
-    let channels = parse_m3u(&source)
+    let channels = parse_m3u(&source, Some(&playlist_user_agent))
         .await
         .map_err(|e| AppError::Parse(e.to_string()))?;
 
@@ -70,11 +87,20 @@ pub async fn import_xtream_playlist(
         password: password.clone(),
     };
 
+    let playlist_user_agent = {
+        let db = state.db.lock().await;
+        get_playlist_user_agent(&db)?
+    };
+
     // Fetch channels from Xtream API with progress updates
     debug!("Fetching channels from Xtream API: {}", server_url);
-    let channels = fetch_xtream_channels_with_progress(&creds, |progress| {
-        let _ = app.emit("import-progress", progress);
-    })
+    let channels = fetch_xtream_channels_with_progress(
+        &creds,
+        Some(&playlist_user_agent),
+        |progress| {
+            let _ = app.emit("import-progress", progress);
+        },
+    )
     .await
     .map_err(|e| {
         let err_msg = format!("Failed to fetch Xtream channels: {}", e);
@@ -166,6 +192,7 @@ pub async fn refresh_playlist(
         .ok_or(AppError::PlaylistNotFound(playlist_id))?;
 
     let is_xtream = playlist.xtream_username.is_some();
+    let playlist_user_agent = get_playlist_user_agent(&db)?;
 
     // Drop db lock before async fetch
     drop(db);
@@ -179,7 +206,7 @@ pub async fn refresh_playlist(
         };
 
         info!("Refreshing Xtream playlist '{}' (ID {})", playlist.name, playlist_id);
-        fetch_xtream_channels_with_progress(&creds, |progress| {
+        fetch_xtream_channels_with_progress(&creds, Some(&playlist_user_agent), |progress| {
             let _ = app.emit("refresh-progress", progress);
         })
         .await
@@ -192,7 +219,7 @@ pub async fn refresh_playlist(
             .ok_or_else(|| AppError::InvalidInput("Playlist has no URL or file path".to_string()))?;
 
         info!("Refreshing M3U playlist '{}' (ID {})", playlist.name, playlist_id);
-        parse_m3u(source)
+        parse_m3u(source, Some(&playlist_user_agent))
             .await
             .map_err(|e| {
                 error!("Failed to parse M3U for refresh: {}", e);

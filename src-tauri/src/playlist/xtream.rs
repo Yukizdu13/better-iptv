@@ -96,6 +96,7 @@ pub struct FetchProgress {
 /// Fetch channels from Xtream Codes API with progress callback
 pub async fn fetch_xtream_channels_with_progress<F>(
     creds: &XtreamCredentials,
+    user_agent: Option<&str>,
     mut progress_callback: F,
 ) -> Result<Vec<Channel>>
 where
@@ -112,9 +113,15 @@ where
 
     // Fetch all categories first to build category_id -> (category_name, order) map
     // Each content type has its own ordering starting from 0
-    let live_categories = fetch_categories(creds, "get_live_categories").await.unwrap_or_default();
-    let vod_categories = fetch_categories(creds, "get_vod_categories").await.unwrap_or_default();
-    let series_categories = fetch_categories(creds, "get_series_categories").await.unwrap_or_default();
+    let live_categories = fetch_categories(creds, "get_live_categories", user_agent)
+        .await
+        .unwrap_or_default();
+    let vod_categories = fetch_categories(creds, "get_vod_categories", user_agent)
+        .await
+        .unwrap_or_default();
+    let series_categories = fetch_categories(creds, "get_series_categories", user_agent)
+        .await
+        .unwrap_or_default();
 
     // Build map with (name, order) - order is the index in the provider's list
     let mut category_map: HashMap<String, (String, i32)> = HashMap::new();
@@ -129,19 +136,19 @@ where
     }
 
     // Fetch live streams
-    let live_streams = fetch_live_streams(creds, &category_map).await?;
+    let live_streams = fetch_live_streams(creds, &category_map, user_agent).await?;
     progress.live_count = live_streams.len();
     all_channels.extend(live_streams);
     progress_callback(progress.clone());
 
     // Fetch VOD streams
-    let vod_streams = fetch_vod_streams(creds, &category_map).await?;
+    let vod_streams = fetch_vod_streams(creds, &category_map, user_agent).await?;
     progress.vod_count = vod_streams.len();
     all_channels.extend(vod_streams);
     progress_callback(progress.clone());
 
     // Fetch series
-    let series_streams = fetch_series(creds, &category_map).await?;
+    let series_streams = fetch_series(creds, &category_map, user_agent).await?;
     progress.series_count = series_streams.len();
     all_channels.extend(series_streams);
     progress_callback(progress.clone());
@@ -152,7 +159,7 @@ where
 /// Fetch channels from Xtream Codes API (without progress)
 #[allow(dead_code)] // Convenience function for future use
 pub async fn fetch_xtream_channels(creds: &XtreamCredentials) -> Result<Vec<Channel>> {
-    fetch_xtream_channels_with_progress(creds, |_| {}).await
+    fetch_xtream_channels_with_progress(creds, None, |_| {}).await
 }
 
 /// Create exponential backoff configuration for API retries
@@ -167,16 +174,28 @@ fn create_backoff() -> ExponentialBackoff {
 }
 
 /// Fetch JSON from URL with retry logic
-async fn fetch_json_with_retry<T: for<'de> Deserialize<'de>>(url: &str, action: &str) -> Result<T> {
+async fn fetch_json_with_retry<T: for<'de> Deserialize<'de>>(
+    url: &str,
+    action: &str,
+    user_agent: Option<&str>,
+) -> Result<T> {
     let url = url.to_string();
     let action = action.to_string();
+    let user_agent = user_agent.map(|ua| ua.to_string());
 
     retry(create_backoff(), || {
         let url = url.clone();
         let action = action.clone();
+        let user_agent = user_agent.clone();
         async move {
-            let response = get_http_client()
-                .get(&url)
+            let request = get_http_client().get(&url);
+            let request = if let Some(ua) = user_agent.as_deref() {
+                request.header(reqwest::header::USER_AGENT, ua)
+            } else {
+                request
+            };
+
+            let response = request
                 .send()
                 .await
                 .map_err(|e| {
@@ -208,7 +227,11 @@ async fn fetch_json_with_retry<T: for<'de> Deserialize<'de>>(url: &str, action: 
 }
 
 /// Fetch categories from Xtream API
-async fn fetch_categories(creds: &XtreamCredentials, action: &str) -> Result<Vec<XtreamCategory>> {
+async fn fetch_categories(
+    creds: &XtreamCredentials,
+    action: &str,
+    user_agent: Option<&str>,
+) -> Result<Vec<XtreamCategory>> {
     let url = format!(
         "{}/player_api.php?username={}&password={}&action={}",
         creds.server_url.trim_end_matches('/'),
@@ -217,13 +240,14 @@ async fn fetch_categories(creds: &XtreamCredentials, action: &str) -> Result<Vec
         action
     );
 
-    fetch_json_with_retry(&url, action).await
+    fetch_json_with_retry(&url, action, user_agent).await
 }
 
 /// Fetch live TV streams
 async fn fetch_live_streams(
     creds: &XtreamCredentials,
     category_map: &std::collections::HashMap<String, (String, i32)>,
+    user_agent: Option<&str>,
 ) -> Result<Vec<Channel>> {
     let url = format!(
         "{}/player_api.php?username={}&password={}&action=get_live_streams",
@@ -232,7 +256,8 @@ async fn fetch_live_streams(
         creds.password
     );
 
-    let response: Vec<XtreamStream> = fetch_json_with_retry(&url, "live streams").await?;
+    let response: Vec<XtreamStream> =
+        fetch_json_with_retry(&url, "live streams", user_agent).await?;
     Ok(convert_streams_to_channels(creds, response, "live", category_map))
 }
 
@@ -240,6 +265,7 @@ async fn fetch_live_streams(
 async fn fetch_vod_streams(
     creds: &XtreamCredentials,
     category_map: &std::collections::HashMap<String, (String, i32)>,
+    user_agent: Option<&str>,
 ) -> Result<Vec<Channel>> {
     let url = format!(
         "{}/player_api.php?username={}&password={}&action=get_vod_streams",
@@ -248,7 +274,8 @@ async fn fetch_vod_streams(
         creds.password
     );
 
-    let response: Vec<XtreamStream> = fetch_json_with_retry(&url, "VOD streams").await?;
+    let response: Vec<XtreamStream> =
+        fetch_json_with_retry(&url, "VOD streams", user_agent).await?;
     Ok(convert_streams_to_channels(creds, response, "vod", category_map))
 }
 
@@ -256,6 +283,7 @@ async fn fetch_vod_streams(
 async fn fetch_series(
     creds: &XtreamCredentials,
     category_map: &std::collections::HashMap<String, (String, i32)>,
+    user_agent: Option<&str>,
 ) -> Result<Vec<Channel>> {
     let url = format!(
         "{}/player_api.php?username={}&password={}&action=get_series",
@@ -264,7 +292,7 @@ async fn fetch_series(
         creds.password
     );
 
-    let response: Vec<XtreamStream> = fetch_json_with_retry(&url, "series").await?;
+    let response: Vec<XtreamStream> = fetch_json_with_retry(&url, "series", user_agent).await?;
     Ok(convert_streams_to_channels(creds, response, "series", category_map))
 }
 
@@ -382,7 +410,7 @@ pub async fn fetch_series_info(creds: &XtreamCredentials, series_id: i64) -> Res
         series_id
     );
 
-    fetch_json_with_retry(&url, "series info").await
+    fetch_json_with_retry(&url, "series info", None).await
 }
 
 /// Build episode playback URL

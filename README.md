@@ -437,6 +437,23 @@ See [LICENSE](LICENSE) for full text.
 
 ---
 
+## 💖 Support the Project
+
+If you find Better IPTV useful, consider supporting its development:
+
+- **Ko-fi**: [ko-fi.com/R6R21I53PD](https://ko-fi.com/R6R21I53PD)
+- **GitHub Sponsors**: [Sponsor on GitHub](https://github.com/sponsors/mewset)
+
+**Crypto donations:**
+
+| Currency | Address |
+|----------|---------|
+| ETH | `0x47183F4e4FEAeE4BF52d95E68893e950125b1B44` |
+| BTC | `bc1qth40h9t8r7hvp4czqvf20f3w72jdg4epd5mjq8` |
+| SOL | `3waxf6r2tmaaADuBGYoVD5qz4z8VnFNEGGafbXZ6Jf2j` |
+
+---
+
 ## 📞 Support & Contact
 
 - **Issues**: [Report bugs or request features](https://github.com/mewset/better-iptv/issues)

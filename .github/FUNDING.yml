@@ -4,6 +4,9 @@
 # Ko-fi
 ko_fi: R6R21I53PD
 
+# Crypto donations (linked via custom URLs)
+custom: ['https://github.com/mewset/better-iptv#-support-the-project']
+
 # Other supported platforms (uncomment and add if you use them):
 # github: [your-github-username]
 # patreon: your-patreon-username
@@ -12,4 +15,3 @@ ko_fi: R6R21I53PD
 # community_bridge: project-name
 # liberapay: your-liberapay-username
 # issuehunt: your-issuehunt-username
-# custom: ['https://your-custom-donation-link.com']

@@ -1,4 +1,4 @@
-import { Tv, Film, Clapperboard } from 'lucide-react';
+import { Tv, Film, Clapperboard, Star } from 'lucide-react';
 import type { ContentTypeFilter } from '../hooks/useChannelFilter';
 
 interface ContentTypeTabsProps {
@@ -22,6 +22,11 @@ const TABS: TabConfig[] = [
     value: 'series',
     label: 'Series',
     icon: <Clapperboard className="h-4 w-4" aria-hidden="true" />,
+  },
+  {
+    value: 'favorites',
+    label: 'Favorites',
+    icon: <Star className="h-4 w-4" aria-hidden="true" />,
   },
 ];
 

@@ -18,6 +18,7 @@ export function useChannelFilter(): Channel[] {
     liveChannels,
     vodChannels,
     seriesChannels,
+    favoriteChannels,
     searchQuery,
     contentTypeFilter,
     setFilteredChannels,
@@ -32,10 +33,12 @@ export function useChannelFilter(): Channel[] {
         return vodChannels;
       case 'series':
         return seriesChannels;
+      case 'favorites':
+        return favoriteChannels;
       default:
         return channels;
     }
-  }, [contentTypeFilter, liveChannels, vodChannels, seriesChannels, channels]);
+  }, [contentTypeFilter, liveChannels, vodChannels, seriesChannels, favoriteChannels, channels]);
 
   // Apply search filter on top of content-type filtered list
   useEffect(() => {
@@ -58,7 +61,7 @@ export function useChannelFilter(): Channel[] {
 /**
  * Content type filter options
  */
-export type ContentTypeFilter = 'all' | 'live' | 'vod' | 'series';
+export type ContentTypeFilter = 'all' | 'live' | 'vod' | 'series' | 'favorites';
 
 /**
  * Hook to manage content type filter state

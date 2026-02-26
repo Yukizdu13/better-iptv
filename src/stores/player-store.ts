@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Channel, Playlist, SeriesInfo } from '../types';
-import { getParentalSettings, getBlockedChannels } from '../lib/tauri';
+import { getParentalSettings, getBlockedChannels, toggleFavorite } from '../lib/tauri';
 
 interface PlayerState {
   // Playlists
@@ -19,17 +19,19 @@ interface PlayerState {
   liveChannels: Channel[];
   vodChannels: Channel[];
   seriesChannels: Channel[];
+  favoriteChannels: Channel[];
   setChannels: (channels: Channel[]) => void;
   setFilteredChannels: (channels: Channel[]) => void;
   setCurrentChannel: (channel: Channel | null) => void;
+  toggleChannelFavorite: (channelId: number) => Promise<void>;
 
   // Search
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 
   // Content Type Filter
-  contentTypeFilter: 'all' | 'live' | 'vod' | 'series';
-  setContentTypeFilter: (filter: 'all' | 'live' | 'vod' | 'series') => void;
+  contentTypeFilter: 'all' | 'live' | 'vod' | 'series' | 'favorites';
+  setContentTypeFilter: (filter: 'all' | 'live' | 'vod' | 'series' | 'favorites') => void;
 
   // Category Filter (provider categories like "Sweden", "Norway", etc.)
   categoryFilter: string | null;
@@ -100,11 +102,13 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   liveChannels: [],
   vodChannels: [],
   seriesChannels: [],
+  favoriteChannels: [],
   setChannels: (channels) => {
     // Pre-filter channels by type for instant tab switching
     const liveChannels = channels.filter((c) => c.content_type === 'live');
     const vodChannels = channels.filter((c) => c.content_type === 'vod');
     const seriesChannels = channels.filter((c) => c.content_type === 'series');
+    const favoriteChannels = channels.filter((c) => c.is_favorite);
 
     set({
       channels,
@@ -112,10 +116,42 @@ export const usePlayerStore = create<PlayerState>((set) => ({
       liveChannels,
       vodChannels,
       seriesChannels,
+      favoriteChannels,
     });
   },
   setFilteredChannels: (channels) => set({ filteredChannels: channels }),
   setCurrentChannel: (channel) => set({ currentChannel: channel }),
+
+  toggleChannelFavorite: async (channelId) => {
+    // Call backend IPC to persist the favorite toggle
+    await toggleFavorite(channelId);
+
+    // Update local state: flip is_favorite for the matching channel across all arrays
+    set((state) => {
+      const updateChannels = (arr: Channel[]) =>
+        arr.map((c) =>
+          c.id === channelId ? { ...c, is_favorite: !c.is_favorite } : c
+        );
+
+      const updatedChannels = updateChannels(state.channels);
+      const updatedFilteredChannels = updateChannels(state.filteredChannels);
+      const updatedLiveChannels = updateChannels(state.liveChannels);
+      const updatedVodChannels = updateChannels(state.vodChannels);
+      const updatedSeriesChannels = updateChannels(state.seriesChannels);
+
+      // Rebuild favoriteChannels from the updated master list
+      const favoriteChannels = updatedChannels.filter((c) => c.is_favorite);
+
+      return {
+        channels: updatedChannels,
+        filteredChannels: updatedFilteredChannels,
+        liveChannels: updatedLiveChannels,
+        vodChannels: updatedVodChannels,
+        seriesChannels: updatedSeriesChannels,
+        favoriteChannels,
+      };
+    });
+  },
 
   // Search
   searchQuery: '',

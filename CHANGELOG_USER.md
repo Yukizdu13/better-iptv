@@ -4,9 +4,17 @@ A simple overview of new features and improvements.
 
 ---
 
-## Version 2.5.0 (TBD)
+## Version 2.5.0 (February 26, 2026)
 
 ### New Features
+
+**Favorites**
+- New **Favorites** tab next to Live TV, Movies, and Series
+- Click the **star** on any channel card to add it to your favorites
+- Stars appear when you hover over a channel - click to save it
+- Your favorites include all types: live channels, movies, and series in one place
+- Search works within your favorites too
+- Favorites are saved and survive playlist refreshes
 
 **Custom User-Agent for Playlist Requests**
 - New setting in **Settings > General > Playlist Requests**

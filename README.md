@@ -56,7 +56,8 @@ Protect your family with comprehensive content restrictions:
 - **M3U/M3U8 Support** - Import from local files or URLs
 - **Xtream Codes Integration** - Direct connection to your IPTV provider
 - **Multi-Profile System** - Switch between multiple providers/playlists
-- **Favorites** - Star channels for quick access
+- **Favorites** - Star any channel, movie, or series and find them all in a dedicated Favorites tab
+- **Custom User-Agent** - Choose between Default, TiviMate, VLC, or custom User-Agent for provider compatibility
 - **Category Quick-Access** - Horizontal bar for instant category filtering
 
 ### 🌐 Language & Accessibility
@@ -161,14 +162,14 @@ On first launch, you'll see the setup screen. Choose your import method:
 ### 3️⃣ Configure EPG (Optional)
 
 1. Open **Settings** (gear icon)
-2. Navigate to **EPG Settings**
-3. Enter your XMLTV EPG URL
-4. Click **"Fetch EPG"**
+2. Navigate to **General** → **EPG Settings**
+3. Enter your XMLTV EPG URL (Xtream users get this automatically!)
+4. Click **"Update Now"** to fetch EPG data
 5. EPG updates automatically going forward
 
 ### 4️⃣ Start Watching!
 
-- **Browse**: Use tabs (All/Live TV/Movies/Series) and category bar
+- **Browse**: Use tabs (All/Live TV/Movies/Series/Favorites) and category bar
 - **Search**: Type in search box for instant filtering
 - **Play**: Click play button on any channel
 - **Enjoy**: MPV opens in separate window with full playback controls
@@ -178,10 +179,10 @@ On first launch, you'll see the setup screen. Choose your import method:
 ## 💡 Usage Tips
 
 ### Content Navigation
-- **Tabs**: Filter by All, Live TV, Movies, or Series
+- **Tabs**: Filter by All, Live TV, Movies, Series, or Favorites
 - **Category Bar**: Horizontal scroll for quick category access
 - **Search**: Real-time filtering by channel/group name
-- **Favorites**: Click star icon to mark favorites
+- **Favorites**: Hover over any channel card and click the star to add/remove favorites
 
 ### Watching Series
 1. Go to **Series** tab
@@ -207,6 +208,15 @@ On first launch, you'll see the setup screen. Choose your import method:
 ---
 
 ## 🎮 Keyboard Shortcuts
+
+*In-app shortcuts:*
+
+| Key | Action |
+|-----|--------|
+| `Space` | Play/Stop current channel |
+| `/` | Focus search bar |
+| `Escape` | Stop playback |
+| `Ctrl+1-4` | Switch settings tabs |
 
 *Within MPV player window:*
 
@@ -381,25 +391,25 @@ cd src-tauri && cargo test  # Rust tests
 
 ## 📝 What's New
 
-### Version 2.3.0 (Current)
+### Version 2.5.0 (Current)
 
-**🔒 Parental Controls**
-- PIN-protected content restrictions with Argon2 encryption
-- Manual channel blocking with virtualized selection
-- Auto-detection of adult content markers
-- Category-level blocking
-- Three viewing modes: Hide, Lock, Blur
-- Session-based temporary unlock
+**⭐ Favorites**
+- New dedicated **Favorites** tab alongside Live TV, Movies, and Series
+- Click the star on any channel card to add/remove favorites
+- Favorites span all content types in one unified view
+- Favorites survive playlist refreshes
 
-**🎉 Windows MPV Bundled**
-- Windows users no longer need separate MPV installation
-- Everything included in installer
-- Still compatible with existing MPV installations
+**🌐 Custom User-Agent**
+- New setting in Settings > General > Playlist Requests
+- Presets: Default, TiviMate, VLC, or enter a custom value
+- Smarter EPG User-Agent handling for Xtream providers
 
-**🐛 Bug Fixes**
-- Auto-detect parental controls now properly adds channels to blocked list
-- Lock and Blur modes now correctly show channels (previously would hide them)
-- PIN modal no longer gets stuck on "Processing..." after multiple unlocks
+### Recent Highlights
+
+- **v2.4.0** - Keyboard shortcuts, playlist auto-refresh, auto EPG setup for Xtream
+- **v2.3.0** - Parental controls (PIN, auto-detect, category blocking), bundled MPV for Windows
+- **v2.2.0** - Category quick-access bar with provider ordering
+- **v2.1.0** - Multi-profile system, 19 language preferences, responsive grid layout
 
 [See full changelog](CHANGELOG_USER.md)
 

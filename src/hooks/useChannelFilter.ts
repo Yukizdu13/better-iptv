@@ -58,7 +58,7 @@ export function useChannelFilter(): Channel[] {
 /**
  * Content type filter options
  */
-export type ContentTypeFilter = 'all' | 'live' | 'vod' | 'series';
+export type ContentTypeFilter = 'all' | 'live' | 'vod' | 'series' | 'favorites';
 
 /**
  * Hook to manage content type filter state

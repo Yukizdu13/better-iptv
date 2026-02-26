@@ -28,8 +28,8 @@ interface PlayerState {
   setSearchQuery: (query: string) => void;
 
   // Content Type Filter
-  contentTypeFilter: 'all' | 'live' | 'vod' | 'series';
-  setContentTypeFilter: (filter: 'all' | 'live' | 'vod' | 'series') => void;
+  contentTypeFilter: 'all' | 'live' | 'vod' | 'series' | 'favorites';
+  setContentTypeFilter: (filter: 'all' | 'live' | 'vod' | 'series' | 'favorites') => void;
 
   // Category Filter (provider categories like "Sweden", "Norway", etc.)
   categoryFilter: string | null;

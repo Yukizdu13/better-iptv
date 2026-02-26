@@ -55,14 +55,23 @@ jobs:
       - name: Download MPV for Windows bundling
         if: matrix.platform == 'windows-latest'
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "📥 Downloading MPV Windows build from shinchiro..."
 
           # Get latest MPV release from shinchiro's GitHub releases
-          MPV_URL=$(curl -s https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/latest | \
+          # Use GITHUB_TOKEN to avoid API rate limiting on runners
+          MPV_URL=$(curl -sH "Authorization: token $GITHUB_TOKEN" \
+            https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/latest | \
             grep "browser_download_url.*mpv-x86_64.*7z\"" | \
             head -1 | \
             cut -d '"' -f 4)
+
+          if [ -z "$MPV_URL" ]; then
+            echo "❌ Error: Could not find MPV download URL (API rate limited?)"
+            exit 1
+          fi
 
           echo "Found MPV URL: $MPV_URL"
 

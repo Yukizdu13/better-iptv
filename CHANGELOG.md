@@ -7,6 +7,26 @@ This file is a developer-changelog, aimed towards development changes.
 
 ### Added
 
+- **Favorites System** - Full favorites support with dedicated tab and interactive toggle
+  - New "Favorites" tab in content type navigation (alongside All/Live/Movies/Series)
+  - Star icon tab using `lucide-react` Star component
+  - Clickable favorite star on every channel card (top-right of logo area)
+  - Non-favorites show subtle star on hover, favorites show filled yellow star
+  - Accessible `<button>` with dynamic `aria-label` ("Add to favorites" / "Remove from favorites")
+  - `toggleChannelFavorite` store action: persists via IPC then updates all local state arrays
+  - `favoriteChannels` pre-filtered array in Zustand store (same pattern as liveChannels/vodChannels/seriesChannels)
+  - Favorites span all content types (live, vod, series) in a single view
+  - CategoryBar hidden when Favorites tab is active (prevents invalid backend call)
+  - Search works within favorites
+  - Parental controls apply to favorites
+  - Implementation:
+    - Type: `ContentTypeFilter` extended with `'favorites'` in `useChannelFilter.ts`, `player-store.ts`
+    - Store: `favoriteChannels` + `toggleChannelFavorite` in `stores/player-store.ts`
+    - UI: `ContentTypeTabs.tsx` (new tab), `ChannelCard.tsx` (interactive star)
+    - Integration: `MainScreen.tsx` (filter switch, CategoryBar guard, toggle wiring)
+    - Hook: `useChannelFilter.ts` (favorites case in switch)
+  - Backend: No changes needed (existing `toggle_favorite`, `get_favorites`, `is_favorite` column)
+
 - **Playlist User-Agent Settings** - Configurable request identity for provider compatibility
   - New setting in Settings > General > Playlist Requests
   - Presets: `Default (Better-IP-TV)`, `TiviMate`, `VLC`, and `Custom`

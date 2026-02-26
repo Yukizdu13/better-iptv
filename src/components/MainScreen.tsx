@@ -36,6 +36,7 @@ export default function MainScreen() {
     liveChannels,
     vodChannels,
     seriesChannels,
+    favoriteChannels,
     searchQuery,
     contentTypeFilter,
     categoryFilter,
@@ -60,6 +61,7 @@ export default function MainScreen() {
     parentalVisibility,
     loadParentalSettings,
     setChannels,
+    toggleChannelFavorite,
   } = usePlayerStore();
 
   // Use consolidated EPG hook for channel EPG data (with debouncing and caching)
@@ -107,6 +109,11 @@ export default function MainScreen() {
       return;
     }
 
+    if (contentTypeFilter === 'favorites') {
+      setCategories([]);
+      return;
+    }
+
     const contentType = contentTypeFilter === 'all' ? undefined : contentTypeFilter;
     getChannelGroups(currentPlaylist.id, contentType)
       .then(setCategories)
@@ -129,6 +136,9 @@ export default function MainScreen() {
         break;
       case 'series':
         baseList = seriesChannels;
+        break;
+      case 'favorites':
+        baseList = favoriteChannels;
         break;
       default:
         baseList = channels;
@@ -173,6 +183,7 @@ export default function MainScreen() {
     liveChannels,
     vodChannels,
     seriesChannels,
+    favoriteChannels,
     setFilteredChannels,
     parentalEnabled,
     parentalUnlocked,
@@ -482,6 +493,7 @@ export default function MainScreen() {
                             channel={channel}
                             isPlaying={currentChannel?.id === channel.id && isPlaying}
                             onPlay={() => handlePlayChannel(channel)}
+                            onToggleFavorite={() => channel.id && toggleChannelFavorite(channel.id)}
                             currentProgram={channel.id ? channelEpgData.get(channel.id) : undefined}
                             cardHeight={cardHeight}
                             isBlocked={isChannelBlocked}

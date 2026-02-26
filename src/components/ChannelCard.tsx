@@ -23,6 +23,8 @@ interface ChannelCardProps {
   isBlocked?: boolean;
   /** Visibility mode for blocked channels */
   parentalVisibility?: 'hide' | 'lock' | 'blur';
+  /** Callback when favorite star is toggled */
+  onToggleFavorite?: () => void;
 }
 
 /**
@@ -43,6 +45,7 @@ export const ChannelCard = memo(function ChannelCard({
   cardHeight,
   isBlocked = false,
   parentalVisibility = 'hide',
+  onToggleFavorite,
 }: ChannelCardProps) {
   // Calculate dynamic image height (approximately 45% of card height)
   const imageHeight = Math.max(80, Math.round(cardHeight * 0.45));
@@ -57,7 +60,7 @@ export const ChannelCard = memo(function ChannelCard({
       style={{ height: `${cardHeight}px` }}
     >
       {/* Logo/Image section */}
-      <div className="relative flex-shrink-0 bg-gray-900">
+      <div className="group relative flex-shrink-0 bg-gray-900">
         {channel.logo ? (
           <div
             className="flex w-full items-center justify-center bg-gray-900 p-2"
@@ -82,11 +85,25 @@ export const ChannelCard = memo(function ChannelCard({
             </span>
           </div>
         )}
-        {channel.is_favorite && (
-          <div className="absolute right-2 top-2 rounded-full bg-yellow-400 p-1">
-            <Star className={`${isSmall ? 'h-3 w-3' : 'h-4 w-4'} fill-white text-white`} />
-          </div>
-        )}
+        <button
+          type="button"
+          aria-label={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite?.();
+          }}
+          className={`absolute right-2 top-2 rounded-full p-1 transition-opacity ${
+            channel.is_favorite
+              ? 'bg-yellow-400 opacity-100'
+              : 'bg-black/40 opacity-0 hover:bg-black/60 group-hover:opacity-100'
+          }`}
+        >
+          <Star
+            className={`${isSmall ? 'h-3 w-3' : 'h-4 w-4'} ${
+              channel.is_favorite ? 'fill-white text-white' : 'text-white'
+            }`}
+          />
+        </button>
       </div>
 
       {/* Content section */}

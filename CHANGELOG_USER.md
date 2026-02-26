@@ -4,7 +4,7 @@ A simple overview of new features and improvements.
 
 ---
 
-## Version 2.5.0 (TBD)
+## Version 2.5.0 (February 26, 2026)
 
 ### New Features
 

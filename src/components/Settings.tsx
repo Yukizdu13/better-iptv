@@ -238,7 +238,10 @@ export default function Settings({ onClose }: SettingsProps) {
 
       const sanitizedCustomUserAgent = playlistUserAgentCustom.trim();
       if (playlistUserAgentMode === 'custom' && !sanitizedCustomUserAgent) {
-        showError('Invalid User-Agent', 'Custom User-Agent cannot be empty when Custom is selected.');
+        showError(
+          'Invalid User-Agent',
+          'Custom User-Agent cannot be empty when Custom is selected.'
+        );
         return;
       }
       if (/\r|\n/.test(sanitizedCustomUserAgent)) {

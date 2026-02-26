@@ -129,9 +129,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     // Update local state: flip is_favorite for the matching channel across all arrays
     set((state) => {
       const updateChannels = (arr: Channel[]) =>
-        arr.map((c) =>
-          c.id === channelId ? { ...c, is_favorite: !c.is_favorite } : c
-        );
+        arr.map((c) => (c.id === channelId ? { ...c, is_favorite: !c.is_favorite } : c));
 
       const updatedChannels = updateChannels(state.channels);
       const updatedFilteredChannels = updateChannels(state.filteredChannels);

@@ -114,14 +114,32 @@ If you prefer a manual installation or already have MPV:
 **Pre-built Packages:**
 1. Visit [Releases](https://github.com/mewset/better-iptv/releases/latest)
 2. Download for your platform:
-   - **Linux**: `.AppImage` (universal), `.deb` (Ubuntu/Debian), `.rpm` (Fedora/RHEL)
+   - **Linux (Ubuntu/Debian)**: `.AppImage`, `.deb`
+   - **Linux (Arch/Manjaro)**: `-arch.AppImage` or install via AUR (see below)
+   - **Linux (Fedora/RHEL)**: `.rpm`
    - **Windows**: `.msi` installer or `.exe` portable
    - **macOS**: `.dmg` disk image
 
-**Linux AppImage:**
+**Linux AppImage (Ubuntu/Debian):**
 ```bash
-chmod +x Better-IPTV.AppImage
-./Better-IPTV.AppImage
+chmod +x Better-IPTV_*_amd64.AppImage
+./Better-IPTV_*_amd64.AppImage
+```
+
+**Linux AppImage (Arch/Manjaro):**
+
+> **⚠️ Important:** Use the `-arch.AppImage` variant on Arch-based distros. The standard AppImage bundles WebKit libraries from Ubuntu that conflict with newer system libraries on rolling-release distros and will cause a crash on startup.
+
+```bash
+chmod +x Better-IPTV_*_amd64-arch.AppImage
+./Better-IPTV_*_amd64-arch.AppImage
+```
+
+Alternatively, install via the AUR for the best experience:
+```bash
+yay -S better-iptv-bin
+# or
+paru -S better-iptv-bin
 ```
 
 **Build from Source:**

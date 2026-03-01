@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getVersion } from '@tauri-apps/api/app';
 import { appLogDir } from '@tauri-apps/api/path';
-import { open } from '@tauri-apps/plugin-opener';
+import { openPath, openUrl } from '@tauri-apps/plugin-opener';
 import { Copy, Check, FolderOpen } from 'lucide-react';
 import { truncateAddress } from '../../lib/truncateAddress';
 
@@ -33,7 +33,7 @@ export default function AboutTab() {
   const handleOpenLogs = async () => {
     try {
       const dir = await appLogDir();
-      await open(dir);
+      await openPath(dir);
     } catch {
       // Log folder may not exist yet on first run
     }
@@ -68,7 +68,7 @@ export default function AboutTab() {
       {/* Donation buttons */}
       <div className="flex flex-wrap gap-3">
         <button
-          onClick={() => open('https://ko-fi.com/R6R21I53PD')}
+          onClick={() => openUrl('https://ko-fi.com/R6R21I53PD')}
           className="inline-flex items-center gap-2 rounded-lg bg-[#FF5E5B] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#e54f4d]"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -77,7 +77,7 @@ export default function AboutTab() {
           Support on Ko-fi
         </button>
         <button
-          onClick={() => open('https://github.com/sponsors/mewset')}
+          onClick={() => openUrl('https://github.com/sponsors/mewset')}
           className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600"
         >
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">

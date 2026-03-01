@@ -5,6 +5,7 @@ import { openPath, openUrl } from '@tauri-apps/plugin-opener';
 import { Copy, Check, FolderOpen } from 'lucide-react';
 import { truncateAddress } from '../../lib/truncateAddress';
 import { logger } from '../../lib/logger';
+import logoImage from '../../assets/logo/logo-256.webp';
 
 const CRYPTO_ADDRESSES = [
   { currency: 'BTC', address: 'bc1qth40h9t8r7hvp4czqvf20f3w72jdg4epd5mjq8' },
@@ -46,7 +47,7 @@ export default function AboutTab() {
     <div className="space-y-6 py-4">
       {/* App identity */}
       <div className="flex items-center gap-4">
-        <img src="/icon.png" alt="Better IPTV" className="h-12 w-12 rounded-xl" />
+        <img src={logoImage} alt="Better IPTV" className="h-12 w-12 rounded-xl" />
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Better IPTV</h3>
           <div className="flex items-center gap-2 mt-0.5">

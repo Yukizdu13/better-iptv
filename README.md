@@ -7,7 +7,7 @@
 
   [![Test Build](https://github.com/mewset/better-iptv/workflows/Test%20Build/badge.svg)](https://github.com/mewset/better-iptv/actions)
   [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-blue.svg)](#-installation)
-  [![AUR](https://img.shields.io/aur/version/better-iptv-bin?logo=archlinux&label=AUR)](https://aur.archlinux.org/packages/better-iptv-bin)
+  [![AUR](https://img.shields.io/aur/version/better-iptv?logo=archlinux&label=AUR)](https://aur.archlinux.org/packages/better-iptv)
   [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](LICENSE)
   [![Website](https://img.shields.io/badge/website-better--iptv.vercel.app-informational)](https://better-iptv.vercel.app)
 
@@ -115,9 +115,9 @@ chmod +x Better-IPTV_*_amd64-arch.AppImage
 
 Alternatively, install via the AUR:
 ```bash
-yay -S better-iptv-bin
+yay -S better-iptv
 # or
-paru -S better-iptv-bin
+paru -S better-iptv
 ```
 
 ---

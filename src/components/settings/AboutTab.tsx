@@ -21,14 +21,22 @@ export default function AboutTab() {
   }, []);
 
   const handleCopy = async (currency: string, address: string) => {
-    await navigator.clipboard.writeText(address);
-    setCopiedCurrency(currency);
-    setTimeout(() => setCopiedCurrency(null), 2000);
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopiedCurrency(currency);
+      setTimeout(() => setCopiedCurrency(null), 2000);
+    } catch {
+      // Clipboard write failed silently
+    }
   };
 
   const handleOpenLogs = async () => {
-    const dir = await appLogDir();
-    await open(dir);
+    try {
+      const dir = await appLogDir();
+      await open(dir);
+    } catch {
+      // Log folder may not exist yet on first run
+    }
   };
 
   return (
@@ -40,9 +48,11 @@ export default function AboutTab() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Better IPTV</h3>
           <div className="flex items-center gap-2 mt-0.5">
             {version && (
-              <span className="text-sm text-gray-500 dark:text-gray-400">v{version}</span>
+              <>
+                <span className="text-sm text-gray-500 dark:text-gray-400">v{version}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">·</span>
+              </>
             )}
-            <span className="text-xs text-gray-400 dark:text-gray-500">·</span>
             <span className="text-xs text-gray-400 dark:text-gray-500">GPL-2.0</span>
           </div>
         </div>
@@ -81,6 +91,8 @@ export default function AboutTab() {
       <div className="rounded-lg border border-gray-200 overflow-hidden dark:border-gray-700">
         <button
           onClick={() => setCryptoOpen((o) => !o)}
+          aria-expanded={cryptoOpen}
+          aria-controls="crypto-addresses"
           className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
         >
           Donate with crypto
@@ -94,7 +106,7 @@ export default function AboutTab() {
           </svg>
         </button>
         {cryptoOpen && (
-          <div className="border-t border-gray-200 px-4 pb-4 pt-3 space-y-3 dark:border-gray-700">
+          <div id="crypto-addresses" className="border-t border-gray-200 px-4 pb-4 pt-3 space-y-3 dark:border-gray-700">
             {CRYPTO_ADDRESSES.map(({ currency, address }) => (
               <div key={currency}>
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">

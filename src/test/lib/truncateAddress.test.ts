@@ -13,4 +13,12 @@ describe('truncateAddress', () => {
   it('handles empty string', () => {
     expect(truncateAddress('')).toBe('');
   });
+
+  it('returns address unchanged if exactly 13 chars', () => {
+    expect(truncateAddress('shortaddr1234')).toBe('shortaddr1234');
+  });
+
+  it('truncates an address of exactly 14 chars', () => {
+    expect(truncateAddress('12345678901234')).toBe('123456...1234');
+  });
 });

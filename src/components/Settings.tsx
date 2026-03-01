@@ -23,6 +23,7 @@ import {
   GeneralTab,
   PlaybackTab,
   ParentalTab,
+  AboutTab,
   LANGUAGE_OPTIONS,
   USER_AGENT_OPTIONS,
   type Theme,
@@ -148,6 +149,7 @@ export default function Settings({ onClose }: SettingsProps) {
           '2': 'playback',
           '3': 'parental',
           '4': 'profiles',
+          '5': 'about',
         };
         if (tabMap[e.key]) {
           e.preventDefault();
@@ -333,6 +335,7 @@ export default function Settings({ onClose }: SettingsProps) {
               <TabsTrigger value="playback">Playback</TabsTrigger>
               <TabsTrigger value="parental">Parental</TabsTrigger>
               <TabsTrigger value="profiles">Profiles</TabsTrigger>
+              <TabsTrigger value="about">About</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general">
@@ -385,6 +388,10 @@ export default function Settings({ onClose }: SettingsProps) {
 
             <TabsContent value="profiles">
               <ProfileManager onClose={onClose} />
+            </TabsContent>
+
+            <TabsContent value="about">
+              <AboutTab />
             </TabsContent>
           </Tabs>
         </div>

@@ -140,7 +140,7 @@ export default function Settings({ onClose }: SettingsProps) {
     loadSettings();
   }, []);
 
-  // Keyboard navigation (Ctrl+1-4 for tab switching)
+  // Keyboard navigation (Ctrl+1-5 for tab switching)
   useEffect(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {

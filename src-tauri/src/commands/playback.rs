@@ -2,7 +2,7 @@ use crate::db::{queries, models::Channel};
 use crate::error::AppError;
 use crate::playback;
 use crate::state::AppState;
-use log::{debug, info};
+use log::info;
 use tauri::State;
 
 #[tauri::command]
@@ -56,7 +56,5 @@ pub async fn stop_playback(state: State<'_, AppState>) -> Result<(), AppError> {
 #[tauri::command]
 pub async fn is_playing(state: State<'_, AppState>) -> Result<bool, AppError> {
     let mut player = state.mpv_player.lock().await;
-    let result = playback::is_playing(&mut player);
-    debug!("is_playing -> {}", result);
-    Ok(result)
+    Ok(playback::is_playing(&mut player))
 }

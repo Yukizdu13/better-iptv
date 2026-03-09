@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
-use rusqlite::Connection;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 use serde::{Deserialize, Serialize};
 
 /// Lightweight struct for tracking current channel (avoids cloning full Channel)
@@ -27,8 +28,8 @@ impl CurrentChannel {
 /// Global application state shared across all Tauri commands
 #[derive(Clone)]
 pub struct AppState {
-    /// Database connection
-    pub db: Arc<Mutex<Connection>>,
+    /// Database connection pool
+    pub pool: Pool<SqliteConnectionManager>,
 
     /// Currently playing channel (if any) - uses lightweight struct
     pub current_channel: Arc<RwLock<Option<CurrentChannel>>>,
@@ -38,9 +39,9 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(db: Connection) -> Self {
+    pub fn new(pool: Pool<SqliteConnectionManager>) -> Self {
         Self {
-            db: Arc::new(Mutex::new(db)),
+            pool,
             current_channel: Arc::new(RwLock::new(None)),
             mpv_player: Arc::new(Mutex::new(crate::playback::mpv::MpvPlayer::new())),
         }

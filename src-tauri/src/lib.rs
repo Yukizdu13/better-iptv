@@ -18,10 +18,28 @@ pub use error::{AppError, AppResult};
 use commands::*;
 use db::schema::{init_schema, ensure_active_profile};
 use log::{info, warn};
-use rusqlite::Connection;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 use state::AppState;
 use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind, RotationStrategy, TimezoneStrategy};
+
+/// PRAGMA initializer for each new connection in the pool
+#[derive(Debug)]
+struct PragmaCustomizer;
+
+impl r2d2::CustomizeConnection<rusqlite::Connection, rusqlite::Error> for PragmaCustomizer {
+    fn on_acquire(&self, conn: &mut rusqlite::Connection) -> Result<(), rusqlite::Error> {
+        conn.execute_batch(
+            "PRAGMA journal_mode = WAL;
+             PRAGMA synchronous = NORMAL;
+             PRAGMA foreign_keys = ON;
+             PRAGMA cache_size = 10000;
+             PRAGMA temp_store = memory;"
+        )?;
+        Ok(())
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -68,38 +86,43 @@ pub fn run() {
             // Database path
             let db_path = app_data_dir.join("better-ip-tv.db");
 
-            // Initialize database
-            let conn = Connection::open(&db_path)
-                .expect("Failed to open database");
+            // Build connection pool
+            let manager = SqliteConnectionManager::file(&db_path);
+            let pool = Pool::builder()
+                .max_size(4)
+                .connection_customizer(Box::new(PragmaCustomizer))
+                .build(manager)
+                .expect("Failed to create connection pool");
 
-            // Configure SQLite for optimal desktop performance
-            conn.execute_batch(
-                "PRAGMA journal_mode = WAL;
-                 PRAGMA synchronous = NORMAL;
-                 PRAGMA foreign_keys = ON;
-                 PRAGMA cache_size = 10000;
-                 PRAGMA temp_store = memory;"
-            ).expect("Failed to configure database pragmas");
+            // Startup logging
+            info!("Better-IP-TV v{} starting", env!("CARGO_PKG_VERSION"));
+            info!("Database: {}", db_path.display());
+            info!("Connection pool: {} connections", pool.max_size());
 
-            init_schema(&conn)
-                .expect("Failed to initialize database schema");
+            // Initialize schema using a connection from the pool
+            {
+                let conn = pool.get().expect("Failed to get connection for schema init");
 
-            // Run migration for active profile setting
-            ensure_active_profile(&conn)
-                .expect("Failed to ensure active profile setting");
+                init_schema(&conn)
+                    .expect("Failed to initialize database schema");
 
-            // Update EPG IDs for existing channels (for migration)
-            match db::mutations::update_channel_epg_ids(&conn) {
-                Ok(count) => {
-                    if count > 0 {
-                        info!("Updated EPG IDs for {} channels", count);
+                // Run migration for active profile setting
+                ensure_active_profile(&conn)
+                    .expect("Failed to ensure active profile setting");
+
+                // Update EPG IDs for existing channels (for migration)
+                match db::mutations::update_channel_epg_ids(&conn) {
+                    Ok(count) => {
+                        if count > 0 {
+                            info!("Updated EPG IDs for {} channels", count);
+                        }
                     }
+                    Err(e) => warn!("Failed to update EPG IDs: {}", e),
                 }
-                Err(e) => warn!("Failed to update EPG IDs: {}", e),
             }
 
             // Create and manage app state
-            let state = AppState::new(conn);
+            let state = AppState::new(pool);
             app.manage(state);
 
             Ok(())

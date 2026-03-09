@@ -19,6 +19,7 @@ This file is a developer-changelog, aimed towards development changes.
   - Settings: debug logging for get/set operations
   - Performance timing: `Instant`-based elapsed time for batch insert, merge, EPG fetch/parse/store
   - App startup: version, database path, connection pool size
+  - Removed `is_playing` debug log from polling endpoint (fired every second, spamming logfile)
 
 ### Changed
 

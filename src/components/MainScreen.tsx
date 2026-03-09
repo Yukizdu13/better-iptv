@@ -1,12 +1,7 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePlayerStore } from '../stores/player-store';
 import {
-  playChannel,
-  stopPlayback,
-  isPlaying as checkIsPlaying,
-  getChannelEpg,
-  playEpisodeWithSeason,
   getChannelGroups,
   getStalePlaylistIds,
   getChannels,
@@ -27,42 +22,48 @@ import { logger } from '../lib/logger';
 import { useResponsiveGrid, getGridClasses } from '../hooks/useResponsiveGrid';
 import { useEpgData } from '../hooks/useEpgData';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useChannelPlayback } from '../hooks/useChannelPlayback';
 import { shouldBlockChannel } from '../lib/parentalControls';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useChannelFilter } from '../hooks/useChannelFilter';
 
 export default function MainScreen() {
+  // Channel data
+  const channels = usePlayerStore((s) => s.channels);
+
+  // Search & filters
+  const searchQuery = usePlayerStore((s) => s.searchQuery);
+  const contentTypeFilter = usePlayerStore((s) => s.contentTypeFilter);
+  const setSearchQuery = usePlayerStore((s) => s.setSearchQuery);
+  const setContentTypeFilter = usePlayerStore((s) => s.setContentTypeFilter);
+  const setCategories = usePlayerStore((s) => s.setCategories);
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
+
+  // Consolidated channel filtering (content type, category, parental, search)
+  const filteredChannels = useChannelFilter(debouncedSearchQuery);
+
+  // Playback (hook handles polling + EPG updates)
   const {
-    channels,
-    filteredChannels,
-    liveChannels,
-    vodChannels,
-    seriesChannels,
-    favoriteChannels,
-    searchQuery,
-    contentTypeFilter,
-    categoryFilter,
     currentChannel,
-    currentPlaylist,
     isPlaying,
     currentProgram,
     nextProgram,
-    setSearchQuery,
-    setContentTypeFilter,
-    setFilteredChannels,
-    setCurrentChannel,
-    setIsPlaying,
-    setCurrentProgram,
-    setNextProgram,
-    setCategories,
-    parentalEnabled,
-    parentalUnlocked,
-    blockedChannelIds,
-    blockedCategories,
-    parentalAutoDetect,
-    parentalVisibility,
-    loadParentalSettings,
-    setChannels,
-    toggleChannelFavorite,
-  } = usePlayerStore();
+    play: playChannelAction,
+    stop: stopPlaybackAction,
+    playEpisode: playEpisodeAction,
+  } = useChannelPlayback();
+  const currentPlaylist = usePlayerStore((s) => s.currentPlaylist);
+  const setChannels = usePlayerStore((s) => s.setChannels);
+  const toggleChannelFavorite = usePlayerStore((s) => s.toggleChannelFavorite);
+
+  // Parental
+  const parentalEnabled = usePlayerStore((s) => s.parentalEnabled);
+  const parentalUnlocked = usePlayerStore((s) => s.parentalUnlocked);
+  const blockedChannelIds = usePlayerStore((s) => s.blockedChannelIds);
+  const blockedCategories = usePlayerStore((s) => s.blockedCategories);
+  const parentalAutoDetect = usePlayerStore((s) => s.parentalAutoDetect);
+  const parentalVisibility = usePlayerStore((s) => s.parentalVisibility);
+  const loadParentalSettings = usePlayerStore((s) => s.loadParentalSettings);
 
   // Use consolidated EPG hook for channel EPG data (with debouncing and caching)
   const { channelEpgData } = useEpgData(filteredChannels);
@@ -123,114 +124,28 @@ export default function MainScreen() {
       });
   }, [currentPlaylist?.id, contentTypeFilter, setCategories]);
 
-  // Filter channels when search query, content type, or category changes
-  useEffect(() => {
-    // Get pre-filtered list based on content type (instant tab switching)
-    let baseList: Channel[];
-    switch (contentTypeFilter) {
-      case 'live':
-        baseList = liveChannels;
-        break;
-      case 'vod':
-        baseList = vodChannels;
-        break;
-      case 'series':
-        baseList = seriesChannels;
-        break;
-      case 'favorites':
-        baseList = favoriteChannels;
-        break;
-      default:
-        baseList = channels;
-    }
 
-    // Apply category filter
-    if (categoryFilter) {
-      baseList = baseList.filter((channel) => channel.group_name === categoryFilter);
-    }
+  // Pre-compute parental blocking results (avoids per-card shouldBlockChannel calls)
+  const blockedMap = useMemo(() => {
+    if (!parentalEnabled || parentalUnlocked) return new Map<number, boolean>();
 
-    // Apply parental controls filter - only hide if visibility mode is 'hide'
-    if (parentalEnabled && !parentalUnlocked && parentalVisibility === 'hide') {
-      baseList = baseList.filter((channel) => {
-        const blocked = shouldBlockChannel(channel, {
+    const map = new Map<number, boolean>();
+    for (const channel of filteredChannels) {
+      if (channel.id) {
+        map.set(channel.id, shouldBlockChannel(channel, {
           enabled: parentalEnabled,
           autoDetect: parentalAutoDetect,
           blockedIds: blockedChannelIds,
           blockedCategories: blockedCategories,
           unlocked: parentalUnlocked,
-        });
-        return !blocked;
-      });
+        }));
+      }
     }
-
-    // Apply search filter on top of pre-filtered list
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase();
-      const filtered = baseList.filter(
-        (channel) =>
-          channel.name.toLowerCase().includes(query) ||
-          channel.group_name?.toLowerCase().includes(query)
-      );
-      setFilteredChannels(filtered);
-    } else {
-      setFilteredChannels(baseList);
-    }
+    return map;
   }, [
-    searchQuery,
-    contentTypeFilter,
-    categoryFilter,
-    channels,
-    liveChannels,
-    vodChannels,
-    seriesChannels,
-    favoriteChannels,
-    setFilteredChannels,
-    parentalEnabled,
-    parentalUnlocked,
-    parentalAutoDetect,
-    blockedChannelIds,
-    blockedCategories,
-    parentalVisibility,
+    filteredChannels, parentalEnabled, parentalUnlocked,
+    parentalAutoDetect, blockedChannelIds, blockedCategories,
   ]);
-
-  // Poll MPV playback status to detect when player is closed externally
-  useEffect(() => {
-    if (!isPlaying) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const playing = await checkIsPlaying();
-        if (!playing) {
-          // MPV was closed externally, update UI
-          setIsPlaying(false);
-          setCurrentChannel(null);
-          setCurrentProgram(null);
-          setNextProgram(null);
-        }
-      } catch (err) {
-        logger.error('Failed to check playback status:', err);
-      }
-    }, 2000); // Check every 2 seconds (reduced from 1s for performance)
-
-    return () => clearInterval(interval);
-  }, [isPlaying, setIsPlaying, setCurrentChannel, setCurrentProgram, setNextProgram]);
-
-  // Update EPG periodically while playing
-  useEffect(() => {
-    if (!isPlaying || !currentChannel?.epg_id) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const [current, next] = await getChannelEpg(currentChannel.epg_id!);
-        setCurrentProgram(current);
-        setNextProgram(next);
-      } catch (err) {
-        logger.error('Failed to update EPG:', err);
-      }
-    }, 60000); // Update every minute
-
-    return () => clearInterval(interval);
-  }, [isPlaying, currentChannel, setCurrentProgram, setNextProgram]);
 
   // Virtual scrolling setup - virtualize by rows (dynamic items per row)
   const rowCount = Math.ceil(filteredChannels.length / columns);
@@ -242,14 +157,8 @@ export default function MainScreen() {
     overscan: 3, // Render 3 extra rows above/below viewport
   });
 
-  const handlePlayChannel = async (channel: Channel) => {
-    // If it's a series, open the series view instead of playing
-    if (channel.content_type === 'series') {
-      setSelectedSeries(channel);
-      return;
-    }
-
-    // Check if channel is blocked by parental controls
+  const handlePlayChannel = useCallback(async (channel: Channel) => {
+    // Check parental controls
     const isBlocked = shouldBlockChannel(channel, {
       enabled: parentalEnabled,
       autoDetect: parentalAutoDetect,
@@ -258,112 +167,51 @@ export default function MainScreen() {
       unlocked: parentalUnlocked,
     });
 
-    // If blocked and not unlocked, request PIN before playing
     if (isBlocked && parentalEnabled && !parentalUnlocked) {
       setPendingChannel(channel);
       setShowPinModal(true);
       return;
     }
 
-    try {
-      if (currentChannel?.id === channel.id && isPlaying) {
-        await stopPlayback();
-        setIsPlaying(false);
-        setCurrentProgram(null);
-        setNextProgram(null);
-      } else {
-        await playChannel(channel);
-        setCurrentChannel(channel);
-        setIsPlaying(true);
-
-        // Fetch EPG data if channel has EPG ID
-        if (channel.epg_id) {
-          try {
-            const [current, next] = await getChannelEpg(channel.epg_id);
-            setCurrentProgram(current);
-            setNextProgram(next);
-          } catch (err) {
-            logger.error('Failed to fetch EPG:', err);
-            // Don't fail the whole playback if EPG fails
-            setCurrentProgram(null);
-            setNextProgram(null);
-          }
-        } else {
-          setCurrentProgram(null);
-          setNextProgram(null);
-        }
-      }
-    } catch (err) {
-      logger.error('Failed to play channel:', err);
+    const result = await playChannelAction(channel);
+    if (result?.type === 'series') {
+      setSelectedSeries(result.channel);
     }
-  };
+  }, [
+    parentalEnabled, parentalAutoDetect, blockedChannelIds,
+    blockedCategories, parentalUnlocked, playChannelAction,
+  ]);
 
-  const handlePlayEpisode = async (
+  const handlePlayEpisode = useCallback(async (
     episodeId: string,
     extension: string,
     title: string,
     remainingEpisodes?: Array<{ id: string; title: string; extension: string }>
   ) => {
-    if (
-      !currentPlaylist?.url ||
-      !currentPlaylist.xtream_username ||
-      !currentPlaylist.xtream_password
-    ) {
-      logger.error('Missing Xtream credentials');
-      return;
-    }
-
+    if (!currentPlaylist) return;
     try {
-      // If we have remaining episodes (season playlist), play them all
-      if (remainingEpisodes && remainingEpisodes.length > 0) {
-        await playEpisodeWithSeason(
-          currentPlaylist.url,
-          currentPlaylist.xtream_username,
-          currentPlaylist.xtream_password,
-          remainingEpisodes
-        );
-        setIsPlaying(true);
-      } else {
-        // Fallback: play single episode (shouldn't happen with series, but kept for safety)
-        const episodeUrl = `${currentPlaylist.url.replace(/\/$/, '')}/series/${currentPlaylist.xtream_username}/${currentPlaylist.xtream_password}/${episodeId}.${extension}`;
-
-        // Create a temporary channel object for playback
-        // Using id: -1 to indicate this is a virtual/temporary channel
-        const episodeChannel: Channel = {
-          id: -1,
-          playlist_id: currentPlaylist.id || 0,
-          name: title,
-          url: episodeUrl,
-          content_type: 'series',
-          is_favorite: false,
-          sort_order: 0,
-        };
-
-        await playChannel(episodeChannel);
-        setCurrentChannel(episodeChannel);
-        setIsPlaying(true);
-      }
+      await playEpisodeAction(episodeId, extension, title, currentPlaylist, remainingEpisodes);
     } catch (err) {
       logger.error('Failed to play episode:', err);
     }
-  };
+  }, [currentPlaylist, playEpisodeAction]);
 
-  const handlePinSuccess = () => {
+  const handlePinSuccess = useCallback(() => {
     setShowPinModal(false);
-    // After PIN is verified, play the pending channel
     if (pendingChannel) {
-      // Play the channel directly (PIN has been verified)
-      playChannel(pendingChannel)
+      playChannelAction(pendingChannel)
         .then(() => {
-          setCurrentChannel(pendingChannel);
-          setIsPlaying(true);
           setPendingChannel(null);
         })
         .catch((err) => {
           logger.error('Failed to play channel after PIN:', err);
         });
     }
-  };
+  }, [pendingChannel, playChannelAction]);
+
+  const handleStop = useCallback(async () => {
+    await stopPlaybackAction();
+  }, [stopPlaybackAction]);
 
   // If a series is selected, show the SeriesView
   if (
@@ -479,13 +327,7 @@ export default function MainScreen() {
                   >
                     <div className={`grid ${getGridClasses(columns)} gap-4`}>
                       {rowItems.map((channel) => {
-                        const isChannelBlocked = shouldBlockChannel(channel, {
-                          enabled: parentalEnabled,
-                          autoDetect: parentalAutoDetect,
-                          blockedIds: blockedChannelIds,
-                          blockedCategories: blockedCategories,
-                          unlocked: parentalUnlocked,
-                        });
+                        const isChannelBlocked = blockedMap.get(channel.id!) ?? false;
 
                         return (
                           <ChannelCard
@@ -516,10 +358,7 @@ export default function MainScreen() {
           channel={currentChannel}
           currentProgram={currentProgram}
           nextProgram={nextProgram}
-          onStop={async () => {
-            await stopPlayback();
-            setIsPlaying(false);
-          }}
+          onStop={handleStop}
         />
       )}
 

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Square } from 'lucide-react';
 import type { Channel } from '../types';
 
@@ -21,7 +22,7 @@ interface NowPlayingBarProps {
  * - Current and next EPG program
  * - Stop button
  */
-export function NowPlayingBar({
+export const NowPlayingBar = memo(function NowPlayingBar({
   channel,
   currentProgram,
   nextProgram,
@@ -37,6 +38,7 @@ export function NowPlayingBar({
                 src={channel.logo}
                 alt={channel.name}
                 className="max-h-full max-w-full object-contain"
+                loading="lazy"
               />
             </div>
           )}
@@ -65,6 +67,6 @@ export function NowPlayingBar({
       </div>
     </div>
   );
-}
+});
 
 export default NowPlayingBar;

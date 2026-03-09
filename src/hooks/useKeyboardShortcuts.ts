@@ -20,14 +20,12 @@ import { logger } from '../lib/logger';
 export function useKeyboardShortcuts(
   searchInputRef?: React.RefObject<globalThis.HTMLInputElement | null>
 ) {
-  const {
-    isPlaying,
-    currentChannel,
-    setIsPlaying,
-    setCurrentChannel,
-    setCurrentProgram,
-    setNextProgram,
-  } = usePlayerStore();
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const currentChannel = usePlayerStore((s) => s.currentChannel);
+  const setIsPlaying = usePlayerStore((s) => s.setIsPlaying);
+  const setCurrentChannel = usePlayerStore((s) => s.setCurrentChannel);
+  const setCurrentProgram = usePlayerStore((s) => s.setCurrentProgram);
+  const setNextProgram = usePlayerStore((s) => s.setNextProgram);
 
   const handler = useCallback(
     async (e: globalThis.KeyboardEvent) => {

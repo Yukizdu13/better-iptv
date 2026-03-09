@@ -1,11 +1,14 @@
+import { memo } from 'react';
 import { usePlayerStore } from '../stores/player-store';
 
 /**
  * Horizontal scrollable bar showing provider categories (Sweden, Norway, F1, etc.)
  * Allows quick filtering of channels by category.
  */
-export function CategoryBar() {
-  const { categories, categoryFilter, setCategoryFilter } = usePlayerStore();
+export const CategoryBar = memo(function CategoryBar() {
+  const categories = usePlayerStore((s) => s.categories);
+  const categoryFilter = usePlayerStore((s) => s.categoryFilter);
+  const setCategoryFilter = usePlayerStore((s) => s.setCategoryFilter);
 
   // Don't render if no categories available
   if (categories.length === 0) return null;
@@ -48,4 +51,4 @@ export function CategoryBar() {
       ))}
     </div>
   );
-}
+});

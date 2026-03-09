@@ -55,16 +55,14 @@ interface UseChannelPlaybackResult {
  * - Episode/series playback
  */
 export function useChannelPlayback(): UseChannelPlaybackResult {
-  const {
-    currentChannel,
-    isPlaying,
-    currentProgram,
-    nextProgram,
-    setCurrentChannel,
-    setIsPlaying,
-    setCurrentProgram,
-    setNextProgram,
-  } = usePlayerStore();
+  const currentChannel = usePlayerStore((s) => s.currentChannel);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const currentProgram = usePlayerStore((s) => s.currentProgram);
+  const nextProgram = usePlayerStore((s) => s.nextProgram);
+  const setCurrentChannel = usePlayerStore((s) => s.setCurrentChannel);
+  const setIsPlaying = usePlayerStore((s) => s.setIsPlaying);
+  const setCurrentProgram = usePlayerStore((s) => s.setCurrentProgram);
+  const setNextProgram = usePlayerStore((s) => s.setNextProgram);
 
   // Poll MPV playback status to detect when player is closed externally
   useEffect(() => {

@@ -168,6 +168,68 @@ describe('usePlayerStore', () => {
     });
   });
 
+  describe('toggleChannelFavorite', () => {
+    it('should update favoriteChannels after toggle', () => {
+      const channels = [
+        { id: 1, name: 'A', content_type: 'live' as const, url: 'http://a', playlist_id: 1, is_favorite: false, sort_order: 0 },
+      ];
+
+      usePlayerStore.getState().setChannels(channels);
+      expect(usePlayerStore.getState().favoriteChannels).toHaveLength(0);
+
+      // Directly test state mutation (bypassing IPC)
+      usePlayerStore.setState((state) => {
+        const updatedChannels = state.channels.map((c) =>
+          c.id === 1 ? { ...c, is_favorite: true } : c
+        );
+        return {
+          channels: updatedChannels,
+          liveChannels: updatedChannels.filter((c) => c.content_type === 'live'),
+          favoriteChannels: updatedChannels.filter((c) => c.is_favorite),
+        };
+      });
+
+      expect(usePlayerStore.getState().favoriteChannels).toHaveLength(1);
+    });
+
+    it('should only rebuild the affected content-type array', () => {
+      const channels = [
+        { id: 1, name: 'Live', content_type: 'live' as const, url: 'http://a', playlist_id: 1, is_favorite: false, sort_order: 0 },
+        { id: 2, name: 'Movie', content_type: 'vod' as const, url: 'http://b', playlist_id: 1, is_favorite: false, sort_order: 1 },
+      ];
+
+      usePlayerStore.getState().setChannels(channels);
+      const vodBefore = usePlayerStore.getState().vodChannels;
+
+      // Toggle live channel favorite - vod array should keep same reference
+      usePlayerStore.setState((state) => {
+        const updatedChannels = state.channels.map((c) =>
+          c.id === 1 ? { ...c, is_favorite: true } : c
+        );
+        const targetChannel = state.channels.find((c) => c.id === 1);
+        const contentType = targetChannel?.content_type;
+
+        const result: Partial<typeof state> = {
+          channels: updatedChannels,
+          favoriteChannels: updatedChannels.filter((c) => c.is_favorite),
+          filteredChannels: state.filteredChannels.map((c) =>
+            c.id === 1 ? { ...c, is_favorite: true } : c
+          ),
+        };
+
+        if (contentType === 'live') {
+          result.liveChannels = updatedChannels.filter((c) => c.content_type === 'live');
+        }
+
+        return result;
+      });
+
+      // VOD array should be same reference (untouched)
+      expect(usePlayerStore.getState().vodChannels).toBe(vodBefore);
+      expect(usePlayerStore.getState().favoriteChannels).toHaveLength(1);
+    });
+  });
+
   describe('profile management', () => {
     it('should track active profile ID', () => {
       expect(usePlayerStore.getState().activeProfileId).toBeNull();

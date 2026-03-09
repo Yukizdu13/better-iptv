@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, memo } from 'react';
 import { Search } from 'lucide-react';
 
 interface SearchBarProps {
@@ -19,7 +19,7 @@ interface SearchBarProps {
  * - Dark mode support
  * - Supports ref forwarding for keyboard shortcut focus
  */
-export const SearchBar = forwardRef<globalThis.HTMLInputElement, SearchBarProps>(function SearchBar(
+export const SearchBar = memo(forwardRef<globalThis.HTMLInputElement, SearchBarProps>(function SearchBar(
   { value, onChange, placeholder = 'Search channels...' },
   ref
 ) {
@@ -40,6 +40,6 @@ export const SearchBar = forwardRef<globalThis.HTMLInputElement, SearchBarProps>
       </div>
     </div>
   );
-});
+}));
 
 export default SearchBar;

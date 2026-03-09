@@ -126,28 +126,33 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     // Call backend IPC to persist the favorite toggle
     await toggleFavorite(channelId);
 
-    // Update local state: flip is_favorite for the matching channel across all arrays
+    // Update local state: rebuild only affected arrays
     set((state) => {
-      const updateChannels = (arr: Channel[]) =>
-        arr.map((c) => (c.id === channelId ? { ...c, is_favorite: !c.is_favorite } : c));
+      const updatedChannels = state.channels.map((c) =>
+        c.id === channelId ? { ...c, is_favorite: !c.is_favorite } : c
+      );
 
-      const updatedChannels = updateChannels(state.channels);
-      const updatedFilteredChannels = updateChannels(state.filteredChannels);
-      const updatedLiveChannels = updateChannels(state.liveChannels);
-      const updatedVodChannels = updateChannels(state.vodChannels);
-      const updatedSeriesChannels = updateChannels(state.seriesChannels);
+      const targetChannel = state.channels.find((c) => c.id === channelId);
+      const contentType = targetChannel?.content_type;
 
-      // Rebuild favoriteChannels from the updated master list
-      const favoriteChannels = updatedChannels.filter((c) => c.is_favorite);
-
-      return {
+      const result: Partial<PlayerState> = {
         channels: updatedChannels,
-        filteredChannels: updatedFilteredChannels,
-        liveChannels: updatedLiveChannels,
-        vodChannels: updatedVodChannels,
-        seriesChannels: updatedSeriesChannels,
-        favoriteChannels,
+        favoriteChannels: updatedChannels.filter((c) => c.is_favorite),
+        filteredChannels: state.filteredChannels.map((c) =>
+          c.id === channelId ? { ...c, is_favorite: !c.is_favorite } : c
+        ),
       };
+
+      // Only rebuild the specific content type array that contains this channel
+      if (contentType === 'live') {
+        result.liveChannels = updatedChannels.filter((c) => c.content_type === 'live');
+      } else if (contentType === 'vod') {
+        result.vodChannels = updatedChannels.filter((c) => c.content_type === 'vod');
+      } else if (contentType === 'series') {
+        result.seriesChannels = updatedChannels.filter((c) => c.content_type === 'series');
+      }
+
+      return result;
     });
   },
 

@@ -39,7 +39,10 @@ interface UseEpgDataResult {
  * - Skips channels that already have cached EPG data
  */
 export function useEpgData(channels: Channel[]): UseEpgDataResult {
-  const { channelEpgData, setChannelEpg, epgRefreshTrigger, triggerEpgRefresh } = usePlayerStore();
+  const channelEpgData = usePlayerStore((s) => s.channelEpgData);
+  const setChannelEpg = usePlayerStore((s) => s.setChannelEpg);
+  const epgRefreshTrigger = usePlayerStore((s) => s.epgRefreshTrigger);
+  const triggerEpgRefresh = usePlayerStore((s) => s.triggerEpgRefresh);
 
   // Track if we're currently fetching to avoid duplicate requests
   const isFetchingRef = useRef(false);
@@ -164,7 +167,7 @@ export function useEpgData(channels: Channel[]): UseEpgDataResult {
  * Useful when you only need EPG for the current channel
  */
 export function useChannelEpg(channelId: number | undefined): string | undefined {
-  const { channelEpgData } = usePlayerStore();
+  const channelEpgData = usePlayerStore((s) => s.channelEpgData);
 
   if (!channelId) return undefined;
   return channelEpgData.get(channelId);

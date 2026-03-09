@@ -4,8 +4,6 @@ use crate::playback;
 use crate::state::AppState;
 use tauri::State;
 
-// ========== MPV Commands ==========
-
 #[tauri::command]
 pub async fn check_mpv_installed() -> Result<bool, AppError> {
     Ok(playback::check_mpv_installed())
@@ -13,10 +11,9 @@ pub async fn check_mpv_installed() -> Result<bool, AppError> {
 
 #[tauri::command]
 pub async fn play_channel(state: State<'_, AppState>, channel: Channel) -> Result<(), AppError> {
-    // Get language settings from database
     let (audio_lang, subtitle_lang) = {
-        let db = state.db.lock().await;
-        let settings = queries::get_multiple_settings(&db, &["audio_language", "subtitle_language"])?;
+        let conn = state.pool.get()?;
+        let settings = queries::get_multiple_settings(&conn, &["audio_language", "subtitle_language"])?;
 
         let audio = settings
             .get("audio_language")
@@ -30,7 +27,6 @@ pub async fn play_channel(state: State<'_, AppState>, channel: Channel) -> Resul
         (audio, subtitle)
     };
 
-    // Play using playback domain
     let mut player = state.mpv_player.lock().await;
     playback::play_channel(
         &mut player,

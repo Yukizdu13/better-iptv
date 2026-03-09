@@ -4,19 +4,14 @@ use crate::state::AppState;
 use log::{info, warn};
 use tauri::State;
 
-// ========== Parental Controls Commands ==========
-
 #[tauri::command]
 pub async fn set_parental_pin(state: State<'_, AppState>, pin: String) -> Result<(), AppError> {
-    // Validate PIN format using domain logic
     parental_domain::validate_pin(&pin)?;
 
-    // Hash the PIN using domain logic
     let password_hash = parental_domain::hash_pin(&pin)?;
 
-    // Store the hash in settings
-    let db = state.db.lock().await;
-    crate::db::mutations::set_setting(&db, "parental_pin_hash", &password_hash)?;
+    let conn = state.pool.get()?;
+    crate::db::mutations::set_setting(&conn, "parental_pin_hash", &password_hash)?;
 
     info!("Parental control PIN set successfully");
     Ok(())
@@ -24,15 +19,13 @@ pub async fn set_parental_pin(state: State<'_, AppState>, pin: String) -> Result
 
 #[tauri::command]
 pub async fn verify_parental_pin(state: State<'_, AppState>, pin: String) -> Result<bool, AppError> {
-    let db = state.db.lock().await;
+    let conn = state.pool.get()?;
 
-    // Get the stored hash
-    let hash = match crate::db::queries::get_setting(&db, "parental_pin_hash")? {
+    let hash = match crate::db::queries::get_setting(&conn, "parental_pin_hash")? {
         Some(h) => h,
-        None => return Ok(false), // No PIN set
+        None => return Ok(false),
     };
 
-    // Verify the PIN using domain logic
     let is_valid = parental_domain::verify_pin_hash(&pin, &hash)?;
 
     if is_valid {
@@ -46,13 +39,10 @@ pub async fn verify_parental_pin(state: State<'_, AppState>, pin: String) -> Res
 
 #[tauri::command]
 pub async fn reset_parental_pin(state: State<'_, AppState>) -> Result<(), AppError> {
-    let db = state.db.lock().await;
+    let conn = state.pool.get()?;
 
-    // Delete the PIN hash
-    crate::db::mutations::delete_setting(&db, "parental_pin_hash")?;
-
-    // Also disable parental controls
-    crate::db::mutations::set_setting(&db, "parental_enabled", "false")?;
+    crate::db::mutations::delete_setting(&conn, "parental_pin_hash")?;
+    crate::db::mutations::set_setting(&conn, "parental_enabled", "false")?;
 
     info!("Parental control PIN reset");
     Ok(())
@@ -60,9 +50,9 @@ pub async fn reset_parental_pin(state: State<'_, AppState>) -> Result<(), AppErr
 
 #[tauri::command]
 pub async fn get_blocked_channels(state: State<'_, AppState>) -> Result<Vec<i64>, AppError> {
-    let db = state.db.lock().await;
+    let conn = state.pool.get()?;
 
-    let json_str = match crate::db::queries::get_setting(&db, "parental_blocked_channels")? {
+    let json_str = match crate::db::queries::get_setting(&conn, "parental_blocked_channels")? {
         Some(s) => s,
         None => return Ok(Vec::new()),
     };
@@ -75,12 +65,12 @@ pub async fn get_blocked_channels(state: State<'_, AppState>) -> Result<Vec<i64>
 
 #[tauri::command]
 pub async fn set_blocked_channels(state: State<'_, AppState>, channel_ids: Vec<i64>) -> Result<(), AppError> {
-    let db = state.db.lock().await;
+    let conn = state.pool.get()?;
 
     let json_str = serde_json::to_string(&channel_ids)
         .map_err(|e| AppError::Parse(format!("Failed to serialize blocked channels: {}", e)))?;
 
-    crate::db::mutations::set_setting(&db, "parental_blocked_channels", &json_str)?;
+    crate::db::mutations::set_setting(&conn, "parental_blocked_channels", &json_str)?;
 
     info!("Updated blocked channels list ({} channels)", channel_ids.len());
     Ok(())
@@ -88,10 +78,10 @@ pub async fn set_blocked_channels(state: State<'_, AppState>, channel_ids: Vec<i
 
 #[tauri::command]
 pub async fn get_parental_settings(state: State<'_, AppState>) -> Result<serde_json::Value, AppError> {
-    let db = state.db.lock().await;
+    let conn = state.pool.get()?;
 
     let settings = crate::db::queries::get_multiple_settings(
-        &db,
+        &conn,
         &[
             "parental_enabled",
             "parental_pin_hash",
@@ -103,13 +93,11 @@ pub async fn get_parental_settings(state: State<'_, AppState>) -> Result<serde_j
         ],
     )?;
 
-    // Parse blocked channels
     let blocked_channels: Vec<i64> = settings
         .get("parental_blocked_channels")
         .and_then(|s| serde_json::from_str(s).ok())
         .unwrap_or_default();
 
-    // Parse blocked categories
     let blocked_categories: Vec<String> = settings
         .get("parental_blocked_categories")
         .and_then(|s| serde_json::from_str(s).ok())

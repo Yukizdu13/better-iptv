@@ -7,15 +7,13 @@ use crate::state::AppState;
 use log::{debug, info, warn};
 use tauri::State;
 
-// ========== Settings Commands ==========
-
 #[tauri::command]
 pub async fn get_setting(
     state: State<'_, AppState>,
     key: String,
 ) -> Result<Option<String>, AppError> {
-    let db = state.db.lock().await;
-    Ok(queries::get_setting(&db, &key)?)
+    let conn = state.pool.get()?;
+    Ok(queries::get_setting(&conn, &key)?)
 }
 
 #[tauri::command]
@@ -24,7 +22,7 @@ pub async fn set_setting(
     key: String,
     value: String,
 ) -> Result<(), AppError> {
-    let db = state.db.lock().await;
+    let conn = state.pool.get()?;
 
     let normalized_value = match key.as_str() {
         "playlist_user_agent_mode" => validate_playlist_user_agent_mode(&value)?,
@@ -32,14 +30,13 @@ pub async fn set_setting(
         _ => value,
     };
 
-    // Special handling for EPG URL: if empty, default to Xtream provider's EPG
     let final_value = if key == "epg_url" && normalized_value.trim().is_empty() {
-        get_default_xtream_epg_url(&db).unwrap_or(normalized_value)
+        get_default_xtream_epg_url(&conn).unwrap_or(normalized_value)
     } else {
         normalized_value
     };
 
-    Ok(mutations::set_setting(&db, &key, &final_value)?)
+    Ok(mutations::set_setting(&conn, &key, &final_value)?)
 }
 
 fn validate_playlist_user_agent_mode(mode: &str) -> Result<String, AppError> {
@@ -75,19 +72,19 @@ fn validate_playlist_user_agent_custom(value: &str) -> Result<String, AppError> 
 
 /// Get the default EPG URL from the active Xtream playlist (if any)
 fn get_default_xtream_epg_url(db: &rusqlite::Connection) -> Option<String> {
-    // Get active profile ID
-    let active_id_str = queries::get_setting(db, "active_profile_id").ok()??;
+    let active_id_str = queries::get_setting(db, "active_profile_id")
+        .ok()
+        .and_then(|x| x)?;
     let active_id: i64 = active_id_str.parse().ok()?;
 
-    // Get the playlist
-    let playlist = queries::get_playlist_by_id(db, active_id).ok()??;
+    let playlist = queries::get_playlist_by_id(db, active_id)
+        .ok()
+        .and_then(|x| x)?;
 
-    // Check if it's an Xtream playlist (has username and server URL)
     let server_url = playlist.url?;
     let username = playlist.xtream_username?;
     let password = playlist.xtream_password?;
 
-    // Generate EPG URL
     let creds = XtreamCredentials {
         server_url: server_url.clone(),
         username: username.clone(),
@@ -103,15 +100,12 @@ fn get_default_xtream_epg_url(db: &rusqlite::Connection) -> Option<String> {
     Some(epg_url)
 }
 
-// ========== Profile Management Commands ==========
-
 #[tauri::command]
 pub async fn get_active_profile_id(state: State<'_, AppState>) -> Result<Option<i64>, AppError> {
-    let db = state.db.lock().await;
+    let conn = state.pool.get()?;
 
-    let active_id_str = queries::get_setting(&db, "active_profile_id")?;
+    let active_id_str = queries::get_setting(&conn, "active_profile_id")?;
 
-    // Parse string to i64, log warning if parsing fails
     let active_id = active_id_str.and_then(|s| {
         s.parse::<i64>().ok().or_else(|| {
             warn!("Invalid profile ID in database: {}", s);
@@ -127,9 +121,9 @@ pub async fn set_active_profile_id(
     state: State<'_, AppState>,
     profile_id: i64,
 ) -> Result<(), AppError> {
-    let db = state.db.lock().await;
+    let conn = state.pool.get()?;
 
-    mutations::set_setting(&db, "active_profile_id", &profile_id.to_string())?;
+    mutations::set_setting(&conn, "active_profile_id", &profile_id.to_string())?;
 
     info!("Active profile changed to ID: {}", profile_id);
 

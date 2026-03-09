@@ -5,8 +5,6 @@ use crate::state::AppState;
 use log::info;
 use tauri::State;
 
-/// Get language settings from database (audio and subtitle languages)
-/// This is used by multiple commands to avoid code duplication
 fn get_language_settings(
     db: &rusqlite::Connection,
 ) -> Result<(Option<String>, Option<String>), AppError> {
@@ -25,8 +23,6 @@ fn get_language_settings(
     Ok((audio, subtitle))
 }
 
-// ========== Series Commands ==========
-
 #[tauri::command]
 pub async fn get_series_info(
     server_url: String,
@@ -34,7 +30,6 @@ pub async fn get_series_info(
     password: String,
     series_id: i64,
 ) -> Result<SeriesInfo, AppError> {
-    // Validate inputs
     series_domain::validate_server_url(&server_url)?;
     series_domain::validate_credentials(&username, &password)?;
 
@@ -57,18 +52,14 @@ pub async fn play_episode_with_season(
     password: String,
     episodes: Vec<PlaylistEpisode>,
 ) -> Result<(), AppError> {
-    // Validate inputs
     series_domain::validate_episodes(&episodes)?;
     series_domain::validate_server_url(&server_url)?;
     series_domain::validate_credentials(&username, &password)?;
 
-    // Build URLs for all episodes
     let urls = series_domain::build_episode_urls(&server_url, &username, &password, &episodes);
 
-    // Use first episode's title for the window
     let first_title = &episodes[0].title;
 
-    // Set current channel (use first episode info with lightweight struct)
     {
         let mut current = state.current_channel.write().await;
         *current = Some(crate::state::CurrentChannel {
@@ -79,13 +70,11 @@ pub async fn play_episode_with_season(
         });
     }
 
-    // Retrieve language settings from database
     let (audio_lang, subtitle_lang) = {
-        let db = state.db.lock().await;
-        get_language_settings(&db)?
+        let conn = state.pool.get()?;
+        get_language_settings(&conn)?
     };
 
-    // Play playlist with language preferences
     let mut player = state.mpv_player.lock().await;
     player
         .play_with_playlist(

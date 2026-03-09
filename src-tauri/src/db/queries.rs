@@ -27,58 +27,47 @@ fn map_channel_row(row: &Row) -> rusqlite::Result<Channel> {
     })
 }
 
+// ========== Playlist Query Helpers ==========
+
+const PLAYLIST_SELECT_COLUMNS: &str =
+    "id, name, url, file_path, last_updated, auto_refresh, xtream_username, xtream_password, created_at";
+
+fn map_playlist_row(row: &Row) -> rusqlite::Result<Playlist> {
+    Ok(Playlist {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        url: row.get(2)?,
+        file_path: row.get(3)?,
+        last_updated: row.get(4)?,
+        auto_refresh: row.get(5)?,
+        xtream_username: row.get(6)?,
+        xtream_password: row.get(7)?,
+        created_at: row.get(8)?,
+    })
+}
+
 // ========== Playlist Queries ==========
 
 pub fn get_playlists(conn: &Connection) -> Result<Vec<Playlist>> {
-    let mut stmt = conn.prepare(
-        "SELECT id, name, url, file_path, last_updated, auto_refresh, xtream_username, xtream_password, created_at
-         FROM playlists
-         ORDER BY created_at DESC"
-    )?;
-
-    let playlists = stmt.query_map([], |row| {
-        Ok(Playlist {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            url: row.get(2)?,
-            file_path: row.get(3)?,
-            last_updated: row.get(4)?,
-            auto_refresh: row.get(5)?,
-            xtream_username: row.get(6)?,
-            xtream_password: row.get(7)?,
-            created_at: row.get(8)?,
-        })
-    })?
-    .collect::<Result<Vec<_>>>()?;
-
+    let sql = format!(
+        "SELECT {} FROM playlists ORDER BY created_at DESC",
+        PLAYLIST_SELECT_COLUMNS
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let playlists = stmt.query_map([], map_playlist_row)?
+        .collect::<Result<Vec<_>>>()?;
     Ok(playlists)
 }
 
 /// Get a single playlist by ID
 pub fn get_playlist_by_id(conn: &Connection, id: i64) -> Result<Option<Playlist>> {
-    let mut stmt = conn.prepare(
-        "SELECT id, name, url, file_path, last_updated, auto_refresh, xtream_username, xtream_password, created_at
-         FROM playlists
-         WHERE id = ?1"
-    )?;
-
-    let mut rows = stmt.query(params![id])?;
-
-    if let Some(row) = rows.next()? {
-        Ok(Some(Playlist {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            url: row.get(2)?,
-            file_path: row.get(3)?,
-            last_updated: row.get(4)?,
-            auto_refresh: row.get(5)?,
-            xtream_username: row.get(6)?,
-            xtream_password: row.get(7)?,
-            created_at: row.get(8)?,
-        }))
-    } else {
-        Ok(None)
-    }
+    let sql = format!(
+        "SELECT {} FROM playlists WHERE id = ?1",
+        PLAYLIST_SELECT_COLUMNS
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let mut rows = stmt.query_map(params![id], map_playlist_row)?;
+    Ok(rows.next().transpose()?)
 }
 
 // ========== Channel Queries ==========
@@ -175,32 +164,17 @@ pub fn get_epg_program_count(conn: &Connection) -> Result<usize> {
 
 /// Get playlists that have a URL and haven't been updated in the given number of days
 pub fn get_stale_playlists(conn: &Connection, days: i64) -> Result<Vec<Playlist>> {
-    let mut stmt = conn.prepare(
-        &format!(
-            "SELECT id, name, url, file_path, last_updated, auto_refresh, xtream_username, xtream_password, created_at
-             FROM playlists
-             WHERE url IS NOT NULL
-               AND (last_updated IS NULL OR last_updated < datetime('now', '-{} days'))
-             ORDER BY created_at DESC",
-            days
-        )
-    )?;
-
-    let playlists = stmt.query_map([], |row| {
-        Ok(Playlist {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            url: row.get(2)?,
-            file_path: row.get(3)?,
-            last_updated: row.get(4)?,
-            auto_refresh: row.get(5)?,
-            xtream_username: row.get(6)?,
-            xtream_password: row.get(7)?,
-            created_at: row.get(8)?,
-        })
-    })?
-    .collect::<Result<Vec<_>>>()?;
-
+    let sql = format!(
+        "SELECT {} FROM playlists
+         WHERE url IS NOT NULL
+           AND (last_updated IS NULL OR last_updated < datetime('now', ?1))
+         ORDER BY created_at DESC",
+        PLAYLIST_SELECT_COLUMNS
+    );
+    let modifier = format!("-{} days", days);
+    let mut stmt = conn.prepare(&sql)?;
+    let playlists = stmt.query_map(params![modifier], map_playlist_row)?
+        .collect::<Result<Vec<_>>>()?;
     Ok(playlists)
 }
 
@@ -242,51 +216,8 @@ pub fn get_channel_groups(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::schema::init_schema;
-    use crate::db::mutations::{create_playlist, create_channel, toggle_favorite, set_setting};
-
-    /// Create an in-memory test database
-    fn setup_test_db() -> Connection {
-        let conn = Connection::open_in_memory().unwrap();
-        init_schema(&conn).unwrap();
-        conn
-    }
-
-    /// Create a test playlist
-    fn create_test_playlist(conn: &Connection, name: &str) -> i64 {
-        let playlist = Playlist {
-            id: None,
-            name: name.to_string(),
-            url: Some("http://example.com/playlist.m3u".to_string()),
-            file_path: None,
-            last_updated: None,
-            auto_refresh: false,
-            xtream_username: None,
-            xtream_password: None,
-            created_at: None,
-        };
-        create_playlist(conn, &playlist).unwrap()
-    }
-
-    /// Create a test channel
-    fn create_test_channel(conn: &Connection, playlist_id: i64, name: &str) -> i64 {
-        let channel = Channel {
-            id: None,
-            playlist_id,
-            name: name.to_string(),
-            url: "http://example.com/stream.m3u8".to_string(),
-            logo: None,
-            group_name: Some("Test Group".to_string()),
-            epg_id: None,
-            tvg_name: None,
-            content_type: "live".to_string(),
-            is_favorite: false,
-            sort_order: 0,
-            category_order: 0,
-            created_at: None,
-        };
-        create_channel(conn, &channel).unwrap()
-    }
+    use crate::db::test_helpers::{setup_test_db, create_test_playlist, create_test_channel};
+    use crate::db::mutations::{create_channel, toggle_favorite, set_setting};
 
     // ========== Playlist Tests ==========
 

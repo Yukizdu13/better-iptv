@@ -35,7 +35,7 @@ pub fn rename_playlist(conn: &Connection, playlist_id: i64, new_name: &str) -> R
 
 // ========== Channel Mutations ==========
 
-#[allow(dead_code)] // Planned functionality
+#[cfg(test)]
 pub fn create_channel(conn: &Connection, channel: &Channel) -> Result<i64> {
     conn.execute(
         "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order, category_order)
@@ -59,11 +59,14 @@ pub fn create_channel(conn: &Connection, channel: &Channel) -> Result<i64> {
 pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<()> {
     let tx = conn.unchecked_transaction()?;
 
-    for channel in channels {
-        tx.execute(
+    {
+        let mut stmt = tx.prepare_cached(
             "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order, category_order)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-            params![
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"
+        )?;
+
+        for channel in channels {
+            stmt.execute(params![
                 channel.playlist_id,
                 channel.name,
                 channel.url,
@@ -74,8 +77,8 @@ pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<
                 channel.content_type,
                 channel.sort_order,
                 channel.category_order
-            ],
-        )?;
+            ])?;
+        }
     }
 
     tx.commit()?;
@@ -264,23 +267,31 @@ pub fn merge_channels(
     // 4. Delete unmatched old channels
     let removed = existing.len() - matched_ids.len();
     if removed > 0 {
-        // Build list of IDs to keep
-        let ids_to_keep: Vec<String> = matched_ids.iter().map(|id| id.to_string()).collect();
-        if ids_to_keep.is_empty() {
-            // All old channels removed
+        if matched_ids.is_empty() {
             tx.execute(
                 "DELETE FROM channels WHERE playlist_id = ?1",
                 params![playlist_id],
             )?;
         } else {
-            let placeholders = ids_to_keep.join(",");
-            tx.execute(
-                &format!(
-                    "DELETE FROM channels WHERE playlist_id = ?1 AND id NOT IN ({})",
-                    placeholders
-                ),
-                params![playlist_id],
-            )?;
+            let ids_to_keep: Vec<i64> = matched_ids.into_iter().collect();
+            let placeholders: String = (0..ids_to_keep.len())
+                .map(|i| format!("?{}", i + 2))
+                .collect::<Vec<_>>()
+                .join(",");
+            let sql = format!(
+                "DELETE FROM channels WHERE playlist_id = ?1 AND id NOT IN ({})",
+                placeholders
+            );
+
+            let mut delete_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+            delete_params.push(Box::new(playlist_id));
+            for id in &ids_to_keep {
+                delete_params.push(Box::new(*id));
+            }
+            let param_refs: Vec<&dyn rusqlite::types::ToSql> =
+                delete_params.iter().map(|p| p.as_ref()).collect();
+
+            tx.execute(&sql, param_refs.as_slice())?;
         }
     }
 
@@ -339,51 +350,8 @@ pub fn update_channel_epg_ids(conn: &Connection) -> Result<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::schema::init_schema;
-    use crate::db::queries::*; // Import query functions for verification
-
-    /// Create an in-memory test database
-    fn setup_test_db() -> Connection {
-        let conn = Connection::open_in_memory().unwrap();
-        init_schema(&conn).unwrap();
-        conn
-    }
-
-    /// Create a test playlist
-    fn create_test_playlist(conn: &Connection, name: &str) -> i64 {
-        let playlist = Playlist {
-            id: None,
-            name: name.to_string(),
-            url: Some("http://example.com/playlist.m3u".to_string()),
-            file_path: None,
-            last_updated: None,
-            auto_refresh: false,
-            xtream_username: None,
-            xtream_password: None,
-            created_at: None,
-        };
-        create_playlist(conn, &playlist).unwrap()
-    }
-
-    /// Create a test channel
-    fn create_test_channel(conn: &Connection, playlist_id: i64, name: &str) -> i64 {
-        let channel = Channel {
-            id: None,
-            playlist_id,
-            name: name.to_string(),
-            url: "http://example.com/stream.m3u8".to_string(),
-            logo: None,
-            group_name: Some("Test Group".to_string()),
-            epg_id: None,
-            tvg_name: None,
-            content_type: "live".to_string(),
-            is_favorite: false,
-            sort_order: 0,
-            category_order: 0,
-            created_at: None,
-        };
-        create_channel(conn, &channel).unwrap()
-    }
+    use crate::db::test_helpers::{setup_test_db, create_test_playlist, create_test_channel};
+    use crate::db::queries::*;
 
     // ========== Playlist Tests ==========
 

@@ -67,7 +67,7 @@ pub fn get_playlist_by_id(conn: &Connection, id: i64) -> Result<Option<Playlist>
     );
     let mut stmt = conn.prepare(&sql)?;
     let mut rows = stmt.query_map(params![id], map_playlist_row)?;
-    Ok(rows.next().transpose()?)
+    rows.next().transpose()
 }
 
 // ========== Channel Queries ==========

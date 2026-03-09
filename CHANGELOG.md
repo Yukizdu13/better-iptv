@@ -38,6 +38,21 @@ This file is a developer-changelog, aimed towards development changes.
   - `create_channels_batch`: use `prepare_cached` for repeated inserts
   - Dead code: `#[cfg(test)]` for test-only `create_channel`, removed unused model structs
 
+- **UI Performance Optimization** - Systematic re-render elimination and search pipeline rework
+  - Zustand selectors: replace full-store destructuring with individual selectors across MainScreen, CategoryBar, useKeyboardShortcuts, useEpgData, useChannelFilter
+  - Component memoization: `React.memo` on NowPlayingBar, ContentTypeTabs, SearchBar, CategoryBar
+  - Stable callback refs: `useCallback` on handlePlayChannel, handlePlayEpisode, handlePinSuccess, handleStop
+  - Search debounce: new `useDebouncedValue` hook (300ms) decouples typing from filtering
+  - Filter consolidation: MainScreen's inline 13-dependency filter effect replaced by `useChannelFilter` hook with `useMemo` base list selection
+  - Polling dedup: remove duplicate `isPlaying` (2s) and EPG (60s) intervals from MainScreen, delegate to `useChannelPlayback` hook
+  - `toggleChannelFavorite`: rebuild only affected content-type array instead of all 6 arrays
+  - Parental blocking cache: `useMemo` Map replaces per-card `shouldBlockChannel` calls in render loop
+
+### Removed
+
+- Unused `react-window` dependency (replaced by `@tanstack/react-virtual`)
+- Unused `src/assets/react.svg`
+
 ## [2.5.0] - 2026-02-26
 
 ### Added

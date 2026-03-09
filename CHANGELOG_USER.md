@@ -20,6 +20,12 @@ A simple overview of new features and improvements.
 **Better Logging**
 - More detailed logging for easier troubleshooting
 
+**Smoother Channel Browsing**
+- Searching channels is now faster and smoother, especially with large playlists (10,000+ channels)
+- Switching between Live TV, Movies, Series, and Favorites tabs feels more responsive
+- Toggling favorites no longer causes the channel list to briefly flicker
+- The app makes fewer background requests while watching, reducing unnecessary work
+
 ---
 
 ## Version 2.5.0 (February 26, 2026)

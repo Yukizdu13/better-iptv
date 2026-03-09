@@ -19,7 +19,6 @@ A simple overview of new features and improvements.
 
 **Better Logging**
 - More detailed logging for easier troubleshooting
-- Performance timing for heavy operations like playlist import and EPG refresh
 
 ---
 

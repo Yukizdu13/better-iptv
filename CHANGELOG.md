@@ -3,6 +3,41 @@
 All notable changes to Better IPTV will be documented in this file.
 This file is a developer-changelog, aimed towards development changes.
 
+## [2.6.0] - 2026-03-09
+
+### Added
+
+- **About Tab** - New settings tab with app info, PayPal/crypto donation CTAs, and log folder shortcut
+  - `truncateAddress` utility for crypto address display with tests
+  - Uses `tauri-plugin-opener` (`openPath`/`openUrl`) for external links
+  - Keyboard shortcut: Ctrl+5
+
+- **Expanded Logging** - Comprehensive backend logging coverage
+  - Channel commands: debug logging for get/search/favorite operations with result counts
+  - Playback commands: info logging for play/stop with channel name and content type
+  - M3U import: info log at start (matching Xtream pattern)
+  - Settings: debug logging for get/set operations
+  - Performance timing: `Instant`-based elapsed time for batch insert, merge, EPG fetch/parse/store
+  - App startup: version, database path, connection pool size
+
+### Changed
+
+- **SQLite Connection Pooling** - Replace single `Arc<Mutex<Connection>>` with r2d2 pool
+  - New deps: `r2d2 0.8`, `r2d2_sqlite 0.25`
+  - Pool size: 4 connections with per-connection PRAGMA initialization
+  - Concurrent reads in WAL mode, serialized writes (SQLite native behavior)
+  - Commands use `pool.get()` instead of `state.db.lock().await`
+
+- **Parameterized SQL** - Eliminate dynamic SQL string formatting
+  - `merge_channels`: dynamic parameterized delete via `Vec<Box<dyn ToSql>>`
+  - `get_stale_playlists`: days parameter via SQL bind instead of format interpolation
+
+- **Code Quality**
+  - DRY: `map_playlist_row()` + `PLAYLIST_SELECT_COLUMNS` (mirrors existing channel pattern)
+  - DRY: Shared `db/test_helpers.rs` for test setup functions
+  - `create_channels_batch`: use `prepare_cached` for repeated inserts
+  - Dead code: `#[cfg(test)]` for test-only `create_channel`, removed unused model structs
+
 ## [2.5.0] - 2026-02-26
 
 ### Added

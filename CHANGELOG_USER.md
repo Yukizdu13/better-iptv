@@ -4,6 +4,25 @@ A simple overview of new features and improvements.
 
 ---
 
+## Version 2.6.0 (March 9, 2026)
+
+### New Features
+
+**About Tab**
+- New "About" tab in Settings with app version, donation links, and a button to open the log folder
+
+### Improvements
+
+**Faster Backend**
+- The app now handles multiple operations at once instead of queuing them one by one
+- Browsing channels while loading EPG data no longer causes delays
+
+**Better Logging**
+- More detailed logging for easier troubleshooting
+- Performance timing for heavy operations like playlist import and EPG refresh
+
+---
+
 ## Version 2.5.0 (February 26, 2026)
 
 ### New Features

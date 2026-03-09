@@ -2,12 +2,13 @@ use crate::http::get_http_client;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use flate2::read::GzDecoder;
-use log::{info, warn};
+use log::{debug, info, warn};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::io::Read;
+use std::time::Instant;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpgProgram {
@@ -21,6 +22,7 @@ pub struct EpgProgram {
 
 /// Fetch and parse XMLTV EPG data from a URL (async part)
 pub async fn fetch_and_parse_epg(url: &str, user_agent: Option<&str>) -> Result<Vec<EpgProgram>> {
+    let start = Instant::now();
     info!("Fetching EPG from: {}", url);
 
     // Download EPG file using shared HTTP client
@@ -45,8 +47,11 @@ pub async fn fetch_and_parse_epg(url: &str, user_agent: Option<&str>) -> Result<
         String::from_utf8(bytes.to_vec()).context("Invalid UTF-8 in EPG file")?
     };
 
-    // Parse XMLTV
+    debug!("EPG fetch completed in {:?}", start.elapsed());
+
+    let parse_start = Instant::now();
     let programs = parse_xmltv(&xml_content)?;
+    debug!("EPG parse completed in {:?}: {} programs", parse_start.elapsed(), programs.len());
 
     info!("Parsed {} EPG programs from XMLTV", programs.len());
     Ok(programs)
@@ -54,7 +59,9 @@ pub async fn fetch_and_parse_epg(url: &str, user_agent: Option<&str>) -> Result<
 
 /// Store EPG programs in database (sync part)
 pub fn store_epg_programs(conn: &Connection, programs: &[EpgProgram]) -> Result<usize> {
+    let start = Instant::now();
     let count = store_programs(conn, programs)?;
+    debug!("EPG store completed in {:?}: {} programs", start.elapsed(), count);
     info!("Stored {} EPG programs in database", count);
     Ok(count)
 }

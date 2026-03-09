@@ -1,4 +1,6 @@
 use rusqlite::{Connection, Result, params};
+use log::debug;
+use std::time::Instant;
 use super::models::*;
 use crate::utils::generate_epg_id_swedish;
 
@@ -57,6 +59,7 @@ pub fn create_channel(conn: &Connection, channel: &Channel) -> Result<i64> {
 }
 
 pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<()> {
+    let start = Instant::now();
     let tx = conn.unchecked_transaction()?;
 
     {
@@ -82,6 +85,7 @@ pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<
     }
 
     tx.commit()?;
+    debug!("create_channels_batch: {} channels in {:?}", channels.len(), start.elapsed());
     Ok(())
 }
 
@@ -144,6 +148,7 @@ pub fn merge_channels(
     use std::collections::HashMap;
     use std::collections::HashSet;
 
+    let start = Instant::now();
     let tx = conn.unchecked_transaction()?;
 
     // 1. Load existing channels for this playlist
@@ -298,6 +303,7 @@ pub fn merge_channels(
     tx.commit()?;
 
     let total = added + updated;
+    debug!("merge_channels: added={}, updated={}, removed={} in {:?}", added, updated, removed, start.elapsed());
     Ok(MergeResult {
         added,
         updated,

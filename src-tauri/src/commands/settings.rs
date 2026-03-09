@@ -13,7 +13,9 @@ pub async fn get_setting(
     key: String,
 ) -> Result<Option<String>, AppError> {
     let conn = state.pool.get()?;
-    Ok(queries::get_setting(&conn, &key)?)
+    let result = queries::get_setting(&conn, &key)?;
+    debug!("get_setting '{}' -> {}", key, if result.is_some() { "found" } else { "not set" });
+    Ok(result)
 }
 
 #[tauri::command]
@@ -36,7 +38,9 @@ pub async fn set_setting(
         normalized_value
     };
 
-    Ok(mutations::set_setting(&conn, &key, &final_value)?)
+    mutations::set_setting(&conn, &key, &final_value)?;
+    debug!("Setting '{}' updated", key);
+    Ok(())
 }
 
 fn validate_playlist_user_agent_mode(mode: &str) -> Result<String, AppError> {

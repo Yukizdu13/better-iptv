@@ -27,6 +27,8 @@ pub async fn import_playlist(
     playlist_domain::validate_playlist_name(&name)?;
     playlist_domain::validate_playlist_source(&source)?;
 
+    info!("M3U import started: {}", crate::utils::mask_credentials(&source));
+
     let playlist_user_agent = {
         let conn = state.pool.get()?;
         get_playlist_user_agent(&conn)?

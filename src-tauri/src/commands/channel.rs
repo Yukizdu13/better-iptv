@@ -3,6 +3,7 @@ use crate::db::models::Channel;
 use crate::db::{queries, mutations};
 use crate::error::AppError;
 use crate::state::AppState;
+use log::debug;
 use tauri::State;
 
 #[tauri::command]
@@ -15,7 +16,9 @@ pub async fn get_channels(
     }
 
     let conn = state.pool.get()?;
-    Ok(queries::get_channels(&conn, playlist_id)?)
+    let channels = queries::get_channels(&conn, playlist_id)?;
+    debug!("get_channels playlist_id={:?} -> {} channels", playlist_id, channels.len());
+    Ok(channels)
 }
 
 #[tauri::command]
@@ -31,11 +34,9 @@ pub async fn get_channel_groups(
     }
 
     let conn = state.pool.get()?;
-    Ok(queries::get_channel_groups(
-        &conn,
-        playlist_id,
-        content_type.as_deref(),
-    )?)
+    let groups = queries::get_channel_groups(&conn, playlist_id, content_type.as_deref())?;
+    debug!("get_channel_groups playlist_id={} type={:?} -> {} groups", playlist_id, content_type, groups.len());
+    Ok(groups)
 }
 
 #[tauri::command]
@@ -46,7 +47,9 @@ pub async fn search_channels(
     channel_domain::validate_search_query(&query)?;
 
     let conn = state.pool.get()?;
-    Ok(queries::search_channels(&conn, &query)?)
+    let channels = queries::search_channels(&conn, &query)?;
+    debug!("search_channels query='{}' -> {} results", query, channels.len());
+    Ok(channels)
 }
 
 #[tauri::command]
@@ -54,11 +57,15 @@ pub async fn toggle_favorite(state: State<'_, AppState>, channel_id: i64) -> Res
     channel_domain::validate_channel_id(channel_id)?;
 
     let conn = state.pool.get()?;
-    Ok(mutations::toggle_favorite(&conn, channel_id)?)
+    mutations::toggle_favorite(&conn, channel_id)?;
+    debug!("toggle_favorite channel_id={}", channel_id);
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn get_favorites(state: State<'_, AppState>) -> Result<Vec<Channel>, AppError> {
     let conn = state.pool.get()?;
-    Ok(queries::get_favorites(&conn)?)
+    let channels = queries::get_favorites(&conn)?;
+    debug!("get_favorites -> {} channels", channels.len());
+    Ok(channels)
 }

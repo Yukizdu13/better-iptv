@@ -121,6 +121,12 @@ impl From<chrono::ParseError> for AppError {
     }
 }
 
+impl From<r2d2::Error> for AppError {
+    fn from(e: r2d2::Error) -> Self {
+        AppError::Database(format!("Connection pool error: {}", e))
+    }
+}
+
 /// Result type alias using AppError
 pub type AppResult<T> = Result<T, AppError>;
 

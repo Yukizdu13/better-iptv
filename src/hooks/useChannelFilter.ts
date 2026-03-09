@@ -34,11 +34,16 @@ export function useChannelFilter(debouncedSearchQuery: string): Channel[] {
   // Step 1: Select base list by content type (O(1) - pre-computed)
   const baseList = useMemo(() => {
     switch (contentTypeFilter) {
-      case 'live': return liveChannels;
-      case 'vod': return vodChannels;
-      case 'series': return seriesChannels;
-      case 'favorites': return favoriteChannels;
-      default: return channels;
+      case 'live':
+        return liveChannels;
+      case 'vod':
+        return vodChannels;
+      case 'series':
+        return seriesChannels;
+      case 'favorites':
+        return favoriteChannels;
+      default:
+        return channels;
     }
   }, [contentTypeFilter, liveChannels, vodChannels, seriesChannels, favoriteChannels, channels]);
 
@@ -53,30 +58,37 @@ export function useChannelFilter(debouncedSearchQuery: string): Channel[] {
 
     // Parental controls (hide mode only)
     if (parentalEnabled && !parentalUnlocked && parentalVisibility === 'hide') {
-      result = result.filter((c) => !shouldBlockChannel(c, {
-        enabled: parentalEnabled,
-        autoDetect: parentalAutoDetect,
-        blockedIds: blockedChannelIds,
-        blockedCategories: blockedCategories,
-        unlocked: parentalUnlocked,
-      }));
+      result = result.filter(
+        (c) =>
+          !shouldBlockChannel(c, {
+            enabled: parentalEnabled,
+            autoDetect: parentalAutoDetect,
+            blockedIds: blockedChannelIds,
+            blockedCategories: blockedCategories,
+            unlocked: parentalUnlocked,
+          })
+      );
     }
 
     // Search filter
     if (debouncedSearchQuery.trim() !== '') {
       const query = debouncedSearchQuery.toLowerCase();
       result = result.filter(
-        (c) =>
-          c.name.toLowerCase().includes(query) ||
-          c.group_name?.toLowerCase().includes(query)
+        (c) => c.name.toLowerCase().includes(query) || c.group_name?.toLowerCase().includes(query)
       );
     }
 
     setFilteredChannels(result);
   }, [
-    baseList, categoryFilter, debouncedSearchQuery,
-    parentalEnabled, parentalUnlocked, parentalAutoDetect,
-    blockedChannelIds, blockedCategories, parentalVisibility,
+    baseList,
+    categoryFilter,
+    debouncedSearchQuery,
+    parentalEnabled,
+    parentalUnlocked,
+    parentalAutoDetect,
+    blockedChannelIds,
+    blockedCategories,
+    parentalVisibility,
     setFilteredChannels,
   ]);
 

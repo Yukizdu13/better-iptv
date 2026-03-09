@@ -171,7 +171,15 @@ describe('usePlayerStore', () => {
   describe('toggleChannelFavorite', () => {
     it('should update favoriteChannels after toggle', () => {
       const channels = [
-        { id: 1, name: 'A', content_type: 'live' as const, url: 'http://a', playlist_id: 1, is_favorite: false, sort_order: 0 },
+        {
+          id: 1,
+          name: 'A',
+          content_type: 'live' as const,
+          url: 'http://a',
+          playlist_id: 1,
+          is_favorite: false,
+          sort_order: 0,
+        },
       ];
 
       usePlayerStore.getState().setChannels(channels);
@@ -194,8 +202,24 @@ describe('usePlayerStore', () => {
 
     it('should only rebuild the affected content-type array', () => {
       const channels = [
-        { id: 1, name: 'Live', content_type: 'live' as const, url: 'http://a', playlist_id: 1, is_favorite: false, sort_order: 0 },
-        { id: 2, name: 'Movie', content_type: 'vod' as const, url: 'http://b', playlist_id: 1, is_favorite: false, sort_order: 1 },
+        {
+          id: 1,
+          name: 'Live',
+          content_type: 'live' as const,
+          url: 'http://a',
+          playlist_id: 1,
+          is_favorite: false,
+          sort_order: 0,
+        },
+        {
+          id: 2,
+          name: 'Movie',
+          content_type: 'vod' as const,
+          url: 'http://b',
+          playlist_id: 1,
+          is_favorite: false,
+          sort_order: 1,
+        },
       ];
 
       usePlayerStore.getState().setChannels(channels);

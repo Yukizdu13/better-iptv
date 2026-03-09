@@ -1,11 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePlayerStore } from '../stores/player-store';
-import {
-  getChannelGroups,
-  getStalePlaylistIds,
-  getChannels,
-} from '../lib/tauri';
+import { getChannelGroups, getStalePlaylistIds, getChannels } from '../lib/tauri';
 import { CategoryBar } from './CategoryBar';
 import { ChannelCard } from './ChannelCard';
 import { SearchBar } from './SearchBar';
@@ -124,7 +120,6 @@ export default function MainScreen() {
       });
   }, [currentPlaylist?.id, contentTypeFilter, setCategories]);
 
-
   // Pre-compute parental blocking results (avoids per-card shouldBlockChannel calls)
   const blockedMap = useMemo(() => {
     if (!parentalEnabled || parentalUnlocked) return new Map<number, boolean>();
@@ -132,19 +127,26 @@ export default function MainScreen() {
     const map = new Map<number, boolean>();
     for (const channel of filteredChannels) {
       if (channel.id) {
-        map.set(channel.id, shouldBlockChannel(channel, {
-          enabled: parentalEnabled,
-          autoDetect: parentalAutoDetect,
-          blockedIds: blockedChannelIds,
-          blockedCategories: blockedCategories,
-          unlocked: parentalUnlocked,
-        }));
+        map.set(
+          channel.id,
+          shouldBlockChannel(channel, {
+            enabled: parentalEnabled,
+            autoDetect: parentalAutoDetect,
+            blockedIds: blockedChannelIds,
+            blockedCategories: blockedCategories,
+            unlocked: parentalUnlocked,
+          })
+        );
       }
     }
     return map;
   }, [
-    filteredChannels, parentalEnabled, parentalUnlocked,
-    parentalAutoDetect, blockedChannelIds, blockedCategories,
+    filteredChannels,
+    parentalEnabled,
+    parentalUnlocked,
+    parentalAutoDetect,
+    blockedChannelIds,
+    blockedCategories,
   ]);
 
   // Virtual scrolling setup - virtualize by rows (dynamic items per row)
@@ -157,44 +159,54 @@ export default function MainScreen() {
     overscan: 3, // Render 3 extra rows above/below viewport
   });
 
-  const handlePlayChannel = useCallback(async (channel: Channel) => {
-    // Check parental controls
-    const isBlocked = shouldBlockChannel(channel, {
-      enabled: parentalEnabled,
-      autoDetect: parentalAutoDetect,
-      blockedIds: blockedChannelIds,
-      blockedCategories: blockedCategories,
-      unlocked: parentalUnlocked,
-    });
+  const handlePlayChannel = useCallback(
+    async (channel: Channel) => {
+      // Check parental controls
+      const isBlocked = shouldBlockChannel(channel, {
+        enabled: parentalEnabled,
+        autoDetect: parentalAutoDetect,
+        blockedIds: blockedChannelIds,
+        blockedCategories: blockedCategories,
+        unlocked: parentalUnlocked,
+      });
 
-    if (isBlocked && parentalEnabled && !parentalUnlocked) {
-      setPendingChannel(channel);
-      setShowPinModal(true);
-      return;
-    }
+      if (isBlocked && parentalEnabled && !parentalUnlocked) {
+        setPendingChannel(channel);
+        setShowPinModal(true);
+        return;
+      }
 
-    const result = await playChannelAction(channel);
-    if (result?.type === 'series') {
-      setSelectedSeries(result.channel);
-    }
-  }, [
-    parentalEnabled, parentalAutoDetect, blockedChannelIds,
-    blockedCategories, parentalUnlocked, playChannelAction,
-  ]);
+      const result = await playChannelAction(channel);
+      if (result?.type === 'series') {
+        setSelectedSeries(result.channel);
+      }
+    },
+    [
+      parentalEnabled,
+      parentalAutoDetect,
+      blockedChannelIds,
+      blockedCategories,
+      parentalUnlocked,
+      playChannelAction,
+    ]
+  );
 
-  const handlePlayEpisode = useCallback(async (
-    episodeId: string,
-    extension: string,
-    title: string,
-    remainingEpisodes?: Array<{ id: string; title: string; extension: string }>
-  ) => {
-    if (!currentPlaylist) return;
-    try {
-      await playEpisodeAction(episodeId, extension, title, currentPlaylist, remainingEpisodes);
-    } catch (err) {
-      logger.error('Failed to play episode:', err);
-    }
-  }, [currentPlaylist, playEpisodeAction]);
+  const handlePlayEpisode = useCallback(
+    async (
+      episodeId: string,
+      extension: string,
+      title: string,
+      remainingEpisodes?: Array<{ id: string; title: string; extension: string }>
+    ) => {
+      if (!currentPlaylist) return;
+      try {
+        await playEpisodeAction(episodeId, extension, title, currentPlaylist, remainingEpisodes);
+      } catch (err) {
+        logger.error('Failed to play episode:', err);
+      }
+    },
+    [currentPlaylist, playEpisodeAction]
+  );
 
   const handlePinSuccess = useCallback(() => {
     setShowPinModal(false);

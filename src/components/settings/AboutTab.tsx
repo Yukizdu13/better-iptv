@@ -19,9 +19,11 @@ export default function AboutTab() {
   const [copiedCurrency, setCopiedCurrency] = useState<string | null>(null);
 
   useEffect(() => {
-    getVersion().then(setVersion).catch((err) => {
-      logger.warn('Failed to get app version:', err);
-    });
+    getVersion()
+      .then(setVersion)
+      .catch((err) => {
+        logger.warn('Failed to get app version:', err);
+      });
   }, []);
 
   const handleCopy = async (currency: string, address: string) => {
@@ -50,7 +52,7 @@ export default function AboutTab() {
         <img src={logoImage} alt="Better IPTV" className="h-12 w-12 rounded-xl" />
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Better IPTV</h3>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="mt-0.5 flex items-center gap-2">
             {version && (
               <>
                 <span className="text-sm text-gray-500 dark:text-gray-400">v{version}</span>
@@ -63,7 +65,7 @@ export default function AboutTab() {
       </div>
 
       {/* Support copy */}
-      <p className="text-sm text-gray-600 dark:text-gray-400 text-pretty leading-relaxed">
+      <p className="text-pretty text-sm leading-relaxed text-gray-600 dark:text-gray-400">
         Better IPTV is built and maintained by a single developer in their spare time — no ads, no
         subscriptions, no commercial backing. If you find it useful, consider supporting its
         development.
@@ -72,7 +74,11 @@ export default function AboutTab() {
       {/* Donation buttons */}
       <div className="flex flex-wrap gap-3">
         <button
-          onClick={() => { openUrl('https://ko-fi.com/R6R21I53PD').catch((err) => logger.error('Failed to open Ko-fi URL:', err)); }}
+          onClick={() => {
+            openUrl('https://ko-fi.com/R6R21I53PD').catch((err) =>
+              logger.error('Failed to open Ko-fi URL:', err)
+            );
+          }}
           className="inline-flex items-center gap-2 rounded-lg bg-[#FF5E5B] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#e54f4d]"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -81,7 +87,11 @@ export default function AboutTab() {
           Support on Ko-fi
         </button>
         <button
-          onClick={() => { openUrl('https://github.com/sponsors/mewset').catch((err) => logger.error('Failed to open GitHub Sponsors URL:', err)); }}
+          onClick={() => {
+            openUrl('https://github.com/sponsors/mewset').catch((err) =>
+              logger.error('Failed to open GitHub Sponsors URL:', err)
+            );
+          }}
           className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600"
         >
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
@@ -90,7 +100,11 @@ export default function AboutTab() {
           GitHub Sponsors
         </button>
         <button
-          onClick={() => { openUrl('https://paypal.me/MattiasAndersson59').catch((err) => logger.error('Failed to open PayPal URL:', err)); }}
+          onClick={() => {
+            openUrl('https://paypal.me/MattiasAndersson59').catch((err) =>
+              logger.error('Failed to open PayPal URL:', err)
+            );
+          }}
           className="inline-flex items-center gap-2 rounded-lg bg-[#003087] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#002070]"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -101,7 +115,7 @@ export default function AboutTab() {
       </div>
 
       {/* Crypto accordion */}
-      <div className="rounded-lg border border-gray-200 overflow-hidden dark:border-gray-700">
+      <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
         <button
           onClick={() => setCryptoOpen((o) => !o)}
           aria-expanded={cryptoOpen}
@@ -119,7 +133,10 @@ export default function AboutTab() {
           </svg>
         </button>
         {cryptoOpen && (
-          <div id="crypto-addresses" className="border-t border-gray-200 px-4 pb-4 pt-3 space-y-3 dark:border-gray-700">
+          <div
+            id="crypto-addresses"
+            className="space-y-3 border-t border-gray-200 px-4 pb-4 pt-3 dark:border-gray-700"
+          >
             {CRYPTO_ADDRESSES.map(({ currency, address }) => (
               <div key={currency}>
                 <p className="mb-1 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">

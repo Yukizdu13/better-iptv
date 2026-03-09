@@ -40,7 +40,10 @@ const TABS: TabConfig[] = [
  * - Movies: Show only VOD content
  * - Series: Show only series
  */
-export const ContentTypeTabs = memo(function ContentTypeTabs({ activeFilter, onFilterChange }: ContentTypeTabsProps) {
+export const ContentTypeTabs = memo(function ContentTypeTabs({
+  activeFilter,
+  onFilterChange,
+}: ContentTypeTabsProps) {
   return (
     <div className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
       <div className="mx-auto px-6">

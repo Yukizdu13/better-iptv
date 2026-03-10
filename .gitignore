@@ -35,5 +35,6 @@ plans/
 ## MISC
 VERSION.md
 RELEASE_GUIDE.md
+aur/
 aur-repo/
 dev-scripts/

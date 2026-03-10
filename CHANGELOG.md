@@ -3,6 +3,16 @@
 All notable changes to Better IPTV will be documented in this file.
 This file is a developer-changelog, aimed towards development changes.
 
+## [2.6.1] - 2026-03-10
+
+### Fixed
+
+- **Scroll Performance** - Stabilize ChannelCard `React.memo()` callbacks
+  - Replace inline arrow functions (`onPlay`, `onToggleFavorite`) with stable callback references
+  - Previously, every scroll frame created ~56 new function references (28 visible cards × 2 callbacks), defeating memo()
+  - Now only cards entering/leaving the viewport actually re-render
+  - Reduce MPV status polling interval from 1s to 3s (fewer IPC calls during playback)
+
 ## [2.6.0] - 2026-03-09
 
 ### Added

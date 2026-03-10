@@ -4,6 +4,15 @@ A simple overview of new features and improvements.
 
 ---
 
+## Version 2.6.1 (March 10, 2026)
+
+### Improvements
+
+**Smoother Scrolling**
+- Scrolling through large channel lists is now noticeably smoother - this fix should have been included in 2.6.0 but didn't make it in time
+
+---
+
 ## Version 2.6.0 (March 9, 2026)
 
 ### New Features

@@ -1,20 +1,13 @@
 import { memo } from 'react';
 import { Play, Square, Star, Clapperboard, Lock } from 'lucide-react';
+import type { Channel } from '../types';
 
 interface ChannelCardProps {
-  channel: {
-    id?: number;
-    name: string;
-    logo?: string;
-    group_name?: string;
-    is_favorite: boolean;
-    content_type: string;
-    epg_id?: string;
-  };
+  channel: Channel;
   /** Whether this channel is currently playing */
   isPlaying: boolean;
   /** Callback when play/stop button is clicked */
-  onPlay: () => void;
+  onPlay: (channel: Channel) => void;
   /** Current EPG program title */
   currentProgram?: string;
   /** Height of the card in pixels */
@@ -24,7 +17,7 @@ interface ChannelCardProps {
   /** Visibility mode for blocked channels */
   parentalVisibility?: 'hide' | 'lock' | 'blur';
   /** Callback when favorite star is toggled */
-  onToggleFavorite?: () => void;
+  onToggleFavorite?: (channelId: number) => void;
 }
 
 /**
@@ -90,7 +83,7 @@ export const ChannelCard = memo(function ChannelCard({
           aria-label={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
           onClick={(e) => {
             e.stopPropagation();
-            onToggleFavorite?.();
+            onToggleFavorite?.(channel.id);
           }}
           className={`absolute right-2 top-2 rounded-full p-1 transition-opacity ${
             channel.is_favorite
@@ -132,7 +125,7 @@ export const ChannelCard = memo(function ChannelCard({
 
         {/* Action button */}
         <button
-          onClick={onPlay}
+          onClick={() => onPlay(channel)}
           className={`flex w-full items-center justify-center gap-2 rounded-md font-medium transition-colors ${
             isLarge ? 'mt-3 px-4 py-2.5' : isSmall ? 'mt-2 px-3 py-1.5 text-sm' : 'mt-2 px-4 py-2'
           } ${
@@ -167,7 +160,7 @@ export const ChannelCard = memo(function ChannelCard({
         <div
           onClick={(e) => {
             e.stopPropagation(); // Prevent card click
-            onPlay(); // Trigger PIN verification
+            onPlay(channel); // Trigger PIN verification
           }}
           className={`absolute inset-0 flex cursor-pointer items-center justify-center transition-opacity hover:opacity-90 ${
             parentalVisibility === 'blur' ? 'bg-black/30 backdrop-blur-md' : 'bg-black/70'

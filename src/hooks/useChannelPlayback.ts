@@ -81,7 +81,7 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
       } catch (err) {
         logger.error('Failed to check playback status:', err);
       }
-    }, 1000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [isPlaying, setIsPlaying, setCurrentChannel, setCurrentProgram, setNextProgram]);

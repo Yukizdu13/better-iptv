@@ -90,6 +90,31 @@ export interface MergeResult {
   total: number;
 }
 
+export interface VodMetadata {
+  name?: string;
+  plot?: string;
+  cast?: string;
+  director?: string;
+  genre?: string;
+  rating?: string;
+  duration?: string;
+  movie_image?: string;
+  backdrop_path?: string[];
+  release_date?: string;
+  youtube_trailer?: string;
+}
+
+export interface VodMovieData {
+  stream_id?: number;
+  name?: string;
+  container_extension?: string;
+}
+
+export interface VodInfo {
+  info: VodMetadata;
+  movie_data: VodMovieData;
+}
+
 export interface SeriesMetadata {
   name: string;
   cover?: string;

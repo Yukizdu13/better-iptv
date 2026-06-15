@@ -4,6 +4,7 @@ pub mod playlist;
 pub mod channel;
 pub mod epg;
 pub mod series;
+pub mod vod;
 pub mod settings;
 pub mod parental;
 
@@ -13,5 +14,6 @@ pub use playlist::*;
 pub use channel::*;
 pub use epg::*;
 pub use series::*;
+pub use vod::*;
 pub use settings::*;
 pub use parental::*;

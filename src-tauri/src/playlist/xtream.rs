@@ -426,3 +426,50 @@ pub fn build_episode_url(creds: &XtreamCredentials, episode_id: &str, extension:
         extension
     )
 }
+
+// ========== VOD Info ==========
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VodInfo {
+    pub info: VodMetadata,
+    pub movie_data: VodMovieData,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VodMetadata {
+    pub name: Option<String>,
+    #[serde(alias = "description")]
+    pub plot: Option<String>,
+    #[serde(alias = "actors")]
+    pub cast: Option<String>,
+    pub director: Option<String>,
+    pub genre: Option<String>,
+    pub rating: Option<String>,
+    pub duration: Option<String>,
+    #[serde(alias = "cover_big")]
+    pub movie_image: Option<String>,
+    pub backdrop_path: Option<Vec<String>>,
+    #[serde(alias = "releasedate", alias = "releaseDate")]
+    pub release_date: Option<String>,
+    pub youtube_trailer: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VodMovieData {
+    pub stream_id: Option<i64>,
+    pub name: Option<String>,
+    pub container_extension: Option<String>,
+}
+
+/// Fetch VOD movie information (metadata, poster, description…)
+pub async fn fetch_vod_info(creds: &XtreamCredentials, vod_id: i64) -> Result<VodInfo> {
+    let url = format!(
+        "{}/player_api.php?username={}&password={}&action=get_vod_info&vod_id={}",
+        creds.server_url.trim_end_matches('/'),
+        creds.username,
+        creds.password,
+        vod_id
+    );
+
+    fetch_json_with_retry(&url, "vod info", None).await
+}

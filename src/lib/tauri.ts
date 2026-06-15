@@ -88,6 +88,20 @@ export interface PlaylistEpisode {
   extension: string;
 }
 
+export async function getVodInfo(
+  serverUrl: string,
+  username: string,
+  password: string,
+  vodId: number
+): Promise<import('../types').VodInfo> {
+  return await invoke('get_vod_info', {
+    serverUrl,
+    username,
+    password,
+    vodId,
+  });
+}
+
 export async function getSeriesInfo(
   serverUrl: string,
   username: string,

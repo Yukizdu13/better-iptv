@@ -9,6 +9,7 @@ import { ContentTypeTabs } from './ContentTypeTabs';
 import { NowPlayingBar } from './NowPlayingBar';
 import { Settings as SettingsIcon } from 'lucide-react';
 import SeriesView from './SeriesView';
+import VodView from './VodView';
 import SettingsModal from './Settings';
 import PinEntryModal from './modals/PinEntryModal';
 import ConfirmationModal from './modals/ConfirmationModal';
@@ -65,6 +66,7 @@ export default function MainScreen() {
   const { channelEpgData } = useEpgData(filteredChannels);
 
   const [selectedSeries, setSelectedSeries] = useState<Channel | null>(null);
+  const [selectedVod, setSelectedVod] = useState<Channel | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingChannel, setPendingChannel] = useState<Channel | null>(null);
@@ -176,6 +178,16 @@ export default function MainScreen() {
         return;
       }
 
+      // VOD on Xtream playlist → show info view before playing
+      if (
+        channel.content_type === 'vod' &&
+        currentPlaylist?.xtream_username &&
+        currentPlaylist?.xtream_password
+      ) {
+        setSelectedVod(channel);
+        return;
+      }
+
       const result = await playChannelAction(channel);
       if (result?.type === 'series') {
         setSelectedSeries(result.channel);
@@ -224,6 +236,41 @@ export default function MainScreen() {
   const handleStop = useCallback(async () => {
     await stopPlaybackAction();
   }, [stopPlaybackAction]);
+
+  // If a VOD is selected, show the VodView
+  if (
+    selectedVod &&
+    currentPlaylist?.url &&
+    currentPlaylist.xtream_username &&
+    currentPlaylist.xtream_password
+  ) {
+    const urlParts = selectedVod.url?.split('/');
+    const vodIdWithExt = urlParts?.[urlParts.length - 1];
+    const vodId = vodIdWithExt ? parseInt(vodIdWithExt.replace(/\.\w+$/, ''), 10) : NaN;
+
+    if (isNaN(vodId)) {
+      logger.error('Failed to parse VOD ID from URL:', selectedVod.url);
+      // Fallback: play directly
+      playChannelAction(selectedVod);
+      setSelectedVod(null);
+      return null;
+    }
+
+    return (
+      <VodView
+        vodId={vodId}
+        vodName={selectedVod.name}
+        serverUrl={currentPlaylist.url}
+        username={currentPlaylist.xtream_username}
+        password={currentPlaylist.xtream_password}
+        onBack={() => setSelectedVod(null)}
+        onPlay={async () => {
+          setSelectedVod(null);
+          await playChannelAction(selectedVod);
+        }}
+      />
+    );
+  }
 
   // If a series is selected, show the SeriesView
   if (

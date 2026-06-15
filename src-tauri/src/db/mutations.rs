@@ -270,32 +270,24 @@ pub fn merge_channels(
     }
 
     // 4. Delete unmatched old channels
-    let removed = existing.len() - matched_ids.len();
+    // Use DELETE WHERE id IN (ids_to_delete) in chunks of 500 to avoid
+    // SQLITE_MAX_VARIABLE_NUMBER limit hit by large NOT IN lists (e.g. 52k channels)
+    let ids_to_delete: Vec<i64> = existing
+        .iter()
+        .filter(|ch| !matched_ids.contains(&ch.id))
+        .map(|ch| ch.id)
+        .collect();
+    let removed = ids_to_delete.len();
     if removed > 0 {
-        if matched_ids.is_empty() {
-            tx.execute(
-                "DELETE FROM channels WHERE playlist_id = ?1",
-                params![playlist_id],
-            )?;
-        } else {
-            let ids_to_keep: Vec<i64> = matched_ids.into_iter().collect();
-            let placeholders: String = (0..ids_to_keep.len())
-                .map(|i| format!("?{}", i + 2))
+        const CHUNK_SIZE: usize = 500;
+        for chunk in ids_to_delete.chunks(CHUNK_SIZE) {
+            let placeholders = (1..=chunk.len())
+                .map(|i| format!("?{}", i))
                 .collect::<Vec<_>>()
                 .join(",");
-            let sql = format!(
-                "DELETE FROM channels WHERE playlist_id = ?1 AND id NOT IN ({})",
-                placeholders
-            );
-
-            let mut delete_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-            delete_params.push(Box::new(playlist_id));
-            for id in &ids_to_keep {
-                delete_params.push(Box::new(*id));
-            }
+            let sql = format!("DELETE FROM channels WHERE id IN ({})", placeholders);
             let param_refs: Vec<&dyn rusqlite::types::ToSql> =
-                delete_params.iter().map(|p| p.as_ref()).collect();
-
+                chunk.iter().map(|id| id as &dyn rusqlite::types::ToSql).collect();
             tx.execute(&sql, param_refs.as_slice())?;
         }
     }

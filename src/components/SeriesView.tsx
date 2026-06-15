@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { usePlayerStore } from '../stores/player-store';
 import { getSeriesInfo } from '../lib/tauri';
-import { ChevronLeft, Play } from 'lucide-react';
+import { ChevronLeft, Play, Shuffle, Star } from 'lucide-react';
 import type { Episode } from '../types';
 import { logger } from '../lib/logger';
 
@@ -32,6 +32,20 @@ export default function SeriesView({
   const { currentSeries, selectedSeason, setCurrentSeries, setSelectedSeason } = usePlayerStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [plotExpanded, setPlotExpanded] = useState(false);
+
+  function playRandom() {
+    if (!currentSeries) return;
+    const allEpisodes = Object.values(currentSeries.episodes).flat();
+    if (allEpisodes.length === 0) return;
+    const shuffled = [...allEpisodes].sort(() => Math.random() - 0.5).slice(0, 20);
+    const playlist = shuffled.map((ep) => ({
+      id: ep.id,
+      title: ep.title,
+      extension: ep.container_extension,
+    }));
+    onPlayEpisode(playlist[0].id, playlist[0].extension, playlist[0].title, playlist);
+  }
 
   useEffect(() => {
     async function loadSeriesInfo() {
@@ -99,17 +113,26 @@ export default function SeriesView({
       {/* Header */}
       <div className="border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
         <div className="mx-auto max-w-7xl">
-          <button
-            onClick={onBack}
-            className="mb-4 flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            <ChevronLeft className="h-5 w-5" />
-            Back to Series List
-          </button>
+          <div className="mb-4 flex items-center justify-between">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              <ChevronLeft className="h-5 w-5" />
+              Back to Series List
+            </button>
+            <button
+              onClick={playRandom}
+              className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 font-medium text-white transition-colors hover:bg-purple-700"
+            >
+              <Shuffle className="h-4 w-4" />
+              Play aléatoire
+            </button>
+          </div>
           <div className="flex gap-6">
-            {currentSeries.info.cover && (
+            {(currentSeries.info.cover || currentSeries.info.backdrop_path?.[0]) && (
               <img
-                src={currentSeries.info.cover}
+                src={currentSeries.info.cover ?? currentSeries.info.backdrop_path![0]}
                 alt={currentSeries.info.name}
                 className="h-48 w-32 rounded-lg object-cover"
               />
@@ -118,15 +141,36 @@ export default function SeriesView({
               <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
                 {currentSeries.info.name}
               </h1>
-              {currentSeries.info.genre && (
-                <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
-                  {currentSeries.info.genre}
-                </p>
-              )}
+              <div className="mb-2 flex flex-wrap items-center gap-3">
+                {currentSeries.info.genre && (
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {currentSeries.info.genre}
+                  </span>
+                )}
+                {currentSeries.info.releaseDate && (
+                  <span className="text-sm text-gray-500 dark:text-gray-500">
+                    {currentSeries.info.releaseDate}
+                  </span>
+                )}
+                {currentSeries.info.rating && (
+                  <span className="flex items-center gap-1 text-sm font-medium text-yellow-500">
+                    <Star className="h-4 w-4 fill-yellow-500" />
+                    {currentSeries.info.rating}
+                  </span>
+                )}
+              </div>
               {currentSeries.info.plot && (
-                <p className="line-clamp-3 text-gray-700 dark:text-gray-300">
-                  {currentSeries.info.plot}
-                </p>
+                <div>
+                  <p className={`text-gray-700 dark:text-gray-300 ${plotExpanded ? '' : 'line-clamp-3'}`}>
+                    {currentSeries.info.plot}
+                  </p>
+                  <button
+                    onClick={() => setPlotExpanded(!plotExpanded)}
+                    className="mt-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    {plotExpanded ? 'Voir moins' : 'Voir plus'}
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -205,6 +249,8 @@ interface EpisodeCardProps {
 }
 
 function EpisodeCard({ episode, onPlay }: EpisodeCardProps) {
+  const [plotExpanded, setPlotExpanded] = useState(false);
+
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
       <div className="relative bg-gray-900">
@@ -221,16 +267,32 @@ function EpisodeCard({ episode, onPlay }: EpisodeCardProps) {
         )}
       </div>
       <div className="p-3">
-        <h3 className="mb-1 line-clamp-2 font-medium text-gray-900 dark:text-white">
-          Episode {episode.episode_num}
-        </h3>
+        <div className="mb-1 flex items-start justify-between gap-2">
+          <h3 className="line-clamp-2 font-medium text-gray-900 dark:text-white">
+            Episode {episode.episode_num}
+          </h3>
+          {episode.info.rating != null && (
+            <span className="flex shrink-0 items-center gap-0.5 text-xs font-medium text-yellow-500">
+              <Star className="h-3 w-3 fill-yellow-500" />
+              {episode.info.rating.toFixed(1)}
+            </span>
+          )}
+        </div>
         <p className="mb-2 line-clamp-1 text-sm text-gray-700 dark:text-gray-300">
           {episode.title}
         </p>
         {episode.info.plot && (
-          <p className="mb-3 line-clamp-2 text-xs text-gray-600 dark:text-gray-400">
-            {episode.info.plot}
-          </p>
+          <div className="mb-3">
+            <p className={`text-xs text-gray-600 dark:text-gray-400 ${plotExpanded ? '' : 'line-clamp-2'}`}>
+              {episode.info.plot}
+            </p>
+            <button
+              onClick={() => setPlotExpanded(!plotExpanded)}
+              className="mt-0.5 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              {plotExpanded ? 'Voir moins' : 'Voir plus'}
+            </button>
+          </div>
         )}
         <button
           onClick={onPlay}

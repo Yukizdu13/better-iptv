@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Better IPTV",
+  "productName": "Better IPTV+Kev",
   "version": "2.6.1",
   "identifier": "com.m0s.better-ip-tv",
   "build": {
@@ -12,13 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "Better IPTV",
+        "title": "Better IPTV+Kev",
         "width": 1280,
         "height": 800
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' https: data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http:; media-src 'self' https: http: blob:"
+      "csp": "default-src 'self'; img-src 'self' https: http: data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http:; media-src 'self' https: http: blob:"
     }
   },
   "bundle": {

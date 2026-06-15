@@ -73,6 +73,7 @@ struct XtreamStream {
     name: String,
     #[serde(alias = "series_id")]
     stream_id: i64,
+    #[serde(alias = "cover")]
     stream_icon: Option<String>,
     category_id: Option<String>,
     #[serde(rename = "type")]

@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { usePlayerStore } from '../stores/player-store';
 import { getSeriesInfo } from '../lib/tauri';
-import { ChevronLeft, Play, Shuffle, Star } from 'lucide-react';
+import { ChevronLeft, Play, Shuffle, Star, Heart } from 'lucide-react';
 import type { Episode } from '../types';
 import { logger } from '../lib/logger';
 
 interface SeriesViewProps {
   seriesId: number;
   seriesName: string;
+  channelId: number;
   serverUrl: string;
   username: string;
   password: string;
@@ -23,6 +24,7 @@ interface SeriesViewProps {
 export default function SeriesView({
   seriesId,
   seriesName: _seriesName,
+  channelId,
   serverUrl,
   username,
   password,
@@ -30,6 +32,8 @@ export default function SeriesView({
   onPlayEpisode,
 }: SeriesViewProps) {
   const { currentSeries, selectedSeason, setCurrentSeries, setSelectedSeason } = usePlayerStore();
+  const isFavorite = usePlayerStore((s) => s.channels.find((c) => c.id === channelId)?.is_favorite ?? false);
+  const toggleChannelFavorite = usePlayerStore((s) => s.toggleChannelFavorite);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [plotExpanded, setPlotExpanded] = useState(false);
@@ -119,15 +123,29 @@ export default function SeriesView({
               className="flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               <ChevronLeft className="h-5 w-5" />
-              Back to Series List
+              Retour aux séries
             </button>
-            <button
-              onClick={playRandom}
-              className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 font-medium text-white transition-colors hover:bg-purple-700"
-            >
-              <Shuffle className="h-4 w-4" />
-              Play aléatoire
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => toggleChannelFavorite(channelId)}
+                aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                className={`flex items-center gap-2 rounded-md border px-4 py-2 font-medium transition-colors ${
+                  isFavorite
+                    ? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-red-400 hover:text-red-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-red-400 dark:hover:text-red-400'
+                }`}
+              >
+                <Heart className={`h-4 w-4 ${isFavorite ? 'fill-white' : ''}`} />
+                {isFavorite ? 'Favori' : 'Favoris'}
+              </button>
+              <button
+                onClick={playRandom}
+                className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 font-medium text-white transition-colors hover:bg-purple-700"
+              >
+                <Shuffle className="h-4 w-4" />
+                Play aléatoire
+              </button>
+            </div>
           </div>
           <div className="flex gap-6">
             {(currentSeries.info.cover || currentSeries.info.backdrop_path?.[0]) && (
@@ -152,10 +170,10 @@ export default function SeriesView({
                     {currentSeries.info.releaseDate}
                   </span>
                 )}
-                {currentSeries.info.rating && (
+                {currentSeries.info.rating && !isNaN(parseFloat(currentSeries.info.rating)) && (
                   <span className="flex items-center gap-1 text-sm font-medium text-yellow-500">
                     <Star className="h-4 w-4 fill-yellow-500" />
-                    {currentSeries.info.rating}
+                    {parseFloat(currentSeries.info.rating).toFixed(1)}
                   </span>
                 )}
               </div>

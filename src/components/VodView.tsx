@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { getVodInfo } from '../lib/tauri';
-import { ChevronLeft, Play, Star, Clock, Calendar, Users, Film } from 'lucide-react';
+import { ChevronLeft, Play, Star, Clock, Calendar, Users, Film, Heart } from 'lucide-react';
 import type { VodInfo } from '../types';
 import { logger } from '../lib/logger';
+import { usePlayerStore } from '../stores/player-store';
 
 interface VodViewProps {
   vodId: number;
   vodName: string;
+  channelId: number;
   serverUrl: string;
   username: string;
   password: string;
@@ -17,12 +19,15 @@ interface VodViewProps {
 export default function VodView({
   vodId,
   vodName,
+  channelId,
   serverUrl,
   username,
   password,
   onBack,
   onPlay,
 }: VodViewProps) {
+  const isFavorite = usePlayerStore((s) => s.channels.find((c) => c.id === channelId)?.is_favorite ?? false);
+  const toggleChannelFavorite = usePlayerStore((s) => s.toggleChannelFavorite);
   const [info, setInfo] = useState<VodInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -132,10 +137,10 @@ export default function VodView({
 
             {/* Metadata pills */}
             <div className="mb-3 flex flex-wrap gap-3 text-sm">
-              {meta?.rating && (
+              {meta?.rating && !isNaN(parseFloat(meta.rating)) && (
                 <span className="flex items-center gap-1 font-medium text-yellow-500">
                   <Star className="h-4 w-4 fill-yellow-500" />
-                  {meta.rating}
+                  {parseFloat(meta.rating).toFixed(1)}
                 </span>
               )}
               {year && (
@@ -176,14 +181,26 @@ export default function VodView({
               </p>
             )}
 
-            {/* Play button */}
-            <div className="mt-auto pt-2">
+            {/* Play + Favorite buttons */}
+            <div className="mt-auto flex items-center gap-3 pt-2">
               <button
                 onClick={onPlay}
                 className="flex items-center gap-2 rounded-md bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700"
               >
                 <Play className="h-5 w-5" />
                 Lire le film
+              </button>
+              <button
+                onClick={() => toggleChannelFavorite(channelId)}
+                aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                className={`flex items-center gap-2 rounded-md border px-4 py-2.5 font-medium transition-colors ${
+                  isFavorite
+                    ? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-red-400 hover:text-red-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-red-400 dark:hover:text-red-400'
+                }`}
+              >
+                <Heart className={`h-5 w-5 ${isFavorite ? 'fill-white' : ''}`} />
+                {isFavorite ? 'Favori' : 'Favoris'}
               </button>
             </div>
           </div>

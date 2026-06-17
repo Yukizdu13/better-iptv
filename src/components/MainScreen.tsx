@@ -260,6 +260,7 @@ export default function MainScreen() {
       <VodView
         vodId={vodId}
         vodName={selectedVod.name}
+        channelId={selectedVod.id}
         serverUrl={currentPlaylist.url}
         username={currentPlaylist.xtream_username}
         password={currentPlaylist.xtream_password}
@@ -306,6 +307,7 @@ export default function MainScreen() {
       <SeriesView
         seriesId={seriesId}
         seriesName={selectedSeries.name}
+        channelId={selectedSeries.id}
         serverUrl={currentPlaylist.url}
         username={currentPlaylist.xtream_username}
         password={currentPlaylist.xtream_password}

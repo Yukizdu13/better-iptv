@@ -2,11 +2,13 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePlayerStore } from '../stores/player-store';
 import { getChannelGroups, getStalePlaylistIds, getChannels } from '../lib/tauri';
+import { isIOS } from '../lib/platform';
 import { CategoryBar } from './CategoryBar';
 import { ChannelCard } from './ChannelCard';
 import { SearchBar } from './SearchBar';
 import { ContentTypeTabs } from './ContentTypeTabs';
 import { NowPlayingBar } from './NowPlayingBar';
+import { IOSVideoPlayer } from './IOSVideoPlayer';
 import { Settings as SettingsIcon } from 'lucide-react';
 import SeriesView from './SeriesView';
 import VodView from './VodView';
@@ -45,6 +47,7 @@ export default function MainScreen() {
     isPlaying,
     currentProgram,
     nextProgram,
+    iosStreamUrls,
     play: playChannelAction,
     stop: stopPlaybackAction,
     playEpisode: playEpisodeAction,
@@ -413,13 +416,23 @@ export default function MainScreen() {
         </div>
       </div>
 
-      {/* Now Playing Bar */}
-      {currentChannel && (
+      {/* Now Playing Bar (desktop only — iOS uses fullscreen IOSVideoPlayer) */}
+      {currentChannel && !isIOS() && (
         <NowPlayingBar
           channel={currentChannel}
           currentProgram={currentProgram}
           nextProgram={nextProgram}
           onStop={handleStop}
+        />
+      )}
+
+      {/* iOS fullscreen video player */}
+      {isIOS() && isPlaying && currentChannel && (
+        <IOSVideoPlayer
+          channel={currentChannel}
+          streamUrls={iosStreamUrls}
+          currentProgram={currentProgram}
+          onClose={handleStop}
         />
       )}
 

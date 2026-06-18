@@ -1,27 +1,6 @@
 use crate::error::AppError;
 use crate::playlist::{fetch_series_info, SeriesInfo, XtreamCredentials};
 use crate::series_domain::{self, PlaylistEpisode};
-use crate::state::AppState;
-use log::info;
-use tauri::State;
-
-fn get_language_settings(
-    db: &rusqlite::Connection,
-) -> Result<(Option<String>, Option<String>), AppError> {
-    let settings =
-        crate::db::queries::get_multiple_settings(db, &["audio_language", "subtitle_language"])?;
-
-    let audio = settings
-        .get("audio_language")
-        .filter(|s| !s.is_empty())
-        .cloned();
-    let subtitle = settings
-        .get("subtitle_language")
-        .filter(|s| !s.is_empty())
-        .cloned();
-
-    Ok((audio, subtitle))
-}
 
 #[tauri::command]
 pub async fn get_series_info(
@@ -44,6 +23,33 @@ pub async fn get_series_info(
         .map_err(|e| AppError::Http(e.to_string()))
 }
 
+// ── Desktop — MPV playlist playback ──────────────────────────────────────────
+
+#[cfg(not(target_os = "ios"))]
+use crate::state::AppState;
+#[cfg(not(target_os = "ios"))]
+use log::info;
+#[cfg(not(target_os = "ios"))]
+use tauri::State;
+
+#[cfg(not(target_os = "ios"))]
+fn get_language_settings(
+    db: &rusqlite::Connection,
+) -> Result<(Option<String>, Option<String>), AppError> {
+    let settings =
+        crate::db::queries::get_multiple_settings(db, &["audio_language", "subtitle_language"])?;
+    let audio = settings
+        .get("audio_language")
+        .filter(|s| !s.is_empty())
+        .cloned();
+    let subtitle = settings
+        .get("subtitle_language")
+        .filter(|s| !s.is_empty())
+        .cloned();
+    Ok((audio, subtitle))
+}
+
+#[cfg(not(target_os = "ios"))]
 #[tauri::command]
 pub async fn play_episode_with_season(
     state: State<'_, AppState>,
@@ -57,7 +63,6 @@ pub async fn play_episode_with_season(
     series_domain::validate_credentials(&username, &password)?;
 
     let urls = series_domain::build_episode_urls(&server_url, &username, &password, &episodes);
-
     let first_title = &episodes[0].title;
 
     {
@@ -86,6 +91,18 @@ pub async fn play_episode_with_season(
         .map_err(|e| AppError::Mpv(e.to_string()))?;
 
     info!("Playing series episode: {}", first_title);
+    Ok(())
+}
 
+// ── iOS stub — frontend builds URLs and plays via HTML5 <video> ──────────────
+
+#[cfg(target_os = "ios")]
+#[tauri::command]
+pub async fn play_episode_with_season(
+    _server_url: String,
+    _username: String,
+    _password: String,
+    _episodes: Vec<PlaylistEpisode>,
+) -> Result<(), AppError> {
     Ok(())
 }

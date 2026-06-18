@@ -34,6 +34,10 @@
     "resources": [
       "../resources/mpv/*"
     ],
+    "iOS": {
+      "minimumSystemVersion": "16.0",
+      "developmentTeam": ""
+    },
     "linux": {
       "deb": {
         "desktopTemplate": "templates/better-iptv.desktop"

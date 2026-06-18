@@ -4,6 +4,7 @@ import MainScreen from './components/MainScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import { usePlayerStore } from './stores/player-store';
 import { getPlaylists, getChannels, getActiveProfileId } from './lib/tauri';
+import { initPlatform } from './lib/platform';
 import { logger } from './lib/logger';
 
 export default function App() {
@@ -18,9 +19,9 @@ export default function App() {
   const [isCheckingSetup, setIsCheckingSetup] = useState(true);
 
   useEffect(() => {
-    // Check if user has any playlists on app start
     async function checkSetup() {
       try {
+        await initPlatform();
         const playlists = await getPlaylists();
 
         if (playlists.length > 0) {

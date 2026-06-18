@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { usePlayerStore } from '../stores/player-store';
 import {
   playChannel as tauriPlayChannel,
@@ -7,35 +7,25 @@ import {
   getChannelEpg,
   playEpisodeWithSeason,
 } from '../lib/tauri';
+import { isIOS } from '../lib/platform';
 import { logger } from '../lib/logger';
 import type { Channel, Playlist } from '../types';
 
-/**
- * Episode data for playlist playback
- */
 export interface PlaylistEpisode {
   id: string;
   title: string;
   extension: string;
 }
 
-/**
- * Hook result for channel playback
- */
 interface UseChannelPlaybackResult {
-  /** Currently playing channel */
   currentChannel: Channel | null;
-  /** Whether playback is active */
   isPlaying: boolean;
-  /** Current EPG program title */
   currentProgram: string | null;
-  /** Next EPG program title */
   nextProgram: string | null;
-  /** Play a channel (or open series view for series content) */
+  /** URLs to stream on iOS (HTML5 video); empty on desktop */
+  iosStreamUrls: string[];
   play: (channel: Channel) => Promise<{ type: 'series'; channel: Channel } | void>;
-  /** Stop current playback */
   stop: () => Promise<void>;
-  /** Play episode(s) from a series */
   playEpisode: (
     episodeId: string,
     extension: string,
@@ -45,15 +35,6 @@ interface UseChannelPlaybackResult {
   ) => Promise<void>;
 }
 
-/**
- * Custom hook for channel playback management
- *
- * Consolidates:
- * - Play/stop channel logic
- * - MPV status polling
- * - EPG updates during playback
- * - Episode/series playback
- */
 export function useChannelPlayback(): UseChannelPlaybackResult {
   const currentChannel = usePlayerStore((s) => s.currentChannel);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -64,15 +45,16 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
   const setCurrentProgram = usePlayerStore((s) => s.setCurrentProgram);
   const setNextProgram = usePlayerStore((s) => s.setNextProgram);
 
-  // Poll MPV playback status to detect when player is closed externally
+  const [iosStreamUrls, setIosStreamUrls] = useState<string[]>([]);
+
+  // Poll MPV status to detect when the player is closed externally (desktop only)
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || isIOS()) return;
 
     const interval = setInterval(async () => {
       try {
         const playing = await checkIsPlaying();
         if (!playing) {
-          // MPV was closed externally, update UI
           setIsPlaying(false);
           setCurrentChannel(null);
           setCurrentProgram(null);
@@ -98,59 +80,79 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
       } catch (err) {
         logger.error('Failed to update EPG:', err);
       }
-    }, 60000); // Update every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [isPlaying, currentChannel, setCurrentProgram, setNextProgram]);
 
-  // Play a channel
   const play = useCallback(
     async (channel: Channel): Promise<{ type: 'series'; channel: Channel } | void> => {
-      // If it's a series, signal to open series view
       if (channel.content_type === 'series') {
         return { type: 'series', channel };
       }
 
-      try {
-        // Toggle playback if same channel
-        if (currentChannel?.id === channel.id && isPlaying) {
+      // Toggle off if same channel
+      if (currentChannel?.id === channel.id && isPlaying) {
+        if (isIOS()) {
+          setIsPlaying(false);
+          setCurrentChannel(null);
+          setIosStreamUrls([]);
+          setCurrentProgram(null);
+          setNextProgram(null);
+        } else {
           await tauriStopPlayback();
           setIsPlaying(false);
           setCurrentProgram(null);
           setNextProgram(null);
-          return;
         }
+        return;
+      }
 
-        // Play new channel
-        await tauriPlayChannel(channel);
+      if (isIOS()) {
+        // iOS: set state only — IOSVideoPlayer renders the <video> element
         setCurrentChannel(channel);
         setIsPlaying(true);
+        setIosStreamUrls([channel.url]);
+      } else {
+        // Desktop: delegate to MPV via Tauri
+        try {
+          await tauriPlayChannel(channel);
+          setCurrentChannel(channel);
+          setIsPlaying(true);
+        } catch (err) {
+          logger.error('Failed to play channel:', err);
+          throw err;
+        }
+      }
 
-        // Fetch EPG data if channel has EPG ID
-        if (channel.epg_id) {
-          try {
-            const [current, next] = await getChannelEpg(channel.epg_id);
-            setCurrentProgram(current);
-            setNextProgram(next);
-          } catch (err) {
-            logger.error('Failed to fetch EPG:', err);
-            setCurrentProgram(null);
-            setNextProgram(null);
-          }
-        } else {
+      // Fetch EPG if available (same on both platforms)
+      if (channel.epg_id) {
+        try {
+          const [current, next] = await getChannelEpg(channel.epg_id);
+          setCurrentProgram(current);
+          setNextProgram(next);
+        } catch (err) {
+          logger.error('Failed to fetch EPG:', err);
           setCurrentProgram(null);
           setNextProgram(null);
         }
-      } catch (err) {
-        logger.error('Failed to play channel:', err);
-        throw err;
+      } else {
+        setCurrentProgram(null);
+        setNextProgram(null);
       }
     },
     [currentChannel, isPlaying, setCurrentChannel, setIsPlaying, setCurrentProgram, setNextProgram]
   );
 
-  // Stop playback
   const stop = useCallback(async () => {
+    if (isIOS()) {
+      setIsPlaying(false);
+      setCurrentChannel(null);
+      setIosStreamUrls([]);
+      setCurrentProgram(null);
+      setNextProgram(null);
+      return;
+    }
     try {
       await tauriStopPlayback();
       setIsPlaying(false);
@@ -160,9 +162,8 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
       logger.error('Failed to stop playback:', err);
       throw err;
     }
-  }, [setIsPlaying, setCurrentProgram, setNextProgram]);
+  }, [setIsPlaying, setCurrentChannel, setCurrentProgram, setNextProgram]);
 
-  // Play episode(s) from a series
   const playEpisode = useCallback(
     async (
       episodeId: string,
@@ -176,9 +177,36 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
         throw new Error('Missing Xtream credentials');
       }
 
+      if (isIOS()) {
+        // Build episode URLs on the frontend — same formula as Rust series_domain
+        const base = playlist.url.replace(/\/$/, '');
+        const makeUrl = (id: string, ext: string) =>
+          `${base}/series/${playlist.xtream_username}/${playlist.xtream_password}/${id}.${ext}`;
+
+        const urls =
+          remainingEpisodes && remainingEpisodes.length > 0
+            ? remainingEpisodes.map((ep) => makeUrl(ep.id, ep.extension))
+            : [makeUrl(episodeId, extension)];
+
+        const episodeChannel: Channel = {
+          id: -1,
+          playlist_id: playlist.id ?? 0,
+          name: title,
+          url: urls[0],
+          content_type: 'series',
+          is_favorite: false,
+          sort_order: 0,
+        };
+
+        setCurrentChannel(episodeChannel);
+        setIsPlaying(true);
+        setIosStreamUrls(urls);
+        return;
+      }
+
+      // Desktop path
       try {
         if (remainingEpisodes && remainingEpisodes.length > 0) {
-          // Play season playlist
           await playEpisodeWithSeason(
             playlist.url,
             playlist.xtream_username,
@@ -187,19 +215,16 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
           );
           setIsPlaying(true);
         } else {
-          // Fallback: play single episode
           const episodeUrl = `${playlist.url.replace(/\/$/, '')}/series/${playlist.xtream_username}/${playlist.xtream_password}/${episodeId}.${extension}`;
-
           const episodeChannel: Channel = {
-            id: -1, // Virtual channel
-            playlist_id: playlist.id || 0,
+            id: -1,
+            playlist_id: playlist.id ?? 0,
             name: title,
             url: episodeUrl,
             content_type: 'series',
             is_favorite: false,
             sort_order: 0,
           };
-
           await tauriPlayChannel(episodeChannel);
           setCurrentChannel(episodeChannel);
           setIsPlaying(true);
@@ -217,6 +242,7 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
     isPlaying,
     currentProgram,
     nextProgram,
+    iosStreamUrls,
     play,
     stop,
     playEpisode,

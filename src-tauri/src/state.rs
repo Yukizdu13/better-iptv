@@ -14,7 +14,6 @@ pub struct CurrentChannel {
 }
 
 impl CurrentChannel {
-    /// Create from a full Channel struct, extracting only necessary fields
     pub fn from_channel(c: &crate::db::models::Channel) -> Self {
         Self {
             id: c.id,
@@ -28,13 +27,11 @@ impl CurrentChannel {
 /// Global application state shared across all Tauri commands
 #[derive(Clone)]
 pub struct AppState {
-    /// Database connection pool
     pub pool: Pool<SqliteConnectionManager>,
-
-    /// Currently playing channel (if any) - uses lightweight struct
     pub current_channel: Arc<RwLock<Option<CurrentChannel>>>,
 
-    /// MPV player instance
+    /// MPV player — desktop only (iOS plays via HTML5 <video> in WebView)
+    #[cfg(not(target_os = "ios"))]
     pub mpv_player: Arc<Mutex<crate::playback::mpv::MpvPlayer>>,
 }
 
@@ -43,6 +40,7 @@ impl AppState {
         Self {
             pool,
             current_channel: Arc::new(RwLock::new(None)),
+            #[cfg(not(target_os = "ios"))]
             mpv_player: Arc::new(Mutex::new(crate::playback::mpv::MpvPlayer::new())),
         }
     }

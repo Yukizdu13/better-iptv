@@ -128,7 +128,9 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // MPV commands
+            // Platform detection
+            get_platform,
+            // MPV commands (stubs on iOS, real on desktop)
             check_mpv_installed,
             play_channel,
             stop_playback,

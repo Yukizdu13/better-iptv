@@ -1,0 +1,98 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust (stable + iOS target)
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          targets: aarch64-apple-ios
+          cache: true
+
+      - name: Cache Cargo (iOS)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: macos-cargo-ios-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: macos-cargo-ios-
+
+      - name: Install CocoaPods
+        run: sudo gem install cocoapods --no-document
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Tauri iOS init
+        run: npm run tauri ios init
+
+      - name: Patch Info.plist (autoriser flux HTTP IPTV)
+        run: bash scripts/ios-setup-macos.sh
+
+      - name: Build app bundle (sans signature)
+        run: |
+          set -e
+          PROJECT=$(find src-tauri/gen/apple -name "*.xcodeproj" | head -1)
+          echo "Project: $PROJECT"
+
+          # Détecter le nom du scheme iOS
+          SCHEME=$(xcodebuild -list -project "$PROJECT" 2>/dev/null \
+            | awk '/Schemes:/,0' | grep -v "Schemes:" | grep "_iOS" | head -1 | xargs)
+          # Fallback si pas de suffixe _iOS
+          if [ -z "$SCHEME" ]; then
+            SCHEME=$(xcodebuild -list -project "$PROJECT" 2>/dev/null \
+              | awk '/Schemes:/,0' | grep -v "Schemes:" | head -1 | xargs)
+          fi
+          echo "Scheme: $SCHEME"
+
+          xcodebuild build \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            -derivedDataPath "$GITHUB_WORKSPACE/DerivedData"
+
+      - name: Packager en .ipa
+        run: |
+          set -e
+          APP=$(find DerivedData -name "*.app" ! -path "*/Symbols/*" | head -1)
+          echo "App bundle: $APP"
+          mkdir -p Payload
+          cp -r "$APP" Payload/
+          zip -qr BetterIPTV-unsigned.ipa Payload/
+          rm -rf Payload/
+          echo "IPA size: $(du -sh BetterIPTV-unsigned.ipa | cut -f1)"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: BetterIPTV-iOS-${{ github.sha }}
+          path: BetterIPTV-unsigned.ipa
+          retention-days: 30

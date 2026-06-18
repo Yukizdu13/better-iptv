@@ -3,10 +3,10 @@
 # Ajoute NSAppTransportSecurity dans Info.plist pour autoriser les flux HTTP (IPTV)
 set -e
 
-PLIST="src-tauri/gen/apple/better-ip-tv/Info.plist"
+PLIST=$(find src-tauri/gen/apple -name "Info.plist" ! -path "*/Pods/*" ! -path "*/build/*" | head -1)
 
-if [ ! -f "$PLIST" ]; then
-  echo "Erreur : $PLIST introuvable. Lance d'abord : npm run tauri ios init"
+if [ -z "$PLIST" ] || [ ! -f "$PLIST" ]; then
+  echo "Erreur : Info.plist introuvable dans src-tauri/gen/apple/. Lance d'abord : npm run tauri ios init"
   exit 1
 fi
 

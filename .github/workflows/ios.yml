@@ -27,7 +27,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-          targets: aarch64-apple-ios
+          target: aarch64-apple-ios
           cache: true
 
       - name: Cache Cargo (iOS)
@@ -47,6 +47,8 @@ jobs:
         run: npm ci
 
       - name: Tauri iOS init
+        env:
+          APPLE_DEVELOPMENT_TEAM: PLACEHOLDER
         run: npm run tauri ios init
 
       - name: Patch Info.plist (autoriser flux HTTP IPTV)

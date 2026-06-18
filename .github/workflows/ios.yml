@@ -54,6 +54,9 @@ jobs:
       - name: Patch Info.plist (autoriser flux HTTP IPTV)
         run: bash scripts/ios-setup-macos.sh
 
+      - name: Create Tauri server addr placeholder
+        run: echo "http://127.0.0.1:1420" > "${TMPDIR}com.m0s.better-ip-tv-server-addr"
+
       - name: Build app bundle (sans signature)
         run: |
           set -e

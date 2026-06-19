@@ -54,6 +54,24 @@ jobs:
       - name: Patch Info.plist (autoriser flux HTTP IPTV)
         run: bash scripts/ios-setup-macos.sh
 
+      - name: Désactiver signature Xcode dans project.pbxproj
+        run: |
+          python3 - << 'PYEOF'
+          import subprocess, re, sys
+          r = subprocess.run(['find', 'src-tauri/gen/apple', '-name', 'project.pbxproj'],
+                             capture_output=True, text=True)
+          pbx = r.stdout.strip()
+          if not pbx:
+              print("project.pbxproj non trouvé"); sys.exit(1)
+          with open(pbx) as f: c = f.read()
+          c = re.sub(r'DEVELOPMENT_TEAM = \w+;', 'DEVELOPMENT_TEAM = "";', c)
+          c = re.sub(r'CODE_SIGN_IDENTITY = "[^"]*";', 'CODE_SIGN_IDENTITY = "";', c)
+          c = c.replace('buildSettings = {',
+              'buildSettings = {\n\t\t\t\tCODE_SIGNING_REQUIRED = NO;\n\t\t\t\tCODE_SIGNING_ALLOWED = NO;')
+          with open(pbx, 'w') as f: f.write(c)
+          print(f"Patché: {pbx}")
+          PYEOF
+
       - name: Build iOS (tauri ios build)
         env:
           APPLE_DEVELOPMENT_TEAM: PLACEHOLDER

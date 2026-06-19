@@ -47,8 +47,6 @@ jobs:
         run: npm ci
 
       - name: Tauri iOS init
-        env:
-          APPLE_DEVELOPMENT_TEAM: PLACEHOLDER
         run: npm run tauri ios init
 
       - name: Patch Info.plist (autoriser flux HTTP IPTV)
@@ -73,8 +71,6 @@ jobs:
           PYEOF
 
       - name: Build iOS (tauri ios build)
-        env:
-          APPLE_DEVELOPMENT_TEAM: PLACEHOLDER
         run: npm run tauri ios build -- --target aarch64 2>&1 || true
 
       - name: Packager en .ipa

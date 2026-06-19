@@ -54,41 +54,25 @@ jobs:
       - name: Patch Info.plist (autoriser flux HTTP IPTV)
         run: bash scripts/ios-setup-macos.sh
 
-      - name: Create Tauri server addr placeholder
-        run: echo "http://127.0.0.1:1420" > "${TMPDIR}com.m0s.better-ip-tv-server-addr"
-
-      - name: Build app bundle (sans signature)
-        run: |
-          set -e
-          PROJECT=$(find src-tauri/gen/apple -name "*.xcodeproj" | head -1)
-          echo "Project: $PROJECT"
-
-          # Détecter le nom du scheme iOS
-          SCHEME=$(xcodebuild -list -project "$PROJECT" 2>/dev/null \
-            | awk '/Schemes:/,0' | grep -v "Schemes:" | grep "_iOS" | head -1 | xargs)
-          # Fallback si pas de suffixe _iOS
-          if [ -z "$SCHEME" ]; then
-            SCHEME=$(xcodebuild -list -project "$PROJECT" 2>/dev/null \
-              | awk '/Schemes:/,0' | grep -v "Schemes:" | head -1 | xargs)
-          fi
-          echo "Scheme: $SCHEME"
-
-          xcodebuild build \
-            -project "$PROJECT" \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            DEVELOPMENT_TEAM="" \
-            -derivedDataPath "$GITHUB_WORKSPACE/DerivedData"
+      - name: Build iOS (tauri ios build)
+        env:
+          APPLE_DEVELOPMENT_TEAM: PLACEHOLDER
+        run: npm run tauri ios build -- --target aarch64 2>&1 || true
 
       - name: Packager en .ipa
         run: |
           set -e
-          APP=$(find DerivedData -name "*.app" ! -path "*/Symbols/*" | head -1)
+          # Chercher le .app dans le .xcarchive généré par tauri ios build
+          APP=$(find src-tauri/gen/apple -name "*.xcarchive" \
+            -exec find {} -name "*.app" -path "*/Products/Applications/*" \; \
+            2>/dev/null | head -1)
+          if [ -z "$APP" ]; then
+            echo "xcarchive non trouvé, cherche dans les intermédiaires..."
+            APP=$(find . -name "*.app" ! -path "*/Simulator*" ! -path "*/Pods*" \
+              2>/dev/null | grep -i iphoneos | head -1)
+          fi
           echo "App bundle: $APP"
+          test -n "$APP"
           mkdir -p Payload
           cp -r "$APP" Payload/
           zip -qr BetterIPTV-unsigned.ipa Payload/

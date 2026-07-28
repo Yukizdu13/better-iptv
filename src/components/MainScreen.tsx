@@ -9,8 +9,9 @@ import { SearchBar } from './SearchBar';
 import { ContentTypeTabs } from './ContentTypeTabs';
 import { NowPlayingBar } from './NowPlayingBar';
 import { IOSVideoPlayer } from './IOSVideoPlayer';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { Settings as SettingsIcon, SlidersHorizontal } from 'lucide-react';
 import SeriesView from './SeriesView';
+import { FilterPanel } from './FilterPanel';
 import VodView from './VodView';
 import SettingsModal from './Settings';
 import PinEntryModal from './modals/PinEntryModal';
@@ -71,6 +72,9 @@ export default function MainScreen() {
   const [selectedSeries, setSelectedSeries] = useState<Channel | null>(null);
   const [selectedVod, setSelectedVod] = useState<Channel | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const advancedFilters = usePlayerStore((s) => s.advancedFilters);
+  const setAdvancedFilters = usePlayerStore((s) => s.setAdvancedFilters);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingChannel, setPendingChannel] = useState<Channel | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -345,7 +349,48 @@ export default function MainScreen() {
       <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
 
       {/* Content Type Tabs */}
-      <ContentTypeTabs activeFilter={contentTypeFilter} onFilterChange={setContentTypeFilter} />
+      <ContentTypeTabs
+        activeFilter={contentTypeFilter}
+        onFilterChange={(f) => {
+          setContentTypeFilter(f);
+          setAdvancedFilters({ languages: [], minYear: null, maxYear: null, minRating: null });
+          setShowFilters(false);
+        }}
+      />
+
+      {/* Filter button row — visible on vod/series tabs only */}
+      {(contentTypeFilter === 'vod' || contentTypeFilter === 'series') && (() => {
+        const activeCount = [
+          advancedFilters.languages.length > 0,
+          advancedFilters.minYear !== null || advancedFilters.maxYear !== null,
+          advancedFilters.minRating !== null,
+        ].filter(Boolean).length;
+        return (
+          <div className="flex items-center border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-800">
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                showFilters || activeCount > 0
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Filtres
+              {activeCount > 0 && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-bold text-blue-600">
+                  {activeCount}
+                </span>
+              )}
+            </button>
+          </div>
+        );
+      })()}
+
+      {/* Advanced Filter Panel */}
+      {showFilters && (contentTypeFilter === 'vod' || contentTypeFilter === 'series') && (
+        <FilterPanel onClose={() => setShowFilters(false)} />
+      )}
 
       {/* Category Bar - horizontal scrollable chips */}
       <CategoryBar />

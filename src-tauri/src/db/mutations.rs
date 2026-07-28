@@ -40,8 +40,8 @@ pub fn rename_playlist(conn: &Connection, playlist_id: i64, new_name: &str) -> R
 #[cfg(test)]
 pub fn create_channel(conn: &Connection, channel: &Channel) -> Result<i64> {
     conn.execute(
-        "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order, category_order)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order, category_order, rating)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             channel.playlist_id,
             channel.name,
@@ -52,7 +52,8 @@ pub fn create_channel(conn: &Connection, channel: &Channel) -> Result<i64> {
             channel.tvg_name,
             channel.content_type,
             channel.sort_order,
-            channel.category_order
+            channel.category_order,
+            channel.rating
         ],
     )?;
     Ok(conn.last_insert_rowid())
@@ -64,8 +65,8 @@ pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<
 
     {
         let mut stmt = tx.prepare_cached(
-            "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order, category_order)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"
+            "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, sort_order, category_order, rating)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"
         )?;
 
         for channel in channels {
@@ -79,7 +80,8 @@ pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<
                 channel.tvg_name,
                 channel.content_type,
                 channel.sort_order,
-                channel.category_order
+                channel.category_order,
+                channel.rating
             ])?;
         }
     }
@@ -210,12 +212,12 @@ pub fn merge_channels(
 
     {
         let mut update_stmt = tx.prepare_cached(
-            "UPDATE channels SET url=?1, logo=?2, group_name=?3, epg_id=?4, tvg_name=?5, sort_order=?6, category_order=?7 WHERE id=?8",
+            "UPDATE channels SET url=?1, logo=?2, group_name=?3, epg_id=?4, tvg_name=?5, sort_order=?6, category_order=?7, rating=?8 WHERE id=?9",
         )?;
 
         let mut insert_stmt = tx.prepare_cached(
-            "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, category_order)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            "INSERT INTO channels (playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, category_order, rating)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         )?;
 
         for ch in new_channels {
@@ -245,6 +247,7 @@ pub fn merge_channels(
                     ch.tvg_name,
                     ch.sort_order,
                     ch.category_order,
+                    ch.rating,
                     db_id,
                 ])?;
                 matched_ids.insert(db_id);
@@ -263,6 +266,7 @@ pub fn merge_channels(
                     false, // new channels start unfavorited
                     ch.sort_order,
                     ch.category_order,
+                    ch.rating,
                 ])?;
                 added += 1;
             }

@@ -26,7 +26,8 @@ pub struct Channel {
     pub content_type: String, // "live", "vod", "series"
     pub is_favorite: bool,
     pub sort_order: i32,
-    pub category_order: i32, // Order from provider's category list
+    pub category_order: i32,
+    pub rating: Option<f32>,
     pub created_at: Option<String>,
 }
 

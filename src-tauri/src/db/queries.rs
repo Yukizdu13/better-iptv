@@ -6,7 +6,7 @@ use super::models::*;
 
 /// SQL columns for channel SELECT queries (in order)
 const CHANNEL_SELECT_COLUMNS: &str =
-    "id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, category_order, created_at";
+    "id, playlist_id, name, url, logo, group_name, epg_id, tvg_name, content_type, is_favorite, sort_order, category_order, rating, created_at";
 
 /// Maps a database row to a Channel struct
 fn map_channel_row(row: &Row) -> rusqlite::Result<Channel> {
@@ -23,7 +23,8 @@ fn map_channel_row(row: &Row) -> rusqlite::Result<Channel> {
         is_favorite: row.get(9)?,
         sort_order: row.get(10)?,
         category_order: row.get(11)?,
-        created_at: row.get(12)?,
+        rating: row.get(12)?,
+        created_at: row.get(13)?,
     })
 }
 

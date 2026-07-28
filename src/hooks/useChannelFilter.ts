@@ -3,6 +3,20 @@ import { usePlayerStore } from '../stores/player-store';
 import { shouldBlockChannel } from '../lib/parentalControls';
 import type { Channel } from '../types';
 
+/** Extrait le code langue du préfixe `|FR|` / `|EN|` etc. dans le nom. */
+export function extractLanguage(name: string): string | null {
+  const m = name.match(/^\|([A-Z]{2,3})\|/);
+  return m ? m[1] : null;
+}
+
+/** Extrait l'année entre parenthèses à la fin du nom : `Titre (2013)` → 2013. */
+export function extractYear(name: string): number | null {
+  const m = name.match(/\((\d{4})\)\s*(?:\|\w+\|)?$/);
+  if (!m) return null;
+  const y = parseInt(m[1]);
+  return y >= 1900 && y <= 2100 ? y : null;
+}
+
 /**
  * Consolidated channel filtering hook.
  *
@@ -24,6 +38,7 @@ export function useChannelFilter(debouncedSearchQuery: string): Channel[] {
   const contentTypeFilter = usePlayerStore((s) => s.contentTypeFilter);
   const categoryFilter = usePlayerStore((s) => s.categoryFilter);
   const setFilteredChannels = usePlayerStore((s) => s.setFilteredChannels);
+  const advancedFilters = usePlayerStore((s) => s.advancedFilters);
   const parentalEnabled = usePlayerStore((s) => s.parentalEnabled);
   const parentalUnlocked = usePlayerStore((s) => s.parentalUnlocked);
   const blockedChannelIds = usePlayerStore((s) => s.blockedChannelIds);
@@ -78,6 +93,33 @@ export function useChannelFilter(debouncedSearchQuery: string): Channel[] {
       );
     }
 
+    // Advanced filters (vod/series only — ignored for live/favorites)
+    const { languages, minYear, maxYear, minRating } = advancedFilters;
+    const isVodOrSeries = contentTypeFilter === 'vod' || contentTypeFilter === 'series';
+    if (isVodOrSeries) {
+      if (languages.length > 0) {
+        result = result.filter((c) => {
+          const lang = extractLanguage(c.name);
+          return lang !== null && languages.includes(lang);
+        });
+      }
+      if (minYear !== null) {
+        result = result.filter((c) => {
+          const y = extractYear(c.name);
+          return y !== null && y >= minYear;
+        });
+      }
+      if (maxYear !== null) {
+        result = result.filter((c) => {
+          const y = extractYear(c.name);
+          return y !== null && y <= maxYear;
+        });
+      }
+      if (minRating !== null) {
+        result = result.filter((c) => c.rating != null && c.rating >= minRating);
+      }
+    }
+
     setFilteredChannels(result);
   }, [
     baseList,
@@ -90,6 +132,8 @@ export function useChannelFilter(debouncedSearchQuery: string): Channel[] {
     blockedCategories,
     parentalVisibility,
     setFilteredChannels,
+    advancedFilters,
+    contentTypeFilter,
   ]);
 
   return filteredChannels;

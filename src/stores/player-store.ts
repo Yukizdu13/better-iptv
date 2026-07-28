@@ -39,6 +39,20 @@ interface PlayerState {
   setCategoryFilter: (category: string | null) => void;
   setCategories: (categories: string[]) => void;
 
+  // Advanced Filters (vod/series only)
+  advancedFilters: {
+    languages: string[];
+    minYear: number | null;
+    maxYear: number | null;
+    minRating: number | null;
+  };
+  setAdvancedFilters: (filters: {
+    languages: string[];
+    minYear: number | null;
+    maxYear: number | null;
+    minRating: number | null;
+  }) => void;
+
   // Playback
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
@@ -169,6 +183,10 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   categories: [],
   setCategoryFilter: (category) => set({ categoryFilter: category }),
   setCategories: (categories) => set({ categories }),
+
+  // Advanced Filters
+  advancedFilters: { languages: [], minYear: null, maxYear: null, minRating: null },
+  setAdvancedFilters: (filters) => set({ advancedFilters: filters }),
 
   // Playback
   isPlaying: false,

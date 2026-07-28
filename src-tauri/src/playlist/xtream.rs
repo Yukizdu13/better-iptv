@@ -98,7 +98,7 @@ pub struct SeriesMetadata {
 
 #[derive(Debug, Deserialize)]
 struct XtreamStream {
-    #[allow(dead_code)] // May be used in future for stream ordering
+    #[allow(dead_code)]
     num: Option<i64>,
     name: String,
     #[serde(alias = "series_id")]
@@ -108,6 +108,44 @@ struct XtreamStream {
     category_id: Option<String>,
     #[serde(rename = "type")]
     stream_type: Option<String>,
+    /// Rating from provider (string "8" or integer 8 depending on server)
+    #[serde(default, deserialize_with = "de_rating_opt")]
+    rating: Option<f32>,
+}
+
+/// Accepte null / absent / string / number pour le champ rating.
+fn de_rating_opt<'de, D>(deserializer: D) -> Result<Option<f32>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    struct RatingVisitor;
+    impl<'de> Visitor<'de> for RatingVisitor {
+        type Value = Option<f32>;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("null, string or number")
+        }
+        fn visit_unit<E: de::Error>(self) -> Result<Option<f32>, E> { Ok(None) }
+        fn visit_none<E: de::Error>(self) -> Result<Option<f32>, E> { Ok(None) }
+        fn visit_some<D2: de::Deserializer<'de>>(self, d: D2) -> Result<Option<f32>, D2::Error> {
+            self.visit_str(&String::deserialize(d)?)
+        }
+        fn visit_str<E: de::Error>(self, v: &str) -> Result<Option<f32>, E> {
+            let v = v.trim();
+            if v.is_empty() { return Ok(None); }
+            v.parse::<f32>().map(Some).or(Ok(None))
+        }
+        fn visit_f64<E: de::Error>(self, v: f64) -> Result<Option<f32>, E> {
+            Ok(Some(v as f32))
+        }
+        fn visit_i64<E: de::Error>(self, v: i64) -> Result<Option<f32>, E> {
+            Ok(Some(v as f32))
+        }
+        fn visit_u64<E: de::Error>(self, v: u64) -> Result<Option<f32>, E> {
+            Ok(Some(v as f32))
+        }
+    }
+    deserializer.deserialize_any(RatingVisitor)
 }
 
 #[derive(Debug, Deserialize)]
@@ -368,7 +406,7 @@ fn convert_streams_to_channels(
 
             Channel {
                 id: None,
-                playlist_id: 0, // Will be set when inserting to database
+                playlist_id: 0,
                 name: stream.name,
                 url,
                 logo: stream.stream_icon,
@@ -379,6 +417,7 @@ fn convert_streams_to_channels(
                 is_favorite: false,
                 sort_order: idx as i32,
                 category_order,
+                rating: stream.rating,
                 created_at: None,
             }
         })

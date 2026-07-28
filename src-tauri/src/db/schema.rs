@@ -45,6 +45,12 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
         [],
     );
 
+    // Migration: Add rating column for VOD/series filtering
+    let _ = conn.execute(
+        "ALTER TABLE channels ADD COLUMN rating REAL",
+        [],
+    );
+
     // EPG Programs table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS epg_programs (

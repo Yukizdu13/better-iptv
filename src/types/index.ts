@@ -28,6 +28,7 @@ export interface ChannelInput {
   content_type: 'live' | 'vod' | 'series';
   is_favorite: boolean;
   sort_order: number;
+  rating?: number;
 }
 
 /**

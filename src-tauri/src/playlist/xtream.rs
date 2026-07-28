@@ -3,9 +3,38 @@ use crate::http::get_http_client;
 use anyhow::{Context, Result};
 use backoff::{ExponentialBackoff, future::retry};
 use log::warn;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
+
+/// Accepte un entier JSON ou une chaîne JSON et retourne une String.
+/// Nécessaire car l'API Xtream Codes retourne parfois season_number comme entier.
+fn de_string_or_int<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    struct StrOrInt;
+    impl<'de> Visitor<'de> for StrOrInt {
+        type Value = String;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("string or integer")
+        }
+        fn visit_str<E: de::Error>(self, v: &str) -> Result<String, E> {
+            Ok(v.to_owned())
+        }
+        fn visit_string<E: de::Error>(self, v: String) -> Result<String, E> {
+            Ok(v)
+        }
+        fn visit_i64<E: de::Error>(self, v: i64) -> Result<String, E> {
+            Ok(v.to_string())
+        }
+        fn visit_u64<E: de::Error>(self, v: u64) -> Result<String, E> {
+            Ok(v.to_string())
+        }
+    }
+    deserializer.deserialize_any(StrOrInt)
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct XtreamCredentials {
@@ -25,6 +54,7 @@ pub struct SeriesInfo {
 pub struct Season {
     pub id: String,
     pub name: String,
+    #[serde(deserialize_with = "de_string_or_int")]
     pub season_number: String,
     pub episode_count: i32,
     pub air_date: Option<String>,

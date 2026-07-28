@@ -28,6 +28,12 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
     return [...seen].sort();
   }, [baseChannels]);
 
+  // Vérifie si des ratings sont disponibles (nécessite un refresh après migration)
+  const ratingsAvailable = useMemo(
+    () => baseChannels.some((c) => c.rating != null),
+    [baseChannels]
+  );
+
   // Plage d'années disponibles
   const yearRange = useMemo(() => {
     let min = Infinity;
@@ -148,26 +154,32 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               Note min
             </span>
-            <div className="flex flex-wrap gap-1.5">
-              {RATING_OPTIONS.map((r) => (
-                <button
-                  key={r}
-                  onClick={() =>
-                    setAdvancedFilters({
-                      ...advancedFilters,
-                      minRating: minRating === r ? null : r,
-                    })
-                  }
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    minRating === r
-                      ? 'bg-yellow-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  ★ {r}+
-                </button>
-              ))}
-            </div>
+            {ratingsAvailable ? (
+              <div className="flex flex-wrap gap-1.5">
+                {RATING_OPTIONS.map((r) => (
+                  <button
+                    key={r}
+                    onClick={() =>
+                      setAdvancedFilters({
+                        ...advancedFilters,
+                        minRating: minRating === r ? null : r,
+                      })
+                    }
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      minRating === r
+                        ? 'bg-yellow-500 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    ★ {r}+
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Faites un <strong>Refresh</strong> de la playlist pour activer ce filtre.
+              </p>
+            )}
           </div>
         </div>
       </div>

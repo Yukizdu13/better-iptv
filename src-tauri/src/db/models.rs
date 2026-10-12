@@ -31,6 +31,31 @@ pub struct Channel {
     pub created_at: Option<String>,
 }
 
+/// Last episode watched for a given series (keyed by the series' channel id)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LastEpisode {
+    pub channel_id: i64,
+    pub season: String,
+    pub episode_id: String,
+    pub episode_num: i32,
+    pub title: String,
+    /// Last known playback position (None = only the episode is known, not the position)
+    pub position_seconds: Option<f64>,
+    pub duration_seconds: Option<f64>,
+    pub updated_at: Option<String>,
+}
+
+/// A saved selection of series for cross-series random play
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RandomPlayPreset {
+    pub id: Option<i64>,
+    pub playlist_id: i64,
+    pub name: String,
+    pub series_channel_ids: Vec<i64>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+}
+
 /// Result of a merge-based playlist refresh
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MergeResult {

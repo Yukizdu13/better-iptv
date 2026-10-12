@@ -351,6 +351,7 @@ mod tests {
                 is_favorite: false,
                 sort_order: 0,
                 category_order: 0,
+                rating: None,
                 created_at: None,
             },
             Channel {
@@ -366,6 +367,7 @@ mod tests {
                 is_favorite: false,
                 sort_order: 0,
                 category_order: 0,
+                rating: None,
                 created_at: None,
             },
         ];
@@ -392,6 +394,7 @@ mod tests {
                 is_favorite: false,
                 sort_order: i,
                 category_order: 0,
+                rating: None,
                 created_at: None,
             })
             .collect();

@@ -43,6 +43,7 @@ pub fn create_test_channel(conn: &Connection, playlist_id: i64, name: &str) -> i
         is_favorite: false,
         sort_order: 0,
         category_order: 0,
+        rating: None,
         created_at: None,
     };
     mutations::create_channel(conn, &channel).unwrap()

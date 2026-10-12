@@ -10,7 +10,7 @@ interface IOSVideoPlayerProps {
 }
 
 export function IOSVideoPlayer({ channel, streamUrls, currentProgram, onClose }: IOSVideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<globalThis.HTMLVideoElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const urls = streamUrls.length > 0 ? streamUrls : [channel.url];
 
@@ -24,6 +24,12 @@ export function IOSVideoPlayer({ channel, streamUrls, currentProgram, onClose }:
 
   const goTo = (index: number) => {
     if (index >= 0 && index < urls.length) setCurrentIndex(index);
+  };
+
+  const seek = (deltaSeconds: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = Math.max(0, video.currentTime + deltaSeconds);
   };
 
   return (
@@ -74,14 +80,21 @@ export function IOSVideoPlayer({ channel, streamUrls, currentProgram, onClose }:
       </div>
 
       {/* Video */}
-      <video
-        ref={videoRef}
-        className="w-full flex-1"
-        controls
-        playsInline
-        autoPlay
-        onEnded={() => goTo(currentIndex + 1)}
-      />
+      <div className="relative flex-1">
+        <video
+          ref={videoRef}
+          className="h-full w-full"
+          controls
+          playsInline
+          autoPlay
+          onEnded={() => goTo(currentIndex + 1)}
+        />
+        {/* Double-tap zones for +/-10s seek — leave the bottom native control bar untouched */}
+        <div className="absolute inset-x-0 top-0 flex" style={{ bottom: '60px' }}>
+          <div className="flex-1" onDoubleClick={() => seek(-10)} />
+          <div className="flex-1" onDoubleClick={() => seek(10)} />
+        </div>
+      </div>
     </div>
   );
 }

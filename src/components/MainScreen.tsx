@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { usePlayerStore } from '../stores/player-store';
-import { getChannelGroups, getStalePlaylistIds, getChannels } from '../lib/tauri';
+import { usePlayerStore, EMPTY_ADVANCED_FILTERS } from '../stores/player-store';
+import { getChannelGroups, getStalePlaylistIds, getChannels, getFavorites, getSetting } from '../lib/tauri';
 import { isIOS } from '../lib/platform';
 import { CategoryBar } from './CategoryBar';
 import { ChannelCard } from './ChannelCard';
@@ -9,7 +9,7 @@ import { SearchBar } from './SearchBar';
 import { ContentTypeTabs } from './ContentTypeTabs';
 import { NowPlayingBar } from './NowPlayingBar';
 import { IOSVideoPlayer } from './IOSVideoPlayer';
-import { Settings as SettingsIcon, SlidersHorizontal } from 'lucide-react';
+import { Settings as SettingsIcon, SlidersHorizontal, Shuffle } from 'lucide-react';
 import SeriesView from './SeriesView';
 import { FilterPanel } from './FilterPanel';
 import VodView from './VodView';
@@ -17,11 +17,14 @@ import SettingsModal from './Settings';
 import PinEntryModal from './modals/PinEntryModal';
 import ConfirmationModal from './modals/ConfirmationModal';
 import RefreshModal from './modals/RefreshModal';
-import type { Channel } from '../types';
+import RandomPlayModal from './modals/RandomPlayModal';
+import type { AdvancedFilters, Channel, QueuedEpisode } from '../types';
 import { logger } from '../lib/logger';
 import { useResponsiveGrid, getGridClasses } from '../hooks/useResponsiveGrid';
 import { useEpgData } from '../hooks/useEpgData';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useSeriesProgress } from '../hooks/useSeriesProgress';
+import { DEFAULT_FILTERS_SETTING } from './FilterPanel';
 import { useChannelPlayback } from '../hooks/useChannelPlayback';
 import { shouldBlockChannel } from '../lib/parentalControls';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -34,6 +37,7 @@ export default function MainScreen() {
   // Search & filters
   const searchQuery = usePlayerStore((s) => s.searchQuery);
   const contentTypeFilter = usePlayerStore((s) => s.contentTypeFilter);
+  const categoryFilter = usePlayerStore((s) => s.categoryFilter);
   const setSearchQuery = usePlayerStore((s) => s.setSearchQuery);
   const setContentTypeFilter = usePlayerStore((s) => s.setContentTypeFilter);
   const setCategories = usePlayerStore((s) => s.setCategories);
@@ -54,8 +58,13 @@ export default function MainScreen() {
     playEpisode: playEpisodeAction,
   } = useChannelPlayback();
   const currentPlaylist = usePlayerStore((s) => s.currentPlaylist);
+  const playlists = usePlayerStore((s) => s.playlists);
   const setChannels = usePlayerStore((s) => s.setChannels);
   const toggleChannelFavorite = usePlayerStore((s) => s.toggleChannelFavorite);
+  const otherProfileFavorites = usePlayerStore((s) => s.otherProfileFavorites);
+  const setOtherProfileFavorites = usePlayerStore((s) => s.setOtherProfileFavorites);
+  const seriesChannels = usePlayerStore((s) => s.seriesChannels);
+  const [showRandomPlayModal, setShowRandomPlayModal] = useState(false);
 
   // Parental
   const parentalEnabled = usePlayerStore((s) => s.parentalEnabled);
@@ -75,6 +84,8 @@ export default function MainScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const advancedFilters = usePlayerStore((s) => s.advancedFilters);
   const setAdvancedFilters = usePlayerStore((s) => s.setAdvancedFilters);
+  const defaultAdvancedFilters = usePlayerStore((s) => s.defaultAdvancedFilters);
+  const setDefaultAdvancedFilters = usePlayerStore((s) => s.setDefaultAdvancedFilters);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingChannel, setPendingChannel] = useState<Channel | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -86,6 +97,9 @@ export default function MainScreen() {
   // Global keyboard shortcuts (Space=play/stop, /=focus search, Escape=stop)
   useKeyboardShortcuts(searchInputRef);
 
+  // Series progress tracking + auto-next before the end credits (desktop/MPV)
+  const { autoNextIn, cancelAutoNext } = useSeriesProgress();
+
   // Responsive grid configuration
   const { columns, cardHeight, estimatedRowHeight } = useResponsiveGrid();
 
@@ -93,6 +107,18 @@ export default function MainScreen() {
   useEffect(() => {
     loadParentalSettings();
   }, [loadParentalSettings]);
+
+  // Load the default advanced filters (VOD/series) and apply them at startup
+  useEffect(() => {
+    getSetting(DEFAULT_FILTERS_SETTING)
+      .then((raw) => {
+        if (!raw) return;
+        const defaults: AdvancedFilters = { ...EMPTY_ADVANCED_FILTERS, ...JSON.parse(raw) };
+        setDefaultAdvancedFilters(defaults);
+        setAdvancedFilters(defaults);
+      })
+      .catch((err) => logger.error('Failed to load default filters:', err));
+  }, [setDefaultAdvancedFilters, setAdvancedFilters]);
 
   // Check for stale playlists on mount
   useEffect(() => {
@@ -128,6 +154,24 @@ export default function MainScreen() {
         setCategories([]);
       });
   }, [currentPlaylist?.id, contentTypeFilter, setCategories]);
+
+  // On the Favorites tab, also fetch favorites from OTHER profiles for read-only display
+  useEffect(() => {
+    if (contentTypeFilter !== 'favorites') {
+      setOtherProfileFavorites([]);
+      return;
+    }
+
+    getFavorites()
+      .then((allFavorites) => {
+        const others = allFavorites.filter((c) => c.playlist_id !== currentPlaylist?.id);
+        setOtherProfileFavorites(others);
+      })
+      .catch((err) => {
+        logger.error('Failed to fetch cross-profile favorites:', err);
+        setOtherProfileFavorites([]);
+      });
+  }, [contentTypeFilter, currentPlaylist?.id, setOtherProfileFavorites]);
 
   // Pre-compute parental blocking results (avoids per-card shouldBlockChannel calls)
   const blockedMap = useMemo(() => {
@@ -167,6 +211,12 @@ export default function MainScreen() {
     estimateSize: () => estimatedRowHeight,
     overscan: 3, // Render 3 extra rows above/below viewport
   });
+
+  // Reset scroll position when switching tab/category, otherwise the previous
+  // scrollTop can land past the new (shorter) list and it appears empty.
+  useEffect(() => {
+    rowVirtualizer.scrollToOffset(0);
+  }, [contentTypeFilter, categoryFilter, rowVirtualizer]);
 
   const handlePlayChannel = useCallback(
     async (channel: Channel) => {
@@ -215,11 +265,19 @@ export default function MainScreen() {
       episodeId: string,
       extension: string,
       title: string,
-      remainingEpisodes?: Array<{ id: string; title: string; extension: string }>
+      remainingEpisodes?: QueuedEpisode[],
+      startSeconds?: number
     ) => {
       if (!currentPlaylist) return;
       try {
-        await playEpisodeAction(episodeId, extension, title, currentPlaylist, remainingEpisodes);
+        await playEpisodeAction(
+          episodeId,
+          extension,
+          title,
+          currentPlaylist,
+          remainingEpisodes,
+          startSeconds
+        );
       } catch (err) {
         logger.error('Failed to play episode:', err);
       }
@@ -243,6 +301,19 @@ export default function MainScreen() {
   const handleStop = useCallback(async () => {
     await stopPlaybackAction();
   }, [stopPlaybackAction]);
+
+  // Now Playing bar (desktop only — iOS uses fullscreen IOSVideoPlayer)
+  const nowPlayingBar =
+    currentChannel && !isIOS() ? (
+      <NowPlayingBar
+        channel={currentChannel}
+        currentProgram={currentProgram}
+        nextProgram={nextProgram}
+        onStop={handleStop}
+        autoNextIn={autoNextIn}
+        onCancelAutoNext={cancelAutoNext}
+      />
+    ) : null;
 
   // If a VOD is selected, show the VodView
   if (
@@ -311,6 +382,8 @@ export default function MainScreen() {
     }
 
     return (
+      <div className="flex h-screen flex-col">
+        <div className="min-h-0 flex-1">
       <SeriesView
         seriesId={seriesId}
         seriesName={selectedSeries.name}
@@ -321,6 +394,9 @@ export default function MainScreen() {
         onBack={() => setSelectedSeries(null)}
         onPlayEpisode={handlePlayEpisode}
       />
+        </div>
+        {nowPlayingBar}
+      </div>
     );
   }
 
@@ -353,7 +429,7 @@ export default function MainScreen() {
         activeFilter={contentTypeFilter}
         onFilterChange={(f) => {
           setContentTypeFilter(f);
-          setAdvancedFilters({ languages: [], minYear: null, maxYear: null, minRating: null });
+          setAdvancedFilters(defaultAdvancedFilters);
           setShowFilters(false);
         }}
       />
@@ -383,6 +459,15 @@ export default function MainScreen() {
                 </span>
               )}
             </button>
+            {contentTypeFilter === 'series' && seriesChannels.length > 0 && (
+              <button
+                onClick={() => setShowRandomPlayModal(true)}
+                className="ml-2 flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              >
+                <Shuffle className="h-4 w-4" />
+                Play aléatoire multi-séries
+              </button>
+            )}
           </div>
         );
       })()}
@@ -459,17 +544,33 @@ export default function MainScreen() {
             </div>
           )}
         </div>
+
+        {/* Favorites from other profiles — read-only, visually distinct */}
+        {contentTypeFilter === 'favorites' && otherProfileFavorites.length > 0 && (
+          <div className="mx-auto border-t border-gray-200 p-4 dark:border-gray-700">
+            <h2 className="mb-3 text-sm font-semibold text-gray-500 dark:text-gray-400">
+              Favoris des autres profils (lecture seule)
+            </h2>
+            <div className={`grid ${getGridClasses(columns)} gap-4`}>
+              {otherProfileFavorites.map((channel) => (
+                <ChannelCard
+                  key={`other-${channel.id}`}
+                  channel={channel}
+                  isPlaying={false}
+                  onPlay={() => {}}
+                  cardHeight={cardHeight}
+                  readOnly
+                  readOnlyLabel={
+                    playlists.find((p) => p.id === channel.playlist_id)?.name ?? 'Autre profil'
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Now Playing Bar (desktop only — iOS uses fullscreen IOSVideoPlayer) */}
-      {currentChannel && !isIOS() && (
-        <NowPlayingBar
-          channel={currentChannel}
-          currentProgram={currentProgram}
-          nextProgram={nextProgram}
-          onStop={handleStop}
-        />
-      )}
+      {nowPlayingBar}
 
       {/* iOS fullscreen video player */}
       {isIOS() && isPlaying && currentChannel && (
@@ -495,6 +596,24 @@ export default function MainScreen() {
         mode="verify"
         title="Enter PIN to access this channel"
       />
+
+      {/* Random play across multiple series */}
+      {showRandomPlayModal &&
+        currentPlaylist?.id != null &&
+        currentPlaylist.url &&
+        currentPlaylist.xtream_username &&
+        currentPlaylist.xtream_password && (
+          <RandomPlayModal
+            isOpen={showRandomPlayModal}
+            onClose={() => setShowRandomPlayModal(false)}
+            seriesChannels={seriesChannels}
+            playlistId={currentPlaylist.id}
+            serverUrl={currentPlaylist.url}
+            username={currentPlaylist.xtream_username}
+            password={currentPlaylist.xtream_password}
+            onPlay={handlePlayEpisode}
+          />
+        )}
 
       {/* Stale playlist prompt */}
       <ConfirmationModal

@@ -1,5 +1,13 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Channel, Playlist, SeriesInfo, MergeResult } from '../types';
+import type {
+  Channel,
+  Playlist,
+  SeriesInfo,
+  MergeResult,
+  LastEpisode,
+  RandomPlayPreset,
+  PlaybackStatus,
+} from '../types';
 
 // ========== MPV Commands ==========
 
@@ -13,6 +21,26 @@ export async function playChannel(channel: Channel): Promise<void> {
 
 export async function stopPlayback(): Promise<void> {
   await invoke('stop_playback');
+}
+
+export async function mpvSeek(seconds: number): Promise<void> {
+  return await invoke('mpv_seek', { seconds });
+}
+
+export async function mpvShowText(text: string, durationMs: number): Promise<void> {
+  return await invoke('mpv_show_text', { text, durationMs });
+}
+
+export async function mpvTogglePause(): Promise<void> {
+  return await invoke('mpv_toggle_pause');
+}
+
+export async function mpvPlaylistNext(): Promise<void> {
+  return await invoke('mpv_playlist_next');
+}
+
+export async function mpvGetPlaybackStatus(): Promise<PlaybackStatus> {
+  return await invoke('mpv_get_playback_status');
 }
 
 export async function isPlaying(): Promise<boolean> {
@@ -120,13 +148,68 @@ export async function playEpisodeWithSeason(
   serverUrl: string,
   username: string,
   password: string,
-  episodes: PlaylistEpisode[]
+  episodes: PlaylistEpisode[],
+  startSeconds?: number
 ): Promise<void> {
   return await invoke('play_episode_with_season', {
     serverUrl,
     username,
     password,
-    episodes,
+    // Only send what the backend needs (queue items may carry UI metadata)
+    episodes: episodes.map(({ id, title, extension }) => ({ id, title, extension })),
+    startSeconds: startSeconds ?? null,
+  });
+}
+
+export async function getRandomPlayPresets(playlistId: number): Promise<RandomPlayPreset[]> {
+  return await invoke('get_random_play_presets', { playlistId });
+}
+
+export async function createRandomPlayPreset(
+  playlistId: number,
+  name: string,
+  seriesChannelIds: number[]
+): Promise<number> {
+  return await invoke('create_random_play_preset', {
+    playlistId,
+    name,
+    seriesChannelIds,
+  });
+}
+
+export async function updateRandomPlayPreset(
+  id: number,
+  name: string,
+  seriesChannelIds: number[]
+): Promise<void> {
+  return await invoke('update_random_play_preset', { id, name, seriesChannelIds });
+}
+
+export async function deleteRandomPlayPreset(id: number): Promise<void> {
+  return await invoke('delete_random_play_preset', { id });
+}
+
+export async function getLastEpisode(channelId: number): Promise<LastEpisode | null> {
+  return await invoke('get_last_episode', { channelId });
+}
+
+export async function setLastEpisode(
+  channelId: number,
+  season: string,
+  episodeId: string,
+  episodeNum: number,
+  title: string,
+  positionSeconds?: number | null,
+  durationSeconds?: number | null
+): Promise<void> {
+  return await invoke('set_last_episode', {
+    channelId,
+    season,
+    episodeId,
+    episodeNum,
+    title,
+    positionSeconds: positionSeconds ?? null,
+    durationSeconds: durationSeconds ?? null,
   });
 }
 

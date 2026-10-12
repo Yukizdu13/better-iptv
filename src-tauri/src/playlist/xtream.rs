@@ -43,10 +43,47 @@ pub struct XtreamCredentials {
     pub password: String,
 }
 
+/// Accepte les trois formes de `episodes` renvoyées par les serveurs Xtream :
+/// - objet `{"1": [...], "2": [...]}` (cas courant) ;
+/// - liste de listes `[[...], [...]]` : PHP sérialise en liste un tableau dont les clés sont
+///   0..n consécutives (ex. série avec une saison 0) — l'index est alors le numéro de saison ;
+/// - liste plate d'épisodes `[{...}, ...]`, regroupée d'après le champ `season` ;
+/// - liste vide `[]` (série sans épisode).
+fn de_episodes<'de, D>(deserializer: D) -> Result<HashMap<String, Vec<Episode>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Episodes {
+        BySeason(HashMap<String, Vec<Episode>>),
+        Nested(Vec<Vec<Episode>>),
+        Flat(Vec<Episode>),
+    }
+
+    Ok(match Episodes::deserialize(deserializer)? {
+        Episodes::BySeason(map) => map,
+        Episodes::Nested(seasons) => seasons
+            .into_iter()
+            .enumerate()
+            .filter(|(_, eps)| !eps.is_empty())
+            .map(|(i, eps)| (i.to_string(), eps))
+            .collect(),
+        Episodes::Flat(eps) => {
+            let mut map: HashMap<String, Vec<Episode>> = HashMap::new();
+            for ep in eps {
+                map.entry(ep.season.to_string()).or_default().push(ep);
+            }
+            map
+        }
+    })
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SeriesInfo {
     pub seasons: Vec<Season>,
     pub info: SeriesMetadata,
+    #[serde(deserialize_with = "de_episodes")]
     pub episodes: HashMap<String, Vec<Episode>>,
 }
 
@@ -282,13 +319,23 @@ async fn fetch_json_with_retry<T: for<'de> Deserialize<'de>>(
                 )));
             }
 
-            response
-                .json::<T>()
-                .await
-                .map_err(|e| {
+            let bytes = response.bytes().await.map_err(|e| {
+                warn!("Failed to read {} response, retrying: {}", action, e);
+                backoff::Error::transient(anyhow::anyhow!("Read failed: {}", e))
+            })?;
+
+            serde_json::from_slice::<T>(&bytes).map_err(|e| {
+                if e.is_data() {
+                    // Valid JSON but not the shape we expect: the server will answer the same
+                    // way every time, retrying only delays the failure.
+                    warn!("Unexpected {} response format (not retried): {}", action, e);
+                    backoff::Error::permanent(anyhow::anyhow!("Unexpected format: {}", e))
+                } else {
+                    // Truncated / garbled body (e.g. overloaded server): worth another try
                     warn!("Failed to parse {} response, retrying: {}", action, e);
                     backoff::Error::transient(anyhow::anyhow!("Parse failed: {}", e))
-                })
+                }
+            })
         }
     })
     .await
@@ -541,4 +588,50 @@ pub async fn fetch_vod_info(creds: &XtreamCredentials, vod_id: i64) -> Result<Vo
     );
 
     fetch_json_with_retry(&url, "vod info", None).await
+}
+
+#[cfg(test)]
+mod series_info_tests {
+    use super::*;
+
+    fn ep(id: u32, season: i32, num: i32) -> String {
+        format!(
+            r#"{{"id":"{id}","episode_num":{num},"title":"E{num}","container_extension":"mkv","season":{season},"info":{{}}}}"#
+        )
+    }
+
+    fn series_json(episodes: &str) -> String {
+        format!(r#"{{"seasons":[],"info":{{"name":"Test"}},"episodes":{episodes}}}"#)
+    }
+
+    #[test]
+    fn episodes_as_object_keyed_by_season() {
+        let json = series_json(&format!(r#"{{"1":[{}],"2":[{},{}]}}"#, ep(1, 1, 1), ep(2, 2, 1), ep(3, 2, 2)));
+        let info: SeriesInfo = serde_json::from_str(&json).unwrap();
+        assert_eq!(info.episodes["1"].len(), 1);
+        assert_eq!(info.episodes["2"].len(), 2);
+    }
+
+    /// PHP turns an array with keys 0..n into a JSON list (series with a season 0, e.g. Big Mouth)
+    #[test]
+    fn episodes_as_list_of_lists_uses_index_as_season() {
+        let json = series_json(&format!(r#"[[{}],[{},{}]]"#, ep(1, 0, 1), ep(2, 1, 1), ep(3, 1, 2)));
+        let info: SeriesInfo = serde_json::from_str(&json).unwrap();
+        assert_eq!(info.episodes["0"].len(), 1);
+        assert_eq!(info.episodes["1"].len(), 2);
+    }
+
+    #[test]
+    fn episodes_as_flat_list_grouped_by_season_field() {
+        let json = series_json(&format!(r#"[{},{},{}]"#, ep(1, 1, 1), ep(2, 2, 1), ep(3, 1, 2)));
+        let info: SeriesInfo = serde_json::from_str(&json).unwrap();
+        assert_eq!(info.episodes["1"].len(), 2);
+        assert_eq!(info.episodes["2"].len(), 1);
+    }
+
+    #[test]
+    fn episodes_as_empty_list() {
+        let info: SeriesInfo = serde_json::from_str(&series_json("[]")).unwrap();
+        assert!(info.episodes.is_empty());
+    }
 }

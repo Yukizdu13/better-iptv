@@ -134,6 +134,53 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
         [],
     )?;
 
+    // Last watched episode per series (channel_id = the series' channel row)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS series_last_episode (
+            channel_id INTEGER PRIMARY KEY,
+            season TEXT NOT NULL,
+            episode_id TEXT NOT NULL,
+            episode_num INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            position_seconds REAL,
+            duration_seconds REAL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
+        )",
+        [],
+    )?;
+
+    // Migration: playback position of the last episode (exact resume)
+    let _ = conn.execute(
+        "ALTER TABLE series_last_episode ADD COLUMN position_seconds REAL",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE series_last_episode ADD COLUMN duration_seconds REAL",
+        [],
+    );
+
+    // Saved series selections for cross-series random play ("Play aléatoire multi-séries")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS random_play_presets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            playlist_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            series_channel_ids TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
+        )",
+        [],
+    )?;
+
+    // Index for preset lookups by playlist
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_random_play_presets_playlist_id
+         ON random_play_presets(playlist_id)",
+        [],
+    )?;
+
     // Settings table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS settings (

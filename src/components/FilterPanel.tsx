@@ -1,7 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { usePlayerStore } from '../stores/player-store';
+import { usePlayerStore, EMPTY_ADVANCED_FILTERS } from '../stores/player-store';
 import { extractLanguage, extractYear } from '../hooks/useChannelFilter';
+import { setSetting } from '../lib/tauri';
+import { logger } from '../lib/logger';
+
+/** Settings key holding the default advanced filters (JSON), applied at startup / tab switch */
+export const DEFAULT_FILTERS_SETTING = 'default_advanced_filters';
 
 const RATING_OPTIONS = [5, 6, 7, 7.5, 8, 8.5, 9];
 
@@ -13,6 +18,9 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
   const contentTypeFilter = usePlayerStore((s) => s.contentTypeFilter);
   const advancedFilters = usePlayerStore((s) => s.advancedFilters);
   const setAdvancedFilters = usePlayerStore((s) => s.setAdvancedFilters);
+  const defaultAdvancedFilters = usePlayerStore((s) => s.defaultAdvancedFilters);
+  const setDefaultAdvancedFilters = usePlayerStore((s) => s.setDefaultAdvancedFilters);
+  const [defaultsError, setDefaultsError] = useState('');
 
   const baseChannels = usePlayerStore((s) =>
     contentTypeFilter === 'vod' ? s.vodChannels : s.seriesChannels
@@ -58,11 +66,26 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
   }
 
   function reset() {
-    setAdvancedFilters({ languages: [], minYear: null, maxYear: null, minRating: null });
+    setAdvancedFilters({ ...EMPTY_ADVANCED_FILTERS });
   }
 
   const hasActiveFilters =
     languages.length > 0 || minYear !== null || maxYear !== null || minRating !== null;
+
+  const hasDefaults =
+    JSON.stringify(defaultAdvancedFilters) !== JSON.stringify(EMPTY_ADVANCED_FILTERS);
+  const matchesDefaults = JSON.stringify(advancedFilters) === JSON.stringify(defaultAdvancedFilters);
+
+  async function saveDefaults(filters: typeof advancedFilters) {
+    setDefaultsError('');
+    try {
+      await setSetting(DEFAULT_FILTERS_SETTING, JSON.stringify(filters));
+      setDefaultAdvancedFilters(filters);
+    } catch (err) {
+      logger.error('Failed to save default filters:', err);
+      setDefaultsError("Échec de l'enregistrement des filtres par défaut");
+    }
+  }
 
   return (
     <div className="border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
@@ -70,6 +93,27 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Filtres avancés</span>
           <div className="flex items-center gap-3">
+            {defaultsError && (
+              <span className="text-xs text-red-600 dark:text-red-400">{defaultsError}</span>
+            )}
+            {hasActiveFilters && !matchesDefaults && (
+              <button
+                onClick={() => saveDefaults(advancedFilters)}
+                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                title="Appliquer automatiquement ces filtres à l'ouverture de l'app"
+              >
+                Définir par défaut
+              </button>
+            )}
+            {hasDefaults && (
+              <button
+                onClick={() => saveDefaults({ ...EMPTY_ADVANCED_FILTERS })}
+                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                title="Ne plus appliquer de filtres automatiquement"
+              >
+                Supprimer le défaut
+              </button>
+            )}
             {hasActiveFilters && (
               <button
                 onClick={reset}

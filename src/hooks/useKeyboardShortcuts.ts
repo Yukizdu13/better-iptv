@@ -1,18 +1,22 @@
 import { useEffect, useCallback } from 'react';
 import { usePlayerStore } from '../stores/player-store';
 import { stopPlayback, playChannel } from '../lib/tauri';
+import { seekBy } from '../lib/playbackControls';
+import { isIOS } from '../lib/platform';
 import { logger } from '../lib/logger';
 
 /**
  * Global keyboard shortcuts for media control.
  *
- * | Key    | Action                        |
- * |--------|-------------------------------|
- * | Space  | Toggle play/stop              |
- * | F      | Toggle fullscreen (MPV)       |
- * | Escape | Close modals / stop playback  |
- * | /      | Focus search bar              |
- * | M      | Mute toggle (future)          |
+ * | Key         | Action                        |
+ * |-------------|-------------------------------|
+ * | Space       | Toggle play/stop              |
+ * | ArrowRight  | Seek +10s (desktop/MPV)       |
+ * | ArrowLeft   | Seek -10s (desktop/MPV)       |
+ * | F           | Toggle fullscreen (MPV)       |
+ * | Escape      | Close modals / stop playback  |
+ * | /           | Focus search bar              |
+ * | M           | Mute toggle (future)          |
  *
  * All shortcuts except Escape are suppressed when focus is inside an
  * input, textarea or select element.
@@ -82,6 +86,22 @@ export function useKeyboardShortcuts(
         case '/': {
           e.preventDefault();
           searchInputRef?.current?.focus();
+          break;
+        }
+
+        case 'ArrowRight': {
+          if (isPlaying && currentChannel && !isIOS()) {
+            e.preventDefault();
+            void seekBy(10);
+          }
+          break;
+        }
+
+        case 'ArrowLeft': {
+          if (isPlaying && currentChannel && !isIOS()) {
+            e.preventDefault();
+            void seekBy(-10);
+          }
           break;
         }
 

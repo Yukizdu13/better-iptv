@@ -99,6 +99,81 @@ pub fn toggle_favorite(conn: &Connection, channel_id: i64) -> Result<()> {
     Ok(())
 }
 
+// ========== Series Last Episode Mutations ==========
+
+/// Fields written by `set_last_episode`
+pub struct LastEpisodeUpdate<'a> {
+    pub season: &'a str,
+    pub episode_id: &'a str,
+    pub episode_num: i32,
+    pub title: &'a str,
+    pub position_seconds: Option<f64>,
+    pub duration_seconds: Option<f64>,
+}
+
+pub fn set_last_episode(conn: &Connection, channel_id: i64, ep: &LastEpisodeUpdate) -> Result<()> {
+    conn.execute(
+        "INSERT INTO series_last_episode
+            (channel_id, season, episode_id, episode_num, title, position_seconds, duration_seconds, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, CURRENT_TIMESTAMP)
+         ON CONFLICT(channel_id) DO UPDATE SET
+            season = excluded.season,
+            episode_id = excluded.episode_id,
+            episode_num = excluded.episode_num,
+            title = excluded.title,
+            position_seconds = excluded.position_seconds,
+            duration_seconds = excluded.duration_seconds,
+            updated_at = CURRENT_TIMESTAMP",
+        params![
+            channel_id,
+            ep.season,
+            ep.episode_id,
+            ep.episode_num,
+            ep.title,
+            ep.position_seconds,
+            ep.duration_seconds
+        ],
+    )?;
+    Ok(())
+}
+
+// ========== Random Play Preset Mutations ==========
+
+pub fn create_random_play_preset(
+    conn: &Connection,
+    playlist_id: i64,
+    name: &str,
+    series_channel_ids: &[i64],
+) -> Result<i64> {
+    let ids_json = serde_json::to_string(series_channel_ids).unwrap_or_else(|_| "[]".to_string());
+    conn.execute(
+        "INSERT INTO random_play_presets (playlist_id, name, series_channel_ids)
+         VALUES (?1, ?2, ?3)",
+        params![playlist_id, name, ids_json],
+    )?;
+    Ok(conn.last_insert_rowid())
+}
+
+pub fn update_random_play_preset(
+    conn: &Connection,
+    id: i64,
+    name: &str,
+    series_channel_ids: &[i64],
+) -> Result<()> {
+    let ids_json = serde_json::to_string(series_channel_ids).unwrap_or_else(|_| "[]".to_string());
+    conn.execute(
+        "UPDATE random_play_presets SET name = ?1, series_channel_ids = ?2, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?3",
+        params![name, ids_json, id],
+    )?;
+    Ok(())
+}
+
+pub fn delete_random_play_preset(conn: &Connection, id: i64) -> Result<()> {
+    conn.execute("DELETE FROM random_play_presets WHERE id = ?1", params![id])?;
+    Ok(())
+}
+
 // ========== Settings Mutations ==========
 
 pub fn set_setting(conn: &Connection, key: &str, value: &str) -> Result<()> {
@@ -355,6 +430,37 @@ mod tests {
     use crate::db::test_helpers::{setup_test_db, create_test_playlist, create_test_channel};
     use crate::db::queries::*;
 
+    // ========== Series Last Episode Tests ==========
+
+    #[test]
+    fn test_set_last_episode_stores_and_updates_position() {
+        let conn = setup_test_db();
+        let playlist_id = create_test_playlist(&conn, "P");
+        let channel_id = create_test_channel(&conn, playlist_id, "Series");
+
+        // Recorded on click: episode known, no position yet
+        let mut ep = LastEpisodeUpdate {
+            season: "1",
+            episode_id: "101",
+            episode_num: 1,
+            title: "Pilot",
+            position_seconds: None,
+            duration_seconds: None,
+        };
+        set_last_episode(&conn, channel_id, &ep).unwrap();
+        let last = get_last_episode(&conn, channel_id).unwrap().unwrap();
+        assert_eq!(last.episode_id, "101");
+        assert_eq!(last.position_seconds, None);
+
+        // Progress update during playback overwrites the same row
+        ep.position_seconds = Some(754.5);
+        ep.duration_seconds = Some(1320.0);
+        set_last_episode(&conn, channel_id, &ep).unwrap();
+        let last = get_last_episode(&conn, channel_id).unwrap().unwrap();
+        assert_eq!(last.position_seconds, Some(754.5));
+        assert_eq!(last.duration_seconds, Some(1320.0));
+    }
+
     // ========== Playlist Tests ==========
 
     #[test]
@@ -445,6 +551,7 @@ mod tests {
                 is_favorite: false,
                 sort_order: i,
                 category_order: 0,
+                rating: None,
                 created_at: None,
             })
             .collect();

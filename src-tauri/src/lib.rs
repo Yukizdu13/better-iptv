@@ -135,6 +135,11 @@ pub fn run() {
             play_channel,
             stop_playback,
             is_playing,
+            mpv_seek,
+            mpv_toggle_pause,
+            mpv_show_text,
+            mpv_playlist_next,
+            mpv_get_playback_status,
             // Playlist commands
             import_playlist,
             import_xtream_playlist,
@@ -151,6 +156,13 @@ pub fn run() {
             // Series commands
             get_series_info,
             play_episode_with_season,
+            get_last_episode,
+            set_last_episode,
+            // Random play preset commands
+            get_random_play_presets,
+            create_random_play_preset,
+            update_random_play_preset,
+            delete_random_play_preset,
             // VOD commands
             get_vod_info,
             // Settings commands

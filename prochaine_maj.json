@@ -1,0 +1,277 @@
+{
+  "version": "1.0",
+  "date_creation": "2026-09-13",
+  "date_maj": "2026-10-12",
+  "ameliorations": [
+    {
+      "id": 1,
+      "titre": "Afficher la note en survol (hover) sur les films/séries",
+      "description": "Quand on pose la souris sur une carte de film ou de série, afficher sa note (rating) en surimpression semi-transparente sur la vignette.",
+      "type": "feature",
+      "priorite": "moyenne",
+      "statut": "fait",
+      "zone": "UI - Grille films/séries",
+      "notes": "Overlay ajouté dans ChannelCard.tsx (visible au hover, sur VOD/séries uniquement)."
+    },
+    {
+      "id": 2,
+      "titre": "Mémoriser le dernier épisode vu d'une série",
+      "description": "Enregistrer le dernier épisode visionné pour chaque série afin de permettre à l'utilisateur de reprendre facilement là où il s'était arrêté.",
+      "type": "feature",
+      "priorite": "haute",
+      "statut": "fait",
+      "zone": "Lecture / Séries",
+      "notes": "Nouvelle table series_last_episode (SQLite) + commandes Tauri get/set_last_episode. SeriesView pré-sélectionne la saison et propose un bouton \"Reprendre\"."
+    },
+    {
+      "id": 3,
+      "titre": "Favoris visibles entre projets/profils",
+      "description": "Rendre les favoris visibles d'un projet à l'autre (affichage uniquement, pas d'interaction). Ils doivent être clairement séparés visuellement mais non cliquables si le contenu n'appartient pas au projet actif.",
+      "type": "feature",
+      "priorite": "moyenne",
+      "statut": "fait",
+      "zone": "Favoris / Multi-profils",
+      "notes": "Onglet Favoris affiche une section \"Favoris des autres profils\" (lecture seule, cartes grisées, non cliquables) via la commande get_favorites existante (cross-playlist)."
+    },
+    {
+      "id": 4,
+      "titre": "Bug : la scrollbar ne se réinitialise pas lors du changement d'onglet",
+      "description": "Lorsqu'on scrolle jusqu'au milieu d'une vue (ex: Films) puis qu'on change d'onglet (ex: Favoris), la position de scroll n'est pas réinitialisée. La scrollbar disparaît car la nouvelle vue n'a pas assez d'éléments pour l'afficher, ce qui donne l'impression d'une liste vide. Il faut revenir à la vue précédente, remonter le scroll, puis revenir sur l'onglet pour voir le contenu correctement.",
+      "type": "bug",
+      "priorite": "haute",
+      "statut": "fait",
+      "zone": "Navigation - Onglets / Scroll",
+      "reproduction": [
+        "Aller dans l'onglet Films",
+        "Défiler jusqu'au milieu de la liste",
+        "Aller dans l'onglet Favoris",
+        "Constater que la liste apparaît vide alors qu'elle contient des éléments"
+      ],
+      "cause_probable": "Le scroll offset n'est pas réinitialisé (ou synchronisé) au changement d'onglet, ce qui décale le viewport au-delà des éléments réellement rendus dans la nouvelle vue.",
+      "notes": "Fix : rowVirtualizer.scrollToOffset(0) dans un useEffect sur [contentTypeFilter, categoryFilter] (MainScreen.tsx)."
+    },
+    {
+      "id": 5,
+      "titre": "Play aléatoire cross-séries",
+      "description": "Actuellement le \"play aléatoire\" ne fonctionne que sur une seule série. Ajouter la possibilité de sélectionner plusieurs séries et de mélanger leurs épisodes dans une seule lecture aléatoire (ex : South Park, Les Simpsons, American Dad mélangés).",
+      "type": "feature",
+      "priorite": "moyenne",
+      "statut": "fait",
+      "zone": "Lecture / Séries",
+      "notes": "Nouveau modal RandomPlayModal (sélection multi-séries), bouton \"Play aléatoire multi-séries\" dans l'onglet Séries de MainScreen."
+    },
+    {
+      "id": 6,
+      "titre": "Avance/retour rapide +10s / -10s dans le player",
+      "description": "Ajouter la possibilité d'avancer ou reculer de 10 secondes pendant le visionnage. Idéalement via double-clic sur la vidéo : double-clic à droite de l'image = +10s, double-clic à gauche de l'image = -10s. Si trop complexe à implémenter, de simples boutons dans le menu du player (+10s / -10s) seraient suffisants.",
+      "type": "feature",
+      "priorite": "moyenne",
+      "statut": "fait",
+      "zone": "Lecture / Player vidéo",
+      "notes": "Desktop : IPC MPV (--input-ipc-server + commande seek JSON) exposée via commande Tauri mpv_seek, boutons dans NowPlayingBar + raccourcis clavier ArrowLeft/ArrowRight. iOS : zones de double-clic gauche/droite sur IOSVideoPlayer (currentTime +/-10s)."
+    },
+    {
+      "id": 7,
+      "titre": "Bug : +10s/-10s ne fonctionne pas de manière fiable",
+      "description": "Le seek +10s/-10s (feature #6) ne semble pas fonctionner. Analyse du code : spawn_mpv (src-tauri/src/playback/mpv.rs) ne fait que lancer le process mpv sans attendre que le socket IPC (--input-ipc-server) soit réellement créé. La commande play_channel retourne Ok immédiatement, le frontend passe isPlaying=true tout de suite (useKeyboardShortcuts.ts, NowPlayingBar.tsx) et active les boutons/raccourcis de seek. Si l'utilisateur appuie sur +10/-10 juste après avoir lancé un flux (cas fréquent), UnixStream::connect() échoue car mpv n'a pas encore créé le socket — l'erreur est juste loguée en silence (.catch(err => logger.error)), sans aucun retour visuel pour l'utilisateur. Aucune vérification de disponibilité du socket ni retry n'existe entre le spawn et l'autorisation de seek.",
+      "type": "bug",
+      "priorite": "haute",
+      "statut": "fait",
+      "zone": "Lecture / Player vidéo (MPV desktop)",
+      "cause_probable": "Race condition au démarrage de mpv : le socket IPC n'est pas garanti prêt quand le seek est tenté, et l'échec est silencieux (pas de retry, pas de feedback UI).",
+      "pistes": [
+        "Attendre/poller la création du fichier socket (ou une réponse mpv sur l'IPC) avant de considérer play_channel comme terminé, ou avant d'activer les contrôles de seek côté frontend",
+        "Ajouter un retry avec backoff court dans mpv_seek si la connexion au socket échoue",
+        "Afficher un feedback visuel (toast/OSD) quand un seek échoue au lieu de juste logger l'erreur",
+        "Vérifier aussi le comportement iOS (double-tap) qui n'a pas ce problème de socket mais mériterait un test de non-régression"
+      ],
+      "notes": "Confirmé 2026-09-21 : les boutons +10s/-10s (NowPlayingBar) ne fonctionnent pas non plus, pas seulement les raccourcis clavier. | Corrigé 2026-09-23. Causes trouvées : (1) en lecture d'épisodes (chemin playlist MPV), currentChannel n'était jamais renseigné et la vue Série remplaçait tout l'écran → ni NowPlayingBar ni raccourcis ArrowLeft/Right actifs ; (2) le code écrivait la commande sans lire la réponse : tant que le flux n'est pas ouvert, MPV répond 'error running command' → échec silencieux ; (3) serveurs IPTV sans HTTP Range → MPV désactive le seek. Fix : IPC requête/réponse avec request_id + retry jusqu'à 8s pendant le chargement (mpv.rs), IPC exécuté hors du mutex (spawn_blocking), --force-seekable=yes (seek dans le cache), currentChannel renseigné pour les épisodes, NowPlayingBar affichée aussi dans la vue Série, feedback visuel (+10s / erreur) dans la barre (lib/playbackControls.ts). iOS inchangé. Tests Rust ajoutés (faux serveur IPC). À valider en réel sur un flux Xtream."
+    },
+    {
+      "id": 8,
+      "titre": "Clarifier et enrichir le moment de capture du \"dernier épisode vu\"",
+      "description": "Question : le \"dernier épisode vu\" (feature #2) est en réalité enregistré au moment du CLIC sur l'épisode (ou sur \"Play aléatoire\"), avant même que la lecture ne démarre — pas après un seuil de visionnage, ni à l'arrêt/pause, ni périodiquement pendant la lecture. Voir SeriesView.tsx : playEpisode() appelle recordLastEpisode(episode) en synchrone avant onPlayEpisode(). Concrètement, un clic suivi d'un arrêt après 1 seconde marque quand même cet épisode comme \"dernier vu\". Aucun autre point d'enregistrement n'existe (ni dans player-store.ts, ni dans NowPlayingBar.tsx).\n\nDemande : multiplier les moments de capture pour que l'info soit plus fiable, par exemple : (1) garder l'enregistrement au clic (utile pour reprendre même si l'épisode vient d'être lancé), mais (2) ajouter un enregistrement/mise à jour après un seuil de visionnage réel (ex: 30s ou 5% de la durée) pour distinguer \"lancé\" de \"réellement commencé à regarder\", et (3) éventuellement un enregistrement à l'arrêt/pause avec la position de lecture (timestamp) pour permettre une vraie reprise à l'endroit exact, pas juste \"reprendre cet épisode depuis le début\".",
+      "type": "amelioration",
+      "priorite": "moyenne",
+      "statut": "fait",
+      "zone": "Lecture / Séries",
+      "notes": "Fait 2026-09-23. 3 moments de capture : (1) au clic (conservé), (2) après 30s de lecture réelle, (3) toutes les 5s ensuite avec la position (couvre pause/arrêt, ≤5s perdues). Colonnes position_seconds/duration_seconds ajoutées (migration ALTER TABLE). Le suivi suit l'épisode réellement joué dans la playlist MPV (playlist-pos), y compris en play aléatoire mono/multi-séries. Bouton 'Reprendre S1 E3 à 12:34' → reprise exacte (-5s) via option per-file MPV --{ --start=X url --} ; si l'épisode était fini (≥95%), le bouton propose l'épisode suivant. Hook : src/hooks/useSeriesProgress.ts. Desktop/MPV uniquement (iOS : pas de suivi de position)."
+    },
+    {
+      "id": 9,
+      "titre": "Passer automatiquement à l'épisode suivant avant le générique de fin",
+      "description": "Idée : permettre de passer à l'épisode suivant un peu avant la fin réelle de la vidéo, pour éviter de se taper le générique de fin à chaque épisode. Approche envisagée par l'utilisateur : définir une durée de générique de fin (globale ou par série) et déclencher automatiquement le passage à l'épisode suivant quand il reste ce temps-là avant la fin (ex: durée_totale - durée_générique = déclenchement). Question ouverte : est-ce que le serveur IPTV (Xtream) fournit une info exploitable sur la durée du générique de fin ou les chapitres/segments de l'épisode ? Sinon il faudra une valeur configurable par l'utilisateur (globale et/ou par série), avec un minuteur qui se déclenche sur la position de lecture courante (currentTime) via l'IPC MPV.",
+      "type": "feature",
+      "priorite": "basse",
+      "statut": "fait",
+      "zone": "Lecture / Séries",
+      "pistes": [
+        "Vérifier si l'API Xtream (get_series_info ou équivalent) expose une info de chapitres/segments/durée de générique — probablement non pour la plupart des fournisseurs IPTV, à vérifier au cas par cas",
+        "À défaut, ajouter un réglage \"durée du générique de fin\" configurable (global, ou par série pour affiner), stocké en DB",
+        "Utiliser la position de lecture (déjà accessible via l'IPC MPV pour le seek) pour déclencher le passage à l'épisode suivant quand (durée_totale - position_courante) <= durée_générique configurée",
+        "Prévoir un moyen d'annuler/désactiver ponctuellement (au cas où l'utilisateur veut regarder le générique)"
+      ],
+      "notes": "Fait 2026-09-23. L'API Xtream (get_series_info) ne fournit pas de marqueurs de générique/chapitres exploitables → réglage utilisateur : durée globale (Paramètres > Playback) + surcharge par série (champ 'Générique' dans la vue Série, vide = global, 0 = désactivé). Quand durée - position ≤ générique, playlist-next MPV ; compte à rebours 10s dans la barre avec bouton 'Regarder le générique' pour annuler sur l'épisode courant. Ne se déclenche pas en pause ni sur le dernier épisode de la file. Desktop/MPV uniquement."
+    },
+    {
+      "id": 10,
+      "titre": "Permettre de définir des filtres avancés par défaut",
+      "description": "Les filtres avancés (langue, année, note) ajoutés récemment (VOD/séries) sont à appliquer manuellement à chaque session. Ajouter la possibilité de les configurer comme filtres par défaut, appliqués automatiquement à l'ouverture de l'app (ex: masquer systématiquement les contenus sans note, ou filtrer sur une langue précise).",
+      "type": "feature",
+      "priorite": "basse",
+      "statut": "fait",
+      "zone": "UI - Filtres VOD/séries",
+      "notes": "Fait 2026-09-23. Boutons 'Définir par défaut' / 'Supprimer le défaut' dans le panneau Filtres avancés. Stocké dans le setting default_advanced_filters (JSON), appliqué au démarrage et à chaque changement d'onglet (au lieu de remettre les filtres à zéro)."
+    },
+    {
+      "id": 11,
+      "titre": "Bug perf : chargement très long à l'ouverture de \"Play aléatoire multi-séries\"",
+      "description": "Ouvrir le modal \"Play aléatoire multi-séries\" (RandomPlayModal) est anormalement lent (~20s d'attente cumulée constatées par l'utilisateur), alors que le démarrage de l'app elle-même (chargement des playlists) est quasi instantané. Constat : le chargement semble se faire en double — une fois à l'ouverture de la vue, puis une seconde fois pour charger les playlists existantes. À investiguer : RandomPlayModal.tsx et les appels Tauri associés (probablement rechargement redondant des séries/playlists au lieu de réutiliser les données déjà chargées par MainScreen/SeriesView).",
+      "type": "bug",
+      "priorite": "haute",
+      "statut": "fait",
+      "zone": "Lecture / Séries - RandomPlayModal",
+      "pistes": [
+        "Identifier pourquoi le chargement se déclenche deux fois (ouverture du modal + chargement des playlists) au lieu d'une seule fois",
+        "Réutiliser les données déjà en mémoire (playlists/séries déjà chargées ailleurs dans l'app) plutôt que de tout recharger depuis la DB/l'API à l'ouverture du modal",
+        "Comparer avec le chargement au démarrage de l'app (quasi instantané) pour comprendre la différence de comportement",
+        "Vérifier si des requêtes Xtream/réseau redondantes sont déclenchées, ou si c'est uniquement un problème côté DB locale (SQLite)"
+      ],
+      "notes": "Corrigé 2026-09-23. Cause : le modal rendait d'un coup toutes les séries du profil (≈12 700 lignes checkbox+label pour le profil actif) → gel de l'UI de plusieurs secondes. Les presets (petite requête SQLite) n'étaient pas en cause. Fix : liste virtualisée (@tanstack/react-virtual, déjà utilisé dans MainScreen) + filtre de recherche mémoïsé. Note : le lancement ('Lancer') fait toujours un get_series_info réseau par série sélectionnée (en parallèle), c'est inhérent."
+    },
+    {
+      "id": 12,
+      "titre": "Rendre le profil Atlas Pro compatible avec better-iptv (sans casser les autres fournisseurs)",
+      "description": "Le profil \"atlas-pro\" (fournisseur Atlas Pro, hôte atlaspro.to:80) n'est pas du tout compatible avec better-iptv. Objectif : identifier précisément ce qui casse et le rendre compatible sans régression sur les profils existants (brad / maman, fournisseur lebradeurtv).",
+      "type": "bug",
+      "priorite": "moyenne",
+      "statut": "a_faire",
+      "zone": "Import playlist / API Xtream / Lecture",
+      "constat_initial": "État en DB au 2026-09-23 : le profil id=4 \"atlas-pro\" a été importé en mode Xtream (url + username/password renseignés) le 2026-08-16 et contient 41 300 entrées dans channels. L'import de base passe donc au moins en partie : l'incompatibilité est probablement ailleurs (lecture des flux, séries/VOD, format des réponses JSON, catégories, EPG...). À confirmer avec l'utilisateur : qu'est-ce qui ne marche pas exactement ?",
+      "pistes": [
+        "Reproduire et lister les symptômes précis : lecture live ? VOD ? séries (get_series_info) ? catégories vides ? EPG ? messages d'erreur dans les logs Tauri",
+        "Comparer les réponses brutes de player_api.php (get_live_streams, get_vod_streams, get_series, get_series_info) entre Atlas Pro et lebradeurtv : types des champs (string vs entier, comme le fix season_number e296a7c), champs manquants ou null, structure de 'episodes'",
+        "Vérifier le format des URLs de flux (extension .ts/.m3u8, préfixe /live/ /movie/ /series/, port 80 vs 8080, redirections HTTP) et si le serveur exige un User-Agent particulier (réglage playlist_user_agent_mode existant)",
+        "Rendre la désérialisation Rust tolérante (serde : champs Option + deserialize_with acceptant string OU nombre) plutôt qu'ajouter du code spécifique Atlas Pro",
+        "Si un comportement spécifique reste nécessaire : l'isoler derrière une détection du fournisseur ou un réglage par profil, et ajouter des tests unitaires avec des fixtures JSON des deux fournisseurs pour garantir la non-régression"
+      ]
+    },
+    {
+      "id": 13,
+      "titre": "Réduire la charge CPU/GPU pendant la lecture (ventilateurs à fond)",
+      "description": "Quand on regarde un flux avec better-iptv, la machine (MacBook T2, i5-8210Y, GPU Intel UHD 617, écran 2560x1600) monte en température et les ventilateurs partent à fond. En regardant Canal+ dans Chromium, la machine chauffe beaucoup moins. Trouver un moyen de réduire la charge pendant la lecture MPV.",
+      "type": "amelioration",
+      "priorite": "moyenne",
+      "statut": "fait",
+      "zone": "Lecture / Player vidéo (MPV desktop)",
+      "constat_initial": "Options MPV actuelles (src-tauri/src/playback/mpv.rs, apply_default_args) : --hwdec=auto --vo=gpu-next --profile=high-quality --cache=yes --cache-secs=30 --force-seekable=yes --demuxer-max-bytes=100M. VA-API disponible sur la machine (pilote Intel iHD 24.1.0, décodage matériel H264 High et HEVC Main).",
+      "cause_probable": "Hypothèse à vérifier : --profile=high-quality active des filtres de mise à l'échelle coûteux (type ewa_lanczossharp, debanding...), très lourds pour un iGPU UHD 617 qui doit remplir un écran Retina 2560x1600. Chromium, lui, utilise le décodage matériel et une mise à l'échelle simple. Autre possibilité : le décodage matériel ne s'active pas réellement (retour au décodage logiciel sur le CPU).",
+      "pistes": [
+        "Mesurer d'abord : lancer mpv à la main sur un flux avec et sans --profile=high-quality, puis comparer l'usage CPU/GPU (top, intel_gpu_top) et la température/vitesse ventilo (sensors)",
+        "Vérifier que le décodage matériel est réellement actif (mpv -v, ligne 'Using hardware decoding (vaapi)'), sinon forcer --hwdec=vaapi",
+        "Remplacer --profile=high-quality par le profil par défaut ou --profile=fast, ou le rendre configurable (réglage 'Qualité vidéo : économie / équilibré / haute qualité' dans Paramètres > Playback)",
+        "Option 'économie d'énergie' : pas de upscaling coûteux, --scale=bilinear, --dscale=bilinear, pas de deband, éventuellement --vo=gpu au lieu de gpu-next si plus léger ici",
+        "Vérifier le coût (probablement négligeable) des polls ajoutés côté app : is_playing toutes les 3s + statut MPV toutes les 1s pendant les séries (useSeriesProgress)",
+        "Ne pas toucher à la stack système (t2fanrd, pilotes, kernel) : la correction doit rester dans les options MPV de l'app"
+      ],
+      "notes": "Fait 2026-10-12 (à valider en réel : chauffe/ventilos). Nouveau réglage Paramètres > Playback > 'Qualité vidéo' (setting video_quality) : Économie (--vo=gpu --profile=fast, scalers bilinear, deband off), Équilibré (défaut : --vo=gpu, options MPV par défaut, SANS profile high-quality), Haute qualité (ancien comportement gpu-next + high-quality). Ajout --demuxer-max-back-bytes=50M (plafonne aussi la RAM, lien #14). Appliqué à la prochaine lecture. Non fait : mesure CPU/GPU avant/après et vérification vaapi (mpv -v) — à faire à la main. | Validation 2026-10-12 : test utilisateur sur le film 'Awake (2021)', ventilateurs nettement plus bruyants en Haute qualité qu'en Économie (constat à l'oreille). Relevés sensors fragmentaires (1 image par mode, début de lecture) : Économie 54°C / 3355 tr/min, Haute 57°C / 4142 tr/min ; %CPU mpv ~15-17% dans les deux cas (la charge est surtout côté GPU, top ne la voit pas). Mode Équilibré (défaut) pas encore comparé. Menu : contraste corrigé (dark:[color-scheme:dark]). | 2026-10-12 : Équilibré = qualité d'image jugée OK par l'utilisateur ; les 3 modes restent disponibles (Haute qualité conservée pour privilégier l'image). Bruit ventilateur d'Équilibré NON établi : unique relevé 61°C / 4270 tr/min, pris machine déjà chaude après les essais précédents, donc non comparable aux deux autres."
+    },
+    {
+      "id": 14,
+      "titre": "Bug perf : gel complet de la machine pendant le play aléatoire multi-séries (consommation RAM)",
+      "description": "Avec une sélection de plus de 15 séries dans le play aléatoire multi-séries, le PC devient quasi inutilisable au bout de plusieurs épisodes (gros freeze). Le 2026-10-07 au matin, l'utilisateur a dû éteindre la machine de force (hard shutdown). Hypothèse de l'utilisateur : forte consommation de RAM, peut-être au moment où la liste aléatoire arrive à la fin.",
+      "type": "bug",
+      "priorite": "haute",
+      "statut": "a_faire",
+      "zone": "Lecture / Séries - Play aléatoire multi-séries (MPV desktop)",
+      "constat_initial": "État du code au 2026-10-07 : RandomPlayModal fait un get_series_info par série sélectionnée (en parallèle, toutes les réponses JSON gardées en mémoire), aplatit tous les épisodes puis garde PLAYLIST_SIZE = 30 épisodes, transmis à MPV en arguments (play_with_playlist, mpv.rs). Options MPV : --cache=yes --cache-secs=30 --demuxer-max-bytes=100M --force-seekable=yes --profile=high-quality --vo=gpu-next. Côté app, useSeriesProgress interroge le statut MPV toutes les 1s (IPC) + is_playing toutes les 3s. Machine : 7,6 Go de RAM partagés avec l'iGPU UHD 617, et seulement 512 Mo de swap (/swapfile, déjà 293 Mo utilisés au repos le 2026-10-07), pas de zram.",
+      "cause_probable": "Non vérifié. Plusieurs candidats : (1) mémoire de MPV qui grossit d'un épisode à l'autre (cache demuxer + tampon arrière, cache non vidé entre les fichiers de la playlist, gpu-next/high-quality gourmand en mémoire GPU partagée) ; (2) fuite côté app/webview (polling IPC 1s qui accumule des timers/listeners, ou état React qui grossit à chaque changement d'épisode / playlist-pos) ; (3) comportement en fin de liste (30 épisodes) : relance, boucle de polling sur un MPV terminé, ou processus MPV zombies non tués ; (4) pas assez de swap, donc l'OOM killer n'intervient pas à temps et la machine se fige au lieu de tuer le processus.",
+      "pistes": [
+        "Mesurer d'abord : relancer un play multi-séries (>15 séries) et suivre la RSS de mpv et des processus better-iptv / WebKitWebProcess épisode après épisode (ex : while true; do ps -o pid,rss,cmd -C mpv,better-iptv,WebKitWebProcess; sleep 30; done >> ~/ram.log)",
+        "Identifier QUI grossit : MPV, le process Tauri (Rust) ou la webview — c'est ce qui décide de la correction",
+        "Vérifier s'il reste plusieurs processus mpv en parallèle (stop() bien appelé, pas de zombies) et ce qui se passe exactement quand la file de 30 épisodes est terminée",
+        "Côté MPV : plafonner explicitement la mémoire (--demuxer-max-back-bytes, réduire --demuxer-max-bytes, voir --cache-secs) et tester sans --profile=high-quality (lien avec #13)",
+        "Côté app : vérifier que les setInterval de useSeriesProgress/NowPlayingBar sont bien nettoyés et qu'un seul polling tourne à la fois ; ne pas garder en mémoire les réponses get_series_info complètes après le tirage",
+        "Garde-fou système (hors app, à valider avec conservateur-t2) : vérifier swap/zram et envisager systemd-oomd ou earlyoom pour qu'un processus gourmand soit tué au lieu de figer la machine"
+      ],
+      "notes": "Mesure n°1 (2026-10-07, 14:04 → 15:11, ~/ram.log, relevé toutes les 30s) — analysée le 2026-10-07 au soir. Durée réelle : environ 3 épisodes de South Park (~21 min chacun) sur les 30 de la file. AUCUN freeze reproduit, la fin de la file n'a pas été atteinte (30 épisodes ≈ 10h). La lecture a été arrêtée vers 15:11 (mpv disparaît), puis la boucle s'est arrêtée. MPV : 1 seul processus pendant toute la mesure (pas de doublon ni de zombie). La mémoire (RSS) fait des dents de scie : ~190 Mo au début d'un épisode, monte jusqu'à ~350-390 Mo pendant l'épisode, puis redescend à ~240-260 Mo au changement d'épisode (14:30, 14:51, 15:10). C'est borné par le cache (--demuxer-max-bytes=100M + tampon arrière) : pas de fuite visible chez MPV sur 3 épisodes, mais le pic remonte un peu à chaque épisode (349 → 358 → 388 Mo), à surveiller sur plus long. Webview (WebKitWebProcess) : 322 Mo au départ, puis montée lente et régulière, de 365 Mo (14:06) à 392 Mo (15:11), soit environ +25 Mo/h, sans jamais redescendre : c'est le meilleur suspect de fuite côté app (polling IPC 1s/3s, état React). Sur une nuit de lecture, ça ne fait que ~250 Mo de plus : ça n'explique pas à lui seul un gel complet. À 21:47 (lecture arrêtée depuis 6h30), la webview est même à 407 Mo : elle continue de grossir sans lecture. Trou dans la mesure : le processus principal Tauri (Rust) s'appelle 'better-ip-tv' (avec un tiret), pas 'better-iptv' : il n'a pas été relevé (278 Mo à 21:47). Prochaine mesure : laisser tourner le multi-séries jusqu'au freeze ou jusqu'à la fin des 30 épisodes, avec la commande corrigée ci-dessous, et ajouter la RAM totale/swap pour voir qui sature. Commande (fish) : while true; date +%T; free -m | head -2; ps -o pid,rss,cmd -C mpv,better-ip-tv,WebKitWebProcess | cut -c1-120; sleep 30; end >> ~/ram2.log  (cut évite de copier les URL, qui contiennent les identifiants Xtream). Attention : ~/ram.log contient les identifiants Xtream en clair dans les URL mpv, ne pas le partager tel quel. | Mesure n°2 : boucle lancée par l'utilisateur le 2026-10-07 vers 21h49 (commande ci-dessus, vers ~/ram2.log). Heure d'arrêt inconnue. À la reprise : vérifier si ~/ram2.log grossit encore (tail ~/ram2.log), l'arrêter par Ctrl+C dans son terminal, puis analyser (RAM libre/swap, mpv, better-ip-tv, WebKitWebProcess, moment du gel ou de la fin de la file). | Mesure n°3 : l'utilisateur enregistre en ce moment (2026-10-09) dans ~/ram3.log (même commande que la mesure n°2). À la reprise : tail ~/ram3.log, arrêter la boucle (Ctrl+C), puis analyser (RAM libre/swap, mpv, better-ip-tv, WebKitWebProcess, moment du gel ou de la fin de la file). ~/ram2.log reste à analyser aussi si pas encore fait. | Résultat mesure n°3 (~/ram3.log, 2026-10-09 21:26 → 2026-10-10 07:30, ~10h) : la file de 30 épisodes est allée jusqu'au bout, AUCUN freeze. RAM système : max utilisée 3457 Mo sur 7810, min disponible 4353 Mo (jamais proche de la saturation). Swap non relevé (le script de dépouillement ne reconnaissait pas la ligne 'Partition d'échange' en français). better-ip-tv : 220 → ~273-278 Mo. WebKitWebProcess : 345 → 434-466 Mo (croissance lente confirmée, ~+100 Mo sur 10h, à garder en tête). mpv : 202 Mo au départ, pic relevé à 806 Mo (à vérifier : pic ponctuel de fin de file ou croissance d'un épisode à l'autre ? regarder l'évolution par épisode dans ram3.log). Conclusion provisoire : le gel du 2026-10-07 n'est pas reproduit avec cette sélection ; cause probable ponctuelle (pic mémoire + 512 Mo de swap seulement) plutôt qu'une fuite continue. Pistes restantes : vérifier le pic mpv de 806 Mo, plafonner --demuxer-max-bytes/--demuxer-max-back-bytes par précaution, envisager earlyoom/zram (via conservateur-t2). Statut laissé a_faire en attendant d'éclaircir le pic mpv. | Précision 2026-10-10 : l'utilisateur n'a vu AUCUN freeze ces derniers jours (pas seulement pendant la mesure n°3). Le gel du 2026-10-07 reste non reproduit."
+    },
+    {
+      "id": 15,
+      "titre": "Play aléatoire multi-séries : équilibrer la diversité entre séries",
+      "description": "Le tirage aléatoire fonctionne, mais les séries avec beaucoup d'épisodes écrasent les autres. Exemple : Les Simpsons (plus de 30 saisons) sortent très souvent, alors qu'une série de 3 saisons n'apparaît presque jamais. Il faut un système fiable pour que chaque série sélectionnée ait sa juste place dans la file.",
+      "type": "amelioration",
+      "priorite": "moyenne",
+      "statut": "fait",
+      "zone": "Lecture / Séries - RandomPlayModal",
+      "cause_probable": "Confirmé dans le code (RandomPlayModal.tsx, handleLaunch) : tous les épisodes de toutes les séries sont mis dans un seul tas (allEpisodes), mélangés, puis on garde les 30 premiers (PLAYLIST_SIZE). Chaque ÉPISODE a la même chance, donc chaque SÉRIE a une chance proportionnelle à son nombre d'épisodes : une série de 750 épisodes face à une de 40 obtient environ 95 % de la file. En plus, le mélange utilise sort(() => Math.random() - 0.5), qui est connu pour être biaisé (mélange non uniforme).",
+      "pistes": [
+        "Tirage en 2 temps : d'abord tirer une SÉRIE (chance égale pour chaque série sélectionnée), puis un épisode au hasard dans cette série. Chaque série a ainsi la même part de la file, quel que soit son nombre d'épisodes",
+        "Variante plus régulière : tourniquet mélangé (round-robin). On mélange l'ordre des séries, on prend un épisode de chacune à tour de rôle, et on remélange l'ordre à chaque tour. Ça garantit qu'aucune série ne revient deux fois avant que toutes les autres soient passées",
+        "Éviter les répétitions : ne pas reprendre un épisode déjà dans la file, et ne pas enchaîner deux épisodes de la même série à la suite",
+        "Remplacer sort(() => Math.random() - 0.5) par un vrai mélange de Fisher-Yates (uniforme)",
+        "Option bonus : un réglage 'Équilibrer les séries' (par défaut activé) vs 'Proportionnel au nombre d'épisodes' (comportement actuel), et/ou éviter les épisodes déjà vus récemment (table series_last_episode / historique)",
+        "Ajouter un test unitaire : avec une série de 700 épisodes et une de 40, vérifier que la file de 30 contient environ 15 épisodes de chaque"
+      ],
+      "notes": "Fait 2026-10-12. src/lib/randomPlaylist.ts : tourniquet mélangé (chaque tour = toutes les séries restantes dans un ordre aléatoire, 1 épisode au hasard chacune), pas deux épisodes de la même série à la suite, pas de doublons, vrai Fisher-Yates. 700 vs 40 épisodes → 15/15 sur 30 (test unitaire). Pas de réglage 'proportionnel' (option bonus non faite)."
+    },
+    {
+      "id": 16,
+      "titre": "Bug perf : 15-20s d'attente au clic sur 'Lancer' du play aléatoire multi-séries",
+      "description": "Au lancement d'un play aléatoire multi-séries (plus de 15 séries sélectionnées), il faut attendre 15 à 20 secondes avant que la lecture démarre. Distinct de #11 (lenteur à l'OUVERTURE du modal, corrigée) : ici c'est le clic sur 'Lancer'.",
+      "type": "bug",
+      "priorite": "haute",
+      "statut": "fait",
+      "zone": "Lecture / Séries - RandomPlayModal",
+      "cause_probable": "Confirmé dans le code : handleLaunch (RandomPlayModal.tsx) fait une requête réseau get_series_info au serveur Xtream pour CHAQUE série sélectionnée (Promise.all), et attend que TOUTES aient répondu avant de lancer MPV. L'attente est donc celle de la série la plus lente (avec les relances de fetch_json_with_retry en cas d'échec). Les réponses des grosses séries (Les Simpsons : ~750 épisodes) sont lourdes. Il n'y a aucun cache : get_series_info (commands/series.rs → xtream.rs fetch_series_info) retélécharge tout à chaque lancement. Le tirage lui-même (mélange de quelques milliers d'épisodes en mémoire) prend moins d'une milliseconde : le nouveau tirage équilibré de #15 ne rallongera pas l'attente.",
+      "pistes": [
+        "Mesurer d'abord : chronométrer chaque get_series_info (log de durée par série) pour voir si une ou deux séries lentes font tout attendre",
+        "Cache local des épisodes par série (SQLite, avec une date d'expiration de quelques jours ou un rafraîchissement en arrière-plan) : les lancements suivants deviennent quasi instantanés",
+        "Démarrer la lecture dès que le 1er épisode est connu, puis compléter la file MPV au fur et à mesure (commande IPC loadfile ... append), au lieu d'attendre toutes les séries",
+        "Combiné avec #15 (tirer d'abord la série) : ne télécharger que les séries réellement tirées pour les premiers épisodes",
+        "Mettre une limite de temps par série (ex : 5s) : une série qui ne répond pas est ignorée au lieu de bloquer tout le lancement",
+        "Afficher une progression dans le modal ('Chargement des séries 7/15…') pour que l'attente soit moins pénible"
+      ],
+      "notes": "Fait 2026-10-12 (partiel). Cache mémoire des épisodes par série (1h, 2e lancement quasi instantané), timeout 8s par série (une série lente est ignorée), progression 'Chargement 7/15…' sur le bouton. Non fait : cache SQLite persistant et démarrage progressif de la file MPV. Mesure réelle des durées par série à faire. | Test réel 2026-10-12 : chaque lancement durait exactement 8s = timeout par série, à cause de 'Big Mouth' dont get_series_info ne se décodait jamais (voir #18) ; échecs non mis en cache et relancés ~50s en tâche de fond par le backend. Corrigé par #18 : le 14/15 qui bloquait doit disparaître (à revérifier)."
+    },
+    {
+      "id": 17,
+      "titre": "Bug : les contrôles du player (+10s/-10s, etc.) ne sont visibles que dans la fenêtre principale, pas dans la fenêtre du visionneur",
+      "description": "Toutes les modifications faites autour du player (ex : boutons +10s/-10s, feedback visuel, contrôles de la NowPlayingBar) ne sont visibles que dans la fenêtre principale de better-iptv. Or better-iptv lance la vidéo dans une AUTRE fenêtre (visionneuse, probablement la fenêtre MPV). Résultat : les commandes ajoutées restent dans la fenêtre principale alors que la vidéo est affichée dans la nouvelle fenêtre, qui possède de son côté d'autres commandes (celles natives de la visionneuse).",
+      "type": "bug",
+      "priorite": "haute",
+      "statut": "fait",
+      "zone": "Lecture / Player vidéo (MPV desktop) - UI des contrôles",
+      "constat_initial": "Signalé le 2026-10-09. Les contrôles custom (NowPlayingBar, raccourcis, feedback +10s) vivent dans la webview principale ; la lecture se fait dans une fenêtre séparée (processus MPV) qui n'affiche pas ces contrôles.",
+      "pistes": [
+        "Confirmer quelle est la fenêtre de visionnage (fenêtre MPV native ? fenêtre Tauri secondaire ?) et quelles commandes elle affiche déjà",
+        "Si c'est la fenêtre MPV native : exposer +10s/-10s et autres actions via ses propres raccourcis/OSD (input.conf, script Lua, show-text via IPC) pour que le feedback apparaisse dans la fenêtre vidéo",
+        "Ou intégrer la vidéo dans la fenêtre principale (embedding --wid) pour que les contrôles soient au même endroit",
+        "Ou ouvrir une fenêtre Tauri de contrôle flottante/always-on-top à côté de la vidéo",
+        "Vérifier que les raccourcis clavier (ArrowLeft/Right) fonctionnent aussi quand le focus est sur la fenêtre vidéo",
+        "Lien avec #7 (seek +10/-10 via IPC MPV) : le fix IPC marche côté logique, c'est l'emplacement de l'UI qui pose problème"
+      ],
+      "notes": "Fait 2026-10-12 (à valider en réel). Décision utilisateur : tout dans la fenêtre MPV, PAS de fenêtre de contrôle supplémentaire (une fenêtre flottante transparente avait été codée puis supprimée : redondante avec l'OSC de MPV et fragile). Dans la fenêtre MPV : ←/→ = ∓10s (input.conf temporaire), OSD '+10s/-10s' quand le seek vient des boutons de l'app, compte à rebours du générique affiché en OSD ('Épisode suivant dans Ns - C : garder le générique'), touche C = garder le générique (pose user-data/better-iptv/cancel-credits = playlist-pos, relu via mpv_get_playback_status.cancel_credits_pos par useSeriesProgress). Pause/suivant/stop : OSC et raccourcis natifs MPV. Vérifié sur un vrai mpv 0.37 headless (touche c, RIGHT, show-text). Non fait : boutons ±10s cliquables dans l'OSC (osc.lua non configurable sans le forker). Commande mpv_toggle_pause conservée (non utilisée par l'UI pour l'instant). NB : /usr/bin/better-ip-tv (lancé par le menu KDE) date du 2026-09-23 → rebuild/réinstall nécessaire pour avoir ces changements."
+    },
+    {
+      "id": 18,
+      "titre": "Bug : séries dont 'episodes' est une liste (ex. Big Mouth) non décodées",
+      "description": "get_series_info échouait ('error decoding response body') pour les séries dont le serveur Xtream renvoie 'episodes' sous forme de liste au lieu d'un objet par saison.",
+      "type": "bug",
+      "priorite": "haute",
+      "statut": "fait",
+      "zone": "API Xtream / Séries",
+      "notes": "Fait 2026-10-12. Cause trouvée sur ton preset (15 séries) : 'Big Mouth' a une saison 0 → PHP sérialise episodes en liste de listes [[S0],[S1],…] au lieu de {\"1\":[…]}. Fix : de_episodes (xtream.rs) accepte objet, liste de listes (index = n° de saison), liste plate (regroupée par champ season) et []. Vérifié sur les 15 vraies réponses du preset (toutes OK, Big Mouth 81 épisodes) + 4 tests. fetch_json_with_retry ne relance plus une réponse JSON valide mais de mauvaise forme (is_data), seulement les erreurs réseau/troncatures. Piste liée à #12 (Atlas Pro) : même famille d'incompatibilités de format."
+    },
+    {
+      "id": 19,
+      "titre": "Fenêtre MPV plus haute que l'écran au lancement",
+      "description": "MPV ouvre parfois une fenêtre plus grande que l'écran : il faut la redimensionner pour atteindre les commandes.",
+      "type": "bug",
+      "priorite": "moyenne",
+      "statut": "fait",
+      "zone": "Lecture / Player vidéo (MPV desktop)",
+      "notes": "Fait 2026-10-12 (à valider en réel) : --autofit-larger=90%x90% (la fenêtre ne dépasse jamais 90% de l'écran en largeur ni hauteur)."
+    }
+  ]
+}

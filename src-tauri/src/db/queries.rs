@@ -122,6 +122,59 @@ pub fn get_favorites(conn: &Connection) -> Result<Vec<Channel>> {
     Ok(channels)
 }
 
+// ========== Series Last Episode Queries ==========
+
+pub fn get_last_episode(conn: &Connection, channel_id: i64) -> Result<Option<LastEpisode>> {
+    let mut stmt = conn.prepare(
+        "SELECT channel_id, season, episode_id, episode_num, title,
+                position_seconds, duration_seconds, updated_at
+         FROM series_last_episode WHERE channel_id = ?1",
+    )?;
+    let mut rows = stmt.query_map(params![channel_id], |row| {
+        Ok(LastEpisode {
+            channel_id: row.get(0)?,
+            season: row.get(1)?,
+            episode_id: row.get(2)?,
+            episode_num: row.get(3)?,
+            title: row.get(4)?,
+            position_seconds: row.get(5)?,
+            duration_seconds: row.get(6)?,
+            updated_at: row.get(7)?,
+        })
+    })?;
+    rows.next().transpose()
+}
+
+// ========== Random Play Preset Queries ==========
+
+const RANDOM_PLAY_PRESET_COLUMNS: &str =
+    "id, playlist_id, name, series_channel_ids, created_at, updated_at";
+
+fn map_random_play_preset_row(row: &Row) -> rusqlite::Result<RandomPlayPreset> {
+    let ids_json: String = row.get(3)?;
+    let series_channel_ids: Vec<i64> = serde_json::from_str(&ids_json).unwrap_or_default();
+    Ok(RandomPlayPreset {
+        id: row.get(0)?,
+        playlist_id: row.get(1)?,
+        name: row.get(2)?,
+        series_channel_ids,
+        created_at: row.get(4)?,
+        updated_at: row.get(5)?,
+    })
+}
+
+pub fn get_random_play_presets(conn: &Connection, playlist_id: i64) -> Result<Vec<RandomPlayPreset>> {
+    let sql = format!(
+        "SELECT {} FROM random_play_presets WHERE playlist_id = ?1 ORDER BY name",
+        RANDOM_PLAY_PRESET_COLUMNS
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let presets = stmt
+        .query_map(params![playlist_id], map_random_play_preset_row)?
+        .collect::<Result<Vec<_>>>()?;
+    Ok(presets)
+}
+
 // ========== Settings Queries ==========
 
 pub fn get_setting(conn: &Connection, key: &str) -> Result<Option<String>> {
@@ -353,6 +406,7 @@ mod tests {
                 is_favorite: false,
                 sort_order: i as i32,
                 category_order: *cat_order,
+                rating: None,
                 created_at: None,
             };
             create_channel(&conn, &channel).unwrap();
@@ -385,6 +439,7 @@ mod tests {
             is_favorite: false,
             sort_order: 0,
             category_order: 0,
+            rating: None,
             created_at: None,
         };
         create_channel(&conn, &live_channel).unwrap();
@@ -403,6 +458,7 @@ mod tests {
             is_favorite: false,
             sort_order: 1,
             category_order: 0,
+            rating: None,
             created_at: None,
         };
         create_channel(&conn, &vod_channel).unwrap();

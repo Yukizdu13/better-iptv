@@ -84,6 +84,55 @@ export interface EpisodeInfo {
   rating?: number;
 }
 
+export interface LastEpisode {
+  channel_id: number;
+  season: string;
+  episode_id: string;
+  episode_num: number;
+  title: string;
+  /** Last known playback position (null = only the episode is known) */
+  position_seconds?: number | null;
+  duration_seconds?: number | null;
+  updated_at?: string;
+}
+
+/** An episode queued for playback, with the metadata needed to track progress */
+export interface QueuedEpisode {
+  id: string;
+  title: string;
+  extension: string;
+  /** Channel id of the series this episode belongs to (random play mixes several series) */
+  seriesChannelId?: number;
+  season?: string;
+  episodeNum?: number;
+}
+
+/** MPV playback state read over IPC (desktop only) */
+export interface PlaybackStatus {
+  time_pos: number | null;
+  duration: number | null;
+  playlist_pos: number | null;
+  paused: boolean;
+  /** Playlist index where the user pressed `c` (keep the credits) in the MPV window */
+  cancel_credits_pos: number | null;
+}
+
+export interface AdvancedFilters {
+  languages: string[];
+  minYear: number | null;
+  maxYear: number | null;
+  minRating: number | null;
+}
+
+export interface RandomPlayPreset {
+  id: number;
+  playlist_id: number;
+  name: string;
+  series_channel_ids: number[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface MergeResult {
   added: number;
   updated: number;

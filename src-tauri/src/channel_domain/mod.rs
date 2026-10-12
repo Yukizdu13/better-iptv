@@ -345,6 +345,7 @@ mod tests {
             is_favorite,
             sort_order: 0,
             category_order: 0,
+            rating: None,
             created_at: None,
         }
     }

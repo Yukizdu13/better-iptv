@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Channel, Playlist, SeriesInfo } from '../types';
+import type { AdvancedFilters, Channel, Playlist, QueuedEpisode, SeriesInfo } from '../types';
 import { getParentalSettings, getBlockedChannels, toggleFavorite } from '../lib/tauri';
 
 interface PlayerState {
@@ -20,6 +20,9 @@ interface PlayerState {
   vodChannels: Channel[];
   seriesChannels: Channel[];
   favoriteChannels: Channel[];
+  // Favorites belonging to OTHER profiles/playlists (read-only display, see Favorites tab)
+  otherProfileFavorites: Channel[];
+  setOtherProfileFavorites: (channels: Channel[]) => void;
   setChannels: (channels: Channel[]) => void;
   setFilteredChannels: (channels: Channel[]) => void;
   setCurrentChannel: (channel: Channel | null) => void;
@@ -40,22 +43,22 @@ interface PlayerState {
   setCategories: (categories: string[]) => void;
 
   // Advanced Filters (vod/series only)
-  advancedFilters: {
-    languages: string[];
-    minYear: number | null;
-    maxYear: number | null;
-    minRating: number | null;
-  };
-  setAdvancedFilters: (filters: {
-    languages: string[];
-    minYear: number | null;
-    maxYear: number | null;
-    minRating: number | null;
-  }) => void;
+  advancedFilters: AdvancedFilters;
+  setAdvancedFilters: (filters: AdvancedFilters) => void;
+  // Filters applied automatically at startup and when switching tabs (saved in settings)
+  defaultAdvancedFilters: AdvancedFilters;
+  setDefaultAdvancedFilters: (filters: AdvancedFilters) => void;
 
   // Playback
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
+  // Episodes queued in MPV (same order as MPV's playlist), used to track series progress
+  seriesSession: QueuedEpisode[] | null;
+  setSeriesSession: (episodes: QueuedEpisode[] | null) => void;
+  // Short feedback shown in the Now Playing bar (seek result, errors...)
+  playbackNotice: { id: number; text: string; isError: boolean } | null;
+  showPlaybackNotice: (text: string, isError?: boolean) => void;
+  clearPlaybackNotice: () => void;
 
   // EPG (Electronic Program Guide)
   currentProgram: string | null;
@@ -100,6 +103,13 @@ interface PlayerState {
   checkChannelBlocked: (channel: Channel) => boolean;
 }
 
+export const EMPTY_ADVANCED_FILTERS: AdvancedFilters = {
+  languages: [],
+  minYear: null,
+  maxYear: null,
+  minRating: null,
+};
+
 export const usePlayerStore = create<PlayerState>((set) => ({
   // Playlists
   playlists: [],
@@ -117,6 +127,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   vodChannels: [],
   seriesChannels: [],
   favoriteChannels: [],
+  otherProfileFavorites: [],
+  setOtherProfileFavorites: (channels) => set({ otherProfileFavorites: channels }),
   setChannels: (channels) => {
     // Pre-filter channels by type for instant tab switching
     const liveChannels = channels.filter((c) => c.content_type === 'live');
@@ -185,12 +197,20 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setCategories: (categories) => set({ categories }),
 
   // Advanced Filters
-  advancedFilters: { languages: [], minYear: null, maxYear: null, minRating: null },
+  advancedFilters: { ...EMPTY_ADVANCED_FILTERS },
   setAdvancedFilters: (filters) => set({ advancedFilters: filters }),
+  defaultAdvancedFilters: { ...EMPTY_ADVANCED_FILTERS },
+  setDefaultAdvancedFilters: (filters) => set({ defaultAdvancedFilters: filters }),
 
   // Playback
   isPlaying: false,
   setIsPlaying: (playing) => set({ isPlaying: playing }),
+  seriesSession: null,
+  setSeriesSession: (episodes) => set({ seriesSession: episodes }),
+  playbackNotice: null,
+  showPlaybackNotice: (text, isError = false) =>
+    set({ playbackNotice: { id: Date.now(), text, isError } }),
+  clearPlaybackNotice: () => set({ playbackNotice: null }),
 
   // EPG (Electronic Program Guide)
   currentProgram: null,

@@ -17,7 +17,8 @@ export {
 } from './useChannelFilter';
 
 // Channel playback
-export { useChannelPlayback, type PlaylistEpisode } from './useChannelPlayback';
+export { useChannelPlayback } from './useChannelPlayback';
+export { useSeriesProgress } from './useSeriesProgress';
 
 // EPG data
 export { useEpgData, useChannelEpg } from './useEpgData';

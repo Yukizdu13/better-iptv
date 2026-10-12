@@ -9,13 +9,7 @@ import {
 } from '../lib/tauri';
 import { isIOS } from '../lib/platform';
 import { logger } from '../lib/logger';
-import type { Channel, Playlist } from '../types';
-
-export interface PlaylistEpisode {
-  id: string;
-  title: string;
-  extension: string;
-}
+import type { Channel, Playlist, QueuedEpisode } from '../types';
 
 interface UseChannelPlaybackResult {
   currentChannel: Channel | null;
@@ -31,7 +25,8 @@ interface UseChannelPlaybackResult {
     extension: string,
     title: string,
     playlist: Playlist,
-    remainingEpisodes?: PlaylistEpisode[]
+    remainingEpisodes?: QueuedEpisode[],
+    startSeconds?: number
   ) => Promise<void>;
 }
 
@@ -44,6 +39,7 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
   const setIsPlaying = usePlayerStore((s) => s.setIsPlaying);
   const setCurrentProgram = usePlayerStore((s) => s.setCurrentProgram);
   const setNextProgram = usePlayerStore((s) => s.setNextProgram);
+  const setSeriesSession = usePlayerStore((s) => s.setSeriesSession);
 
   const [iosStreamUrls, setIosStreamUrls] = useState<string[]>([]);
 
@@ -57,6 +53,7 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
         if (!playing) {
           setIsPlaying(false);
           setCurrentChannel(null);
+          setSeriesSession(null);
           setCurrentProgram(null);
           setNextProgram(null);
         }
@@ -66,7 +63,7 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isPlaying, setIsPlaying, setCurrentChannel, setCurrentProgram, setNextProgram]);
+  }, [isPlaying, setIsPlaying, setCurrentChannel, setCurrentProgram, setNextProgram, setSeriesSession]);
 
   // Update EPG periodically while playing
   useEffect(() => {
@@ -108,6 +105,8 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
         return;
       }
 
+      setSeriesSession(null);
+
       if (isIOS()) {
         // iOS: set state only — IOSVideoPlayer renders the <video> element
         setCurrentChannel(channel);
@@ -141,10 +140,19 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
         setNextProgram(null);
       }
     },
-    [currentChannel, isPlaying, setCurrentChannel, setIsPlaying, setCurrentProgram, setNextProgram]
+    [
+      currentChannel,
+      isPlaying,
+      setCurrentChannel,
+      setIsPlaying,
+      setCurrentProgram,
+      setNextProgram,
+      setSeriesSession,
+    ]
   );
 
   const stop = useCallback(async () => {
+    setSeriesSession(null);
     if (isIOS()) {
       setIsPlaying(false);
       setCurrentChannel(null);
@@ -162,7 +170,7 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
       logger.error('Failed to stop playback:', err);
       throw err;
     }
-  }, [setIsPlaying, setCurrentChannel, setCurrentProgram, setNextProgram]);
+  }, [setIsPlaying, setCurrentChannel, setCurrentProgram, setNextProgram, setSeriesSession]);
 
   const playEpisode = useCallback(
     async (
@@ -170,7 +178,8 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
       extension: string,
       title: string,
       playlist: Playlist,
-      remainingEpisodes?: PlaylistEpisode[]
+      remainingEpisodes?: QueuedEpisode[],
+      startSeconds?: number
     ) => {
       if (!playlist.url || !playlist.xtream_username || !playlist.xtream_password) {
         logger.error('Missing Xtream credentials');
@@ -201,6 +210,7 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
         setCurrentChannel(episodeChannel);
         setIsPlaying(true);
         setIosStreamUrls(urls);
+        setSeriesSession(null);
         return;
       }
 
@@ -211,8 +221,20 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
             playlist.url,
             playlist.xtream_username,
             playlist.xtream_password,
-            remainingEpisodes
+            remainingEpisodes,
+            startSeconds
           );
+          // Without a current channel the Now Playing bar and seek shortcuts stay disabled
+          setCurrentChannel({
+            id: -1,
+            playlist_id: playlist.id ?? 0,
+            name: remainingEpisodes[0].title,
+            url: `${playlist.url.replace(/\/$/, '')}/series/${playlist.xtream_username}/${playlist.xtream_password}/${remainingEpisodes[0].id}.${remainingEpisodes[0].extension}`,
+            content_type: 'series',
+            is_favorite: false,
+            sort_order: 0,
+          });
+          setSeriesSession(remainingEpisodes);
           setIsPlaying(true);
         } else {
           const episodeUrl = `${playlist.url.replace(/\/$/, '')}/series/${playlist.xtream_username}/${playlist.xtream_password}/${episodeId}.${extension}`;
@@ -227,6 +249,7 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
           };
           await tauriPlayChannel(episodeChannel);
           setCurrentChannel(episodeChannel);
+          setSeriesSession(null);
           setIsPlaying(true);
         }
       } catch (err) {
@@ -234,7 +257,7 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
         throw err;
       }
     },
-    [setCurrentChannel, setIsPlaying]
+    [setCurrentChannel, setIsPlaying, setSeriesSession]
   );
 
   return {

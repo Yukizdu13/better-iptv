@@ -8,6 +8,7 @@ pub mod series;
 pub mod vod;
 pub mod settings;
 pub mod parental;
+pub mod random_play;
 
 // Re-export all commands for lib.rs
 pub use platform::*;
@@ -19,3 +20,4 @@ pub use series::*;
 pub use vod::*;
 pub use settings::*;
 pub use parental::*;
+pub use random_play::*;

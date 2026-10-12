@@ -3,6 +3,22 @@
 All notable changes to Better IPTV will be documented in this file.
 This file is a developer-changelog, aimed towards development changes.
 
+## [Unreleased]
+
+### Added
+
+- **Random multi-series play** - `RandomPlayModal` (virtualized series list, saved presets), balanced shuffled round-robin queue (`src/lib/randomPlaylist.ts`), in-memory episode cache, 8s per-series timeout and progress counter
+- **Series progress** - last watched episode with exact resume position (`series_last_episode`, `useSeriesProgress`), credits auto-skip (global + per-series setting) with countdown
+- **MPV control** - IPC request/response layer (`mpv.rs`): +/-10s seek, playlist next, pause, OSD messages, `c` key to keep the credits, arrows seek 10s in the MPV window
+- **Video quality setting** - Economy / Balanced (default) / High (`video_quality`); lighter default avoids loud fans on integrated GPUs
+- **Advanced filters** - language / year / rating filters with a saveable default; rating overlay on hover; other profiles' favorites (read-only)
+
+### Fixed
+
+- **Xtream `get_series_info`** - accept `episodes` as an object, list of lists (series with a season 0), flat list or empty list; no more retries on valid-but-unexpected JSON
+- **MPV window** - capped at 90% of the screen (`--autofit-larger`); bounded demuxer back-buffer
+- **Scroll reset** when switching tabs
+
 ## [2.6.1] - 2026-03-10
 
 ### Fixed

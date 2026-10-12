@@ -18,6 +18,10 @@ interface ChannelCardProps {
   parentalVisibility?: 'hide' | 'lock' | 'blur';
   /** Callback when favorite star is toggled */
   onToggleFavorite?: (channelId: number) => void;
+  /** Read-only mode: dims the card and disables all interaction (e.g. favorites from another profile) */
+  readOnly?: boolean;
+  /** Label shown on a read-only card (e.g. the owning profile's name) */
+  readOnlyLabel?: string;
 }
 
 /**
@@ -39,6 +43,8 @@ export const ChannelCard = memo(function ChannelCard({
   isBlocked = false,
   parentalVisibility = 'hide',
   onToggleFavorite,
+  readOnly = false,
+  readOnlyLabel,
 }: ChannelCardProps) {
   // Calculate dynamic image height (approximately 45% of card height)
   const imageHeight = Math.max(80, Math.round(cardHeight * 0.45));
@@ -49,8 +55,11 @@ export const ChannelCard = memo(function ChannelCard({
 
   return (
     <div
-      className="relative flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
-      style={{ height: `${cardHeight}px` }}
+      className={`relative flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow dark:border-gray-700 dark:bg-gray-800 ${
+        readOnly ? 'grayscale' : 'hover:shadow-md'
+      }`}
+      style={{ height: `${cardHeight}px`, opacity: readOnly ? 0.55 : 1 }}
+      title={readOnly ? readOnlyLabel : undefined}
     >
       {/* Logo/Image section */}
       <div className="group relative flex-shrink-0 bg-gray-900">
@@ -78,25 +87,40 @@ export const ChannelCard = memo(function ChannelCard({
             </span>
           </div>
         )}
-        <button
-          type="button"
-          aria-label={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite?.(channel.id);
-          }}
-          className={`absolute right-2 top-2 rounded-full p-1 transition-opacity ${
-            channel.is_favorite
-              ? 'bg-yellow-400 opacity-100'
-              : 'bg-black/40 opacity-0 hover:bg-black/60 group-hover:opacity-100'
-          }`}
-        >
-          <Star
-            className={`${isSmall ? 'h-3 w-3' : 'h-4 w-4'} ${
-              channel.is_favorite ? 'fill-white text-white' : 'text-white'
+        {!readOnly && (
+          <button
+            type="button"
+            aria-label={channel.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite?.(channel.id);
+            }}
+            className={`absolute right-2 top-2 rounded-full p-1 transition-opacity ${
+              channel.is_favorite
+                ? 'bg-yellow-400 opacity-100'
+                : 'bg-black/40 opacity-0 hover:bg-black/60 group-hover:opacity-100'
             }`}
-          />
-        </button>
+          >
+            <Star
+              className={`${isSmall ? 'h-3 w-3' : 'h-4 w-4'} ${
+                channel.is_favorite ? 'fill-white text-white' : 'text-white'
+              }`}
+            />
+          </button>
+        )}
+        {readOnly && readOnlyLabel && (
+          <span className="absolute left-2 top-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+            {readOnlyLabel}
+          </span>
+        )}
+        {channel.content_type !== 'live' && channel.rating != null && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="flex items-center gap-1 text-lg font-semibold text-white">
+              <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+              {channel.rating.toFixed(1)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content section */}
@@ -125,15 +149,18 @@ export const ChannelCard = memo(function ChannelCard({
 
         {/* Action button */}
         <button
-          onClick={() => onPlay(channel)}
+          onClick={() => !readOnly && onPlay(channel)}
+          disabled={readOnly}
           className={`flex w-full items-center justify-center gap-2 rounded-md font-medium transition-colors ${
             isLarge ? 'mt-3 px-4 py-2.5' : isSmall ? 'mt-2 px-3 py-1.5 text-sm' : 'mt-2 px-4 py-2'
           } ${
-            isPlaying
-              ? 'bg-red-600 text-white hover:bg-red-700'
-              : channel.content_type === 'series'
-                ? 'bg-purple-600 text-white hover:bg-purple-700'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+            readOnly
+              ? 'cursor-not-allowed bg-gray-400 text-white dark:bg-gray-600'
+              : isPlaying
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : channel.content_type === 'series'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}
         >
           {isPlaying ? (

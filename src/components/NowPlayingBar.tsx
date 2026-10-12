@@ -1,6 +1,11 @@
-import { memo } from 'react';
-import { Square } from 'lucide-react';
+import { memo, useEffect } from 'react';
+import { Square, RotateCcw, RotateCw, SkipForward } from 'lucide-react';
 import type { Channel } from '../types';
+import { seekBy } from '../lib/playbackControls';
+import { usePlayerStore } from '../stores/player-store';
+
+/** How long a playback notice stays visible */
+const NOTICE_DURATION_MS = 2500;
 
 interface NowPlayingBarProps {
   /** Currently playing channel */
@@ -11,6 +16,10 @@ interface NowPlayingBarProps {
   nextProgram?: string | null;
   /** Callback when stop button is clicked */
   onStop: () => void;
+  /** Seconds before auto-jumping to the next episode (credits skip), null = none */
+  autoNextIn?: number | null;
+  /** Keep watching the credits of the current episode */
+  onCancelAutoNext?: () => void;
 }
 
 /**
@@ -27,7 +36,18 @@ export const NowPlayingBar = memo(function NowPlayingBar({
   currentProgram,
   nextProgram,
   onStop,
+  autoNextIn = null,
+  onCancelAutoNext,
 }: NowPlayingBarProps) {
+  const notice = usePlayerStore((s) => s.playbackNotice);
+  const clearNotice = usePlayerStore((s) => s.clearPlaybackNotice);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = setTimeout(clearNotice, notice.isError ? NOTICE_DURATION_MS * 2 : NOTICE_DURATION_MS);
+    return () => clearTimeout(timeout);
+  }, [notice, clearNotice]);
+
   return (
     <div className="bg-blue-600 p-4 text-white">
       <div className="mx-auto flex items-center justify-between px-2">
@@ -57,13 +77,55 @@ export const NowPlayingBar = memo(function NowPlayingBar({
             )}
           </div>
         </div>
-        <button
-          onClick={onStop}
-          className="rounded-lg bg-white/20 p-2 transition-colors hover:bg-white/30"
-          aria-label="Stop playback"
-        >
-          <Square className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          {autoNextIn != null && (
+            <div className="flex items-center gap-2 rounded-lg bg-white/20 px-3 py-1.5 text-sm">
+              <SkipForward className="h-4 w-4" />
+              <span>Épisode suivant dans {autoNextIn}s</span>
+              {onCancelAutoNext && (
+                <button
+                  onClick={onCancelAutoNext}
+                  className="rounded bg-white/20 px-2 py-0.5 text-xs font-medium hover:bg-white/30"
+                >
+                  Regarder le générique
+                </button>
+              )}
+            </div>
+          )}
+          {notice && (
+            <span
+              className={`rounded-lg px-3 py-1.5 text-sm ${
+                notice.isError ? 'bg-red-600' : 'bg-white/20'
+              }`}
+              role="status"
+            >
+              {notice.text}
+            </span>
+          )}
+          <button
+            onClick={() => void seekBy(-10)}
+            className="rounded-lg bg-white/20 p-2 transition-colors hover:bg-white/30"
+            aria-label="Reculer de 10 secondes"
+            title="-10s"
+          >
+            <RotateCcw className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => void seekBy(10)}
+            className="rounded-lg bg-white/20 p-2 transition-colors hover:bg-white/30"
+            aria-label="Avancer de 10 secondes"
+            title="+10s"
+          >
+            <RotateCw className="h-5 w-5" />
+          </button>
+          <button
+            onClick={onStop}
+            className="rounded-lg bg-white/20 p-2 transition-colors hover:bg-white/30"
+            aria-label="Stop playback"
+          >
+            <Square className="h-5 w-5" />
+          </button>
+        </div>
       </div>
     </div>
   );

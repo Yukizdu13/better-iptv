@@ -1,6 +1,47 @@
+use crate::db::models::LastEpisode;
+use crate::db::{mutations, queries};
 use crate::error::AppError;
 use crate::playlist::{fetch_series_info, SeriesInfo, XtreamCredentials};
 use crate::series_domain::{self, PlaylistEpisode};
+use crate::state::AppState;
+use tauri::State;
+
+#[tauri::command]
+pub async fn get_last_episode(
+    state: State<'_, AppState>,
+    channel_id: i64,
+) -> Result<Option<LastEpisode>, AppError> {
+    let conn = state.pool.get()?;
+    Ok(queries::get_last_episode(&conn, channel_id)?)
+}
+
+#[tauri::command]
+#[allow(clippy::too_many_arguments)] // one argument per field sent by the frontend
+pub async fn set_last_episode(
+    state: State<'_, AppState>,
+    channel_id: i64,
+    season: String,
+    episode_id: String,
+    episode_num: i32,
+    title: String,
+    position_seconds: Option<f64>,
+    duration_seconds: Option<f64>,
+) -> Result<(), AppError> {
+    let conn = state.pool.get()?;
+    mutations::set_last_episode(
+        &conn,
+        channel_id,
+        &mutations::LastEpisodeUpdate {
+            season: &season,
+            episode_id: &episode_id,
+            episode_num,
+            title: &title,
+            position_seconds,
+            duration_seconds,
+        },
+    )?;
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn get_series_info(
@@ -26,11 +67,7 @@ pub async fn get_series_info(
 // ── Desktop — MPV playlist playback ──────────────────────────────────────────
 
 #[cfg(not(target_os = "ios"))]
-use crate::state::AppState;
-#[cfg(not(target_os = "ios"))]
 use log::info;
-#[cfg(not(target_os = "ios"))]
-use tauri::State;
 
 #[cfg(not(target_os = "ios"))]
 fn get_language_settings(
@@ -57,6 +94,7 @@ pub async fn play_episode_with_season(
     username: String,
     password: String,
     episodes: Vec<PlaylistEpisode>,
+    start_seconds: Option<f64>,
 ) -> Result<(), AppError> {
     series_domain::validate_episodes(&episodes)?;
     series_domain::validate_server_url(&server_url)?;
@@ -75,15 +113,25 @@ pub async fn play_episode_with_season(
         });
     }
 
-    let (audio_lang, subtitle_lang) = {
+    let (audio_lang, subtitle_lang, quality) = {
         let conn = state.pool.get()?;
-        get_language_settings(&conn)?
+        let (audio, subtitle) = get_language_settings(&conn)?;
+        let quality = crate::db::queries::get_multiple_settings(&conn, &["video_quality"])?;
+        (
+            audio,
+            subtitle,
+            crate::playback::mpv::VideoQuality::from_setting(
+                quality.get("video_quality").map(String::as_str),
+            ),
+        )
     };
 
     let mut player = state.mpv_player.lock().await;
+    player.set_video_quality(quality);
     player
         .play_with_playlist(
             &urls,
+            start_seconds,
             Some(first_title),
             audio_lang.as_deref(),
             subtitle_lang.as_deref(),
@@ -103,6 +151,7 @@ pub async fn play_episode_with_season(
     _username: String,
     _password: String,
     _episodes: Vec<PlaylistEpisode>,
+    _start_seconds: Option<f64>,
 ) -> Result<(), AppError> {
     Ok(())
 }

@@ -303,3 +303,41 @@ export interface ParentalSettings {
 export async function getParentalSettings(): Promise<ParentalSettings> {
   return await invoke('get_parental_settings');
 }
+
+// ========== Universal Account (export / import of an encrypted account file) ==========
+
+export interface AccountExportReport {
+  path: string;
+  profiles: number;
+  favorites: number;
+  series_progress: number;
+  presets: number;
+  settings: number;
+}
+
+export interface AccountMergeReport {
+  profiles_added: number;
+  profiles_updated: number;
+  profiles_deleted: number;
+  favorites_applied: number;
+  progress_applied: number;
+  presets_applied: number;
+  settings_applied: number;
+  /** Items waiting for the playlist channels to be imported on this device */
+  pending: number;
+}
+
+export async function defaultAccountFilePath(): Promise<string> {
+  return await invoke('default_account_file_path');
+}
+
+export async function exportAccount(
+  path: string,
+  passphrase: string
+): Promise<AccountExportReport> {
+  return await invoke('export_account', { path, passphrase });
+}
+
+export async function importAccount(path: string, passphrase: string): Promise<AccountMergeReport> {
+  return await invoke('import_account', { path, passphrase });
+}

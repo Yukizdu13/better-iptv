@@ -11,6 +11,7 @@ mod playlist;
 mod playlist_domain;
 mod series_domain;
 mod state;
+mod sync_domain;
 mod utils;
 
 pub use error::{AppError, AppResult};
@@ -163,6 +164,9 @@ pub fn run() {
             create_random_play_preset,
             update_random_play_preset,
             delete_random_play_preset,
+            default_account_file_path,
+            export_account,
+            import_account,
             // VOD commands
             get_vod_info,
             // Settings commands

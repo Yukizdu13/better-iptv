@@ -2,7 +2,7 @@
 
 > **Ce fichier doit TOUJOURS être tenu à jour.** Toute modification qui change la structure du repo, les commandes, les plateformes, le flux git/release ou une règle ci-dessous impose de mettre à jour ce fichier **dans le même commit**. Lire ce fichier = le corriger s'il est périmé.
 > Fichier compagnon, à tenir à jour avec lui : [`docs/ARBORESCENCE_PLATEFORMES.md`](docs/ARBORESCENCE_PLATEFORMES.md) (fichiers nécessaires par plateforme).
-> Dernière mise à jour : 2026-11-21 (version de l'app : 2.6.1).
+> Dernière mise à jour : 2026-11-21 (version de l'app : 2.6.1 ; compte universel étape 1 ajoutée).
 
 Les règles universelles de l'utilisateur sont chargées via son `~/.claude/CLAUDE.md` (hors repo) ; ce fichier ne contient que ce qui est propre au projet.
 
@@ -28,7 +28,8 @@ Playlists M3U et Xtream Codes (live, VOD, séries, EPG XMLTV), profils, favoris,
 ```
 src/                  Frontend (components/, hooks/, lib/, stores/, types/, test/)
 src-tauri/src/        Backend Rust : commands/ (API Tauri), db/, playback/ (mpv.rs),
-                      playlist/ (parser M3U + xtream.rs), epg/, *_domain/, state.rs, lib.rs
+                      playlist/ (parser M3U + xtream.rs), epg/, *_domain/ (dont sync_domain/ :
+                      compte universel, #20), state.rs, lib.rs
 src-tauri/            Cargo.toml, tauri.conf.json, capabilities/, icons/, templates/ (.desktop)
 resources/mpv/        mpv.exe + DLL embarqués (Windows uniquement, vide dans le repo)
 .github/workflows/    release.yml (3 OS), test.yml (Ubuntu), ios.yml (.ipa non signé)
@@ -73,6 +74,8 @@ npm run tauri build -- --bundles deb           # paquet Linux
 ## Pièges connus
 
 - **Formats Xtream** : les fournisseurs renvoient des types variables (`season_number` int/string, `episodes` en liste de listes quand une saison 0 existe). Toujours désérialiser de façon tolérante (`de_string_or_int`, `de_episodes` dans `playlist/xtream.rs`) plutôt que du code par fournisseur.
+- **Dépôt public** : `fork` est public. Aucune info d'infrastructure perso dans le repo ni dans les messages de commit (hôtes, domaine, IP, ports, chemins serveur, config serveur) : les détails vont dans les notes privées de l'utilisateur, le backlog reste générique (« serveur personnel »). Relire le diff avant chaque commit de docs.
+- **Compte universel (#20, étape 1)** : Paramètres > Compte exporte/importe un fichier `.biptv` chiffré (Argon2id + XChaCha20-Poly1305, phrase ≥ 25 caractères) ; code dans `src-tauri/src/sync_domain/` (crypto, snapshot, fusion « le plus récent gagne ») et `commands/account.rs`. Favoris/progression/presets sont identifiés par une clé stable `(uuid du profil, clé de chaîne)`, jamais par `channel_id`. Linux : testé en unitaire ; Windows : à valider ; iOS : onglet masqué.
 - **Données sensibles** : la base SQLite de l'utilisateur contient les identifiants Xtream **en clair** → ne jamais les afficher, logger, ni les mettre dans un fichier ou une mémoire. Les URL sont masquées dans les logs (`utils::mask_credentials`).
 - **Linux/Wayland** : `WEBKIT_DISABLE_DMABUF_RENDERER=1` est forcé (`lib.rs` et `src-tauri/templates/better-iptv.desktop`) — ne pas retirer.
 - **Menu KDE « Better IPTV+Kev »** = binaire **installé** (`/usr/bin/better-ip-tv`, paquet `better-iptv-kev`), pas le working tree : pour tester du code neuf, `npm run tauri dev` ou rebuild + `sudo dpkg -i` du `.deb`.

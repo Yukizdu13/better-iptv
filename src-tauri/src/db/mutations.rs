@@ -23,13 +23,19 @@ pub fn create_playlist(conn: &Connection, playlist: &Playlist) -> Result<i64> {
 }
 
 pub fn delete_playlist(conn: &Connection, id: i64) -> Result<()> {
+    // Deletion marker so the other devices drop the profile on their next sync
+    conn.execute(
+        "INSERT OR REPLACE INTO sync_tombstones (kind, uuid, deleted_at)
+         SELECT 'profile', uuid, CURRENT_TIMESTAMP FROM playlists WHERE id = ?1 AND uuid IS NOT NULL",
+        params![id],
+    )?;
     conn.execute("DELETE FROM playlists WHERE id = ?1", params![id])?;
     Ok(())
 }
 
 pub fn rename_playlist(conn: &Connection, playlist_id: i64, new_name: &str) -> Result<()> {
     conn.execute(
-        "UPDATE playlists SET name = ?1 WHERE id = ?2",
+        "UPDATE playlists SET name = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
         params![new_name, playlist_id],
     )?;
     Ok(())
@@ -88,12 +94,20 @@ pub fn create_channels_batch(conn: &Connection, channels: &[Channel]) -> Result<
 
     tx.commit()?;
     debug!("create_channels_batch: {} channels in {:?}", channels.len(), start.elapsed());
+
+    // Re-apply synced favorites / progress waiting for these channels (#20)
+    let mut playlist_ids: Vec<i64> = channels.iter().map(|c| c.playlist_id).collect();
+    playlist_ids.sort_unstable();
+    playlist_ids.dedup();
+    for playlist_id in playlist_ids {
+        crate::sync_domain::merge::apply_pending_for_playlist(conn, playlist_id)?;
+    }
     Ok(())
 }
 
 pub fn toggle_favorite(conn: &Connection, channel_id: i64) -> Result<()> {
     conn.execute(
-        "UPDATE channels SET is_favorite = NOT is_favorite WHERE id = ?1",
+        "UPDATE channels SET is_favorite = NOT is_favorite, favorite_updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
         params![channel_id],
     )?;
     Ok(())
@@ -170,6 +184,11 @@ pub fn update_random_play_preset(
 }
 
 pub fn delete_random_play_preset(conn: &Connection, id: i64) -> Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO sync_tombstones (kind, uuid, deleted_at)
+         SELECT 'preset', uuid, CURRENT_TIMESTAMP FROM random_play_presets WHERE id = ?1 AND uuid IS NOT NULL",
+        params![id],
+    )?;
     conn.execute("DELETE FROM random_play_presets WHERE id = ?1", params![id])?;
     Ok(())
 }
@@ -204,7 +223,7 @@ pub fn update_playlist_last_updated(conn: &Connection, id: i64) -> Result<()> {
 
 /// Extract stream_id from an Xtream-style URL.
 /// Pattern: /{live|movie|series}/user/pass/{stream_id}.{ext}
-fn extract_stream_id_from_url(url: &str) -> Option<i64> {
+pub(crate) fn extract_stream_id_from_url(url: &str) -> Option<i64> {
     let path = url.rsplit('/').next()?;
     let id_str = path.split('.').next()?;
     id_str.parse::<i64>().ok()
@@ -372,6 +391,9 @@ pub fn merge_channels(
     }
 
     tx.commit()?;
+
+    // Re-apply synced favorites / progress waiting for these channels (#20)
+    crate::sync_domain::merge::apply_pending_for_playlist(conn, playlist_id)?;
 
     let total = added + updated;
     debug!("merge_channels: added={}, updated={}, removed={} in {:?}", added, updated, removed, start.elapsed());

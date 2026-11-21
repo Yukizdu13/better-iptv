@@ -41,6 +41,8 @@ backoff = { version = "0.4", features = ["tokio"] }
 wait-timeout = "0.2"
 argon2 = "0.5"  # PIN hashing for parental controls
 rand = "0.9"    # Salt generation for PIN hashing
+chacha20poly1305 = "0.10"  # Account export/sync file encryption (XChaCha20-Poly1305)
+zeroize = "1"              # Wipe derived keys from memory
 
 [profile.release]
 lto = true

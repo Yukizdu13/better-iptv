@@ -1,7 +1,7 @@
 # Arborescence des fichiers nécessaires par plateforme
 
 > **Ce fichier doit TOUJOURS être tenu à jour.** Dès qu'un fichier propre à une plateforme est ajouté, déplacé, renommé ou supprimé (build, bundle, CI, ressource, config native), ou qu'une dépendance système change, mettre à jour ce fichier **dans le même commit**. À relire avec [`CLAUDE.md`](../CLAUDE.md) (racine), à tenir à jour avec lui.
-> Dernière mise à jour : 2026-11-21 (version de l'app : 2.6.1). Chemins relatifs à la racine du repo.
+> Dernière mise à jour : 2026-11-21 (version de l'app : 2.6.1 ; compte universel étape 1). Chemins relatifs à la racine du repo.
 
 ## 1. Socle commun (toutes plateformes)
 
@@ -19,9 +19,14 @@ src-tauri/tauri.conf.json              Config Tauri (version, bundle, CSP, resso
 src-tauri/capabilities/default.json    Permissions desktop (core, opener)
 src-tauri/icons/                       32x32, 128x128, @2x, icon.icns (macOS), icon.ico (Windows), icon.png, Square*Logo.png
 src-tauri/src/                         Backend Rust (voir CLAUDE.md > Structure)
+src-tauri/src/sync_domain/             Compte universel (#20) : crypto.rs, snapshot.rs, merge.rs (même code Linux/Windows)
+src-tauri/src/commands/account.rs      Commandes export_account / import_account / default_account_file_path
+src/components/settings/AccountTab.tsx Onglet Paramètres > Compte (masqué sur iOS)
 prochaine_maj.json                     Backlog (champs distributions / statut / statut_windows)
 .github/workflows/test.yml             CI tests (Ubuntu 24.04) : lint, prettier, vitest, clippy, cargo test, build
 ```
+
+Dépendances Rust ajoutées pour le compte universel : `chacha20poly1305`, `zeroize` (+ `argon2`, `rand` déjà présents). Aucune permission Tauri ajoutée : pas de plugin dialog, le chemin du fichier se saisit à la main (défaut : dossier Documents).
 
 Générés, **non versionnés** : `node_modules/`, `dist/` (frontend compilé), `src-tauri/target/`, `src-tauri/gen/schemas/`.
 
@@ -88,6 +93,8 @@ src-tauri/src/commands/series.rs, state.rs, playback/mod.rs   Exclusions/variant
 src/lib/platform.ts                       isIOS() (via la commande Tauri get_platform)
 src/components/IOSVideoPlayer.tsx         Lecteur <video> iOS
 ```
+
+Compte universel : onglet Compte masqué sur iOS (pas de sélecteur de fichier ; hors première version).
 
 Générés par la CI, **non versionnés** : `src-tauri/gen/apple/` (projet Xcode, recréé par `tauri ios init`).
 Build local impossible sans Xcode complet : passer par GitHub Actions. Identifiant : `com.m0s.better-ip-tv`.

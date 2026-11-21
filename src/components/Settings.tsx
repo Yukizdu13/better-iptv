@@ -12,6 +12,7 @@ import {
 import type { EpgStatus } from '../lib/tauri';
 import { usePlayerStore } from '../stores/player-store';
 import { logger } from '../lib/logger';
+import { isIOS } from '../lib/platform';
 import ProfileManager from './ProfileManager';
 import PinEntryModal from './modals/PinEntryModal';
 import ChannelBlockingModal from './modals/ChannelBlockingModal';
@@ -23,6 +24,7 @@ import {
   GeneralTab,
   PlaybackTab,
   ParentalTab,
+  AccountTab,
   AboutTab,
   LANGUAGE_OPTIONS,
   USER_AGENT_OPTIONS,
@@ -140,7 +142,7 @@ export default function Settings({ onClose }: SettingsProps) {
     loadSettings();
   }, []);
 
-  // Keyboard navigation (Ctrl+1-5 for tab switching)
+  // Keyboard navigation (Ctrl+1-6 for tab switching)
   useEffect(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
@@ -149,7 +151,8 @@ export default function Settings({ onClose }: SettingsProps) {
           '2': 'playback',
           '3': 'parental',
           '4': 'profiles',
-          '5': 'about',
+          '5': 'account',
+          '6': 'about',
         };
         if (tabMap[e.key]) {
           e.preventDefault();
@@ -335,6 +338,7 @@ export default function Settings({ onClose }: SettingsProps) {
               <TabsTrigger value="playback">Playback</TabsTrigger>
               <TabsTrigger value="parental">Parental</TabsTrigger>
               <TabsTrigger value="profiles">Profiles</TabsTrigger>
+              {!isIOS() && <TabsTrigger value="account">Compte</TabsTrigger>}
               <TabsTrigger value="about">About</TabsTrigger>
             </TabsList>
 
@@ -388,6 +392,10 @@ export default function Settings({ onClose }: SettingsProps) {
 
             <TabsContent value="profiles">
               <ProfileManager onClose={onClose} />
+            </TabsContent>
+
+            <TabsContent value="account">
+              <AccountTab />
             </TabsContent>
 
             <TabsContent value="about">

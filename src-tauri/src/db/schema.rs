@@ -191,6 +191,9 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
         [],
     )?;
 
+    // ---- Compte universel (#20) : colonnes et tables de synchronisation ----
+    migrate_sync_columns(conn)?;
+
     // EPG Sources table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS epg_sources (
@@ -230,6 +233,92 @@ pub fn ensure_active_profile(conn: &Connection) -> Result<()> {
             );
         }
     }
+
+    Ok(())
+}
+
+/// Migration for the universal account (#20): stable identifiers (uuid), modification
+/// timestamps and deletion markers, so data can be merged between devices.
+///
+/// Safe on existing databases: `ALTER TABLE` errors (column already there) are ignored and the
+/// backfill only touches rows that have no value yet.
+fn migrate_sync_columns(conn: &Connection) -> Result<()> {
+    // Profiles (playlists)
+    let _ = conn.execute("ALTER TABLE playlists ADD COLUMN uuid TEXT", []);
+    let _ = conn.execute("ALTER TABLE playlists ADD COLUMN updated_at TIMESTAMP", []);
+    conn.execute(
+        "UPDATE playlists SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL",
+        [],
+    )?;
+    conn.execute(
+        "UPDATE playlists SET updated_at = COALESCE(created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL",
+        [],
+    )?;
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_playlists_uuid ON playlists(uuid)",
+        [],
+    )?;
+    // New rows get their uuid / updated_at without touching every INSERT call site
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS trg_playlists_sync_defaults
+         AFTER INSERT ON playlists
+         WHEN NEW.uuid IS NULL OR NEW.updated_at IS NULL
+         BEGIN
+             UPDATE playlists
+             SET uuid = COALESCE(NEW.uuid, lower(hex(randomblob(16)))),
+                 updated_at = COALESCE(NEW.updated_at, CURRENT_TIMESTAMP)
+             WHERE id = NEW.id;
+         END",
+        [],
+    )?;
+
+    // Favorites: when the favorite flag last changed (NULL = never touched since the migration)
+    let _ = conn.execute("ALTER TABLE channels ADD COLUMN favorite_updated_at TIMESTAMP", []);
+
+    // Random play presets
+    let _ = conn.execute("ALTER TABLE random_play_presets ADD COLUMN uuid TEXT", []);
+    conn.execute(
+        "UPDATE random_play_presets SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL",
+        [],
+    )?;
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_random_play_presets_uuid ON random_play_presets(uuid)",
+        [],
+    )?;
+    conn.execute(
+        "CREATE TRIGGER IF NOT EXISTS trg_presets_sync_defaults
+         AFTER INSERT ON random_play_presets
+         WHEN NEW.uuid IS NULL
+         BEGIN
+             UPDATE random_play_presets SET uuid = lower(hex(randomblob(16))) WHERE id = NEW.id;
+         END",
+        [],
+    )?;
+
+    // Deletion markers: a deleted profile / preset must disappear on the other devices too
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS sync_tombstones (
+            kind TEXT NOT NULL,
+            uuid TEXT NOT NULL,
+            deleted_at TIMESTAMP NOT NULL,
+            PRIMARY KEY (kind, uuid)
+        )",
+        [],
+    )?;
+
+    // Synced data whose channel is not in the local database yet (playlist not imported on this
+    // device). Re-applied after each channel import of the playlist.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS sync_pending (
+            kind TEXT NOT NULL,
+            playlist_uuid TEXT NOT NULL,
+            item_key TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            updated_at TIMESTAMP NOT NULL,
+            PRIMARY KEY (kind, playlist_uuid, item_key)
+        )",
+        [],
+    )?;
 
     Ok(())
 }

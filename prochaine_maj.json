@@ -12,7 +12,7 @@
       "nom": "Windows 11 Pro (KEVIN-MSI)",
       "build": "npm run tauri build sur KEVIN-MSI (bundle.targets = all dans tauri.conf.json)",
       "etat": "premier build à venir ; rien n'est validé sous Windows",
-      "prerequis_mpv": "mpv.exe est cherché dans <dossier de l'exe>/mpv/mpv.exe, sinon mpv.exe dans le PATH (resources/mpv/ ne contient que .gitkeep dans le repo)."
+      "prerequis_mpv": "mpv.exe est cherché dans <dossier de l'exe>/mpv/mpv.exe, sinon mpv.exe dans le PATH (resources/mpv/ ne contient que .gitkeep dans le repo). A verifier au premier build : Tauri place habituellement les ressources dont le chemin commence par ../ sous _up_/, donc l'emplacement reel de mpv.exe dans l'installeur peut differer de <exe>/mpv/mpv.exe (voir docs/ARBORESCENCE_PLATEFORMES.md, section Windows)."
     }
   },
   "convention_statut": "'statut' = état sur Linux. 'statut_windows' = état sur Windows. Valeurs : fait | a_faire | a_valider (code partagé fait sur Linux, pas encore testé sous Windows). 'distributions' = OS concernés par l'entrée ; 'notes_windows' = particularités Windows.",

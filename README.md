@@ -254,7 +254,7 @@ No, Better IPTV is designed for IPTV streams. Use MPV directly for local media.
 
 ### Logs
 
-**Linux**: `~/.local/share/better-ip-tv/logs/better-ip-tv.log`
+**Linux**: `~/.local/share/com.m0s.better-ip-tv/logs/better-ip-tv.log`
 **Windows**: `%APPDATA%\com.m0s.better-ip-tv\logs\better-ip-tv.log`
 **macOS**: `~/Library/Application Support/com.m0s.better-ip-tv/logs/better-ip-tv.log`
 
@@ -269,6 +269,11 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for developmen
 - [Report a bug](https://github.com/mewset/better-iptv/issues/new)
 - [Request a feature](https://github.com/mewset/better-iptv/issues/new)
 - [Join discussions](https://github.com/mewset/better-iptv/discussions)
+
+Project documentation (kept up to date with the code):
+- [CLAUDE.md](CLAUDE.md) - project overview, commands, workflow rules and known pitfalls
+- [docs/ARBORESCENCE_PLATEFORMES.md](docs/ARBORESCENCE_PLATEFORMES.md) - files required for each platform (Linux, Windows, macOS, iOS)
+- [docs/iOS_BUILD.md](docs/iOS_BUILD.md) - iOS build and sideloading guide
 
 ---
 

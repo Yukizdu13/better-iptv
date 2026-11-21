@@ -4,7 +4,7 @@
 > Fichier compagnon, à tenir à jour avec lui : [`docs/ARBORESCENCE_PLATEFORMES.md`](docs/ARBORESCENCE_PLATEFORMES.md) (fichiers nécessaires par plateforme).
 > Dernière mise à jour : 2026-11-21 (version de l'app : 2.6.1 ; compte universel étape 1 ajoutée ; intégration Atlas Pro livrée).
 
-> **Fichier local non versionné** : [`RESTE_A_FAIRE.md`](RESTE_A_FAIRE.md) (racine du repo) liste ce qui reste à faire (priorités, décisions en attente, nettoyage, comment retester). Il est exclu de git via `.git/info/exclude` — donc absent des clones — car le dépôt est public et ce fichier peut renvoyer à des notes privées. **Le lire en début de session, le tenir à jour à chaque « Mission terminée »**, ne jamais le commiter.
+> **Fichiers « reste à faire » locaux, non versionnés** : chaque clone a le sien, `RESTE_A_FAIRE.local.md` à la racine (exclu via `.git/info/exclude`, donc absent des autres clones et du dépôt public, car il peut renvoyer à des notes privées). Celui du clone Linux (kevin-kubuntu) liste les priorités du compte universel (#20), les décisions en attente, le nettoyage et la méthode pour retester l'import sur une base isolée ; celui du clone Windows est décrit plus bas. **Le lire en début de session s'il existe, le tenir à jour à chaque « Mission terminée », ne jamais le commiter.**
 
 Les règles universelles de l'utilisateur sont chargées via son `~/.claude/CLAUDE.md` (hors repo) ; ce fichier ne contient que ce qui est propre au projet.
 

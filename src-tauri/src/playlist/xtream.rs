@@ -36,6 +36,66 @@ where
     deserializer.deserialize_any(StrOrInt)
 }
 
+/// Accepte null / absent / chaîne / nombre / booléen et retourne `Option<String>`.
+/// Les fournisseurs renvoient par exemple `rating` en chaîne ("7.5") ou en nombre (7.5)
+/// selon la fiche (Atlas Pro : `get_vod_info`).
+fn de_opt_string_lenient<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde_json::Value;
+    Ok(match Value::deserialize(deserializer)? {
+        Value::String(s) => Some(s),
+        Value::Number(n) => Some(n.to_string()),
+        Value::Bool(b) => Some(b.to_string()),
+        _ => None,
+    })
+}
+
+/// Accepte null / absent / entier / flottant / chaîne numérique pour un entier 32 bits
+/// (0 si absent ou illisible).
+fn de_i32_lenient<'de, D>(deserializer: D) -> Result<i32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde_json::Value;
+    Ok(match Value::deserialize(deserializer)? {
+        Value::Number(n) => n.as_i64().map(|v| v as i32).or_else(|| n.as_f64().map(|v| v as i32)),
+        Value::String(s) => s.trim().parse::<i32>().ok(),
+        _ => None,
+    }
+    .unwrap_or(0))
+}
+
+/// Accepte une liste de chaînes, une chaîne seule ou null (`backdrop_path`).
+fn de_opt_string_vec_lenient<'de, D>(deserializer: D) -> Result<Option<Vec<String>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde_json::Value;
+    Ok(match Value::deserialize(deserializer)? {
+        Value::String(s) if !s.is_empty() => Some(vec![s]),
+        Value::Array(items) => Some(
+            items
+                .into_iter()
+                .filter_map(|v| v.as_str().map(str::to_owned))
+                .collect(),
+        ),
+        _ => None,
+    })
+}
+
+/// Désérialise un objet `T`, ou `T::default()` si le champ est null, absent ou d'une autre
+/// forme (ex. `"info": []` renvoyé par PHP quand l'objet est vide).
+fn de_object_or_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: serde::de::DeserializeOwned + Default,
+{
+    let value = serde_json::Value::deserialize(deserializer)?;
+    Ok(serde_json::from_value(value).unwrap_or_default())
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct XtreamCredentials {
     pub server_url: String,
@@ -81,7 +141,9 @@ where
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SeriesInfo {
+    #[serde(default)]
     pub seasons: Vec<Season>,
+    #[serde(default, deserialize_with = "de_object_or_default")]
     pub info: SeriesMetadata,
     #[serde(deserialize_with = "de_episodes")]
     pub episodes: HashMap<String, Vec<Episode>>,
@@ -89,10 +151,14 @@ pub struct SeriesInfo {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Season {
+    /// Entier chez certains fournisseurs (Atlas Pro), chaîne chez d'autres.
+    #[serde(default, deserialize_with = "de_string_or_int")]
     pub id: String,
+    #[serde(default)]
     pub name: String,
     #[serde(deserialize_with = "de_string_or_int")]
     pub season_number: String,
+    #[serde(default, deserialize_with = "de_i32_lenient")]
     pub episode_count: i32,
     pub air_date: Option<String>,
     pub overview: Option<String>,
@@ -101,35 +167,48 @@ pub struct Season {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Episode {
+    #[serde(deserialize_with = "de_string_or_int")]
     pub id: String,
+    #[serde(default, deserialize_with = "de_i32_lenient")]
     pub episode_num: i32,
+    #[serde(default)]
     pub title: String,
     pub container_extension: String,
+    #[serde(default, deserialize_with = "de_i32_lenient")]
     pub season: i32,
+    #[serde(default, deserialize_with = "de_object_or_default")]
     pub info: EpisodeInfo,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct EpisodeInfo {
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
     pub plot: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
     pub movie_image: Option<String>,
-    #[serde(rename = "releaseDate")]
+    #[serde(default, rename = "releaseDate", deserialize_with = "de_opt_string_lenient")]
     pub release_date: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
     pub duration: Option<String>,
+    /// Chaîne ("7.5"), entier ou flottant selon l'épisode.
+    #[serde(default, deserialize_with = "de_rating_opt")]
     pub rating: Option<f32>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SeriesMetadata {
+    #[serde(default)]
     pub name: String,
     pub cover: Option<String>,
     pub plot: Option<String>,
     pub cast: Option<String>,
     pub director: Option<String>,
     pub genre: Option<String>,
-    #[serde(rename = "releaseDate")]
+    #[serde(default, rename = "releaseDate")]
     pub release_date: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
     pub rating: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_vec_lenient")]
     pub backdrop_path: Option<Vec<String>>,
 }
 
@@ -145,6 +224,10 @@ struct XtreamStream {
     category_id: Option<String>,
     #[serde(rename = "type")]
     stream_type: Option<String>,
+    /// Extension réelle du fichier VOD (mkv, avi, mp4...). Le serveur renvoie 404 si l'URL
+    /// demande une autre extension que celle du fichier (Atlas Pro : 81 % de mkv/avi).
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    container_extension: Option<String>,
     /// Rating from provider (string "8" or integer 8 depending on server)
     #[serde(default, deserialize_with = "de_rating_opt")]
     rating: Option<f32>,
@@ -434,7 +517,12 @@ fn convert_streams_to_channels(
                 _ => default_content_type,
             };
 
-            let url = build_stream_url(creds, stream.stream_id, content_type);
+            let url = build_stream_url(
+                creds,
+                stream.stream_id,
+                content_type,
+                stream.container_extension.as_deref(),
+            );
 
             // Generate EPG ID for live channels
             let epg_id = if content_type == "live" {
@@ -472,8 +560,18 @@ fn convert_streams_to_channels(
 }
 
 /// Build stream URL for Xtream Codes
-fn build_stream_url(creds: &XtreamCredentials, stream_id: i64, content_type: &str) -> String {
+fn build_stream_url(
+    creds: &XtreamCredentials,
+    stream_id: i64,
+    content_type: &str,
+    container_extension: Option<&str>,
+) -> String {
     let base_url = creds.server_url.trim_end_matches('/');
+    // Extension propre au fichier pour la VOD ; mp4 si le fournisseur ne la donne pas
+    let vod_ext = container_extension
+        .map(|e| e.trim().trim_start_matches('.'))
+        .filter(|e| !e.is_empty() && e.chars().all(|c| c.is_ascii_alphanumeric()))
+        .unwrap_or("mp4");
 
     match content_type {
         "live" => format!(
@@ -481,8 +579,8 @@ fn build_stream_url(creds: &XtreamCredentials, stream_id: i64, content_type: &st
             base_url, creds.username, creds.password, stream_id
         ),
         "vod" => format!(
-            "{}/movie/{}/{}/{}.mp4",
-            base_url, creds.username, creds.password, stream_id
+            "{}/movie/{}/{}/{}.{}",
+            base_url, creds.username, creds.password, stream_id, vod_ext
         ),
         "series" => format!(
             "{}/series/{}/{}/{}.mp4",
@@ -547,11 +645,13 @@ pub fn build_episode_url(creds: &XtreamCredentials, episode_id: &str, extension:
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VodInfo {
+    #[serde(default, deserialize_with = "de_object_or_default")]
     pub info: VodMetadata,
+    #[serde(default, deserialize_with = "de_object_or_default")]
     pub movie_data: VodMovieData,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct VodMetadata {
     pub name: Option<String>,
     #[serde(alias = "description")]
@@ -560,17 +660,20 @@ pub struct VodMetadata {
     pub cast: Option<String>,
     pub director: Option<String>,
     pub genre: Option<String>,
+    /// Chaîne ou nombre selon la fiche (Atlas Pro : les deux coexistent).
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
     pub rating: Option<String>,
     pub duration: Option<String>,
     #[serde(alias = "cover_big")]
     pub movie_image: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_vec_lenient")]
     pub backdrop_path: Option<Vec<String>>,
     #[serde(alias = "releasedate", alias = "releaseDate")]
     pub release_date: Option<String>,
     pub youtube_trailer: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct VodMovieData {
     pub stream_id: Option<i64>,
     pub name: Option<String>,
@@ -633,5 +736,126 @@ mod series_info_tests {
     fn episodes_as_empty_list() {
         let info: SeriesInfo = serde_json::from_str(&series_json("[]")).unwrap();
         assert!(info.episodes.is_empty());
+    }
+}
+
+/// Formes de réponses observées chez Atlas Pro (atlaspro.to, 2026-11-21), reproduites sans données réelles.
+#[cfg(test)]
+mod atlas_pro_tests {
+    use super::*;
+
+    fn creds() -> XtreamCredentials {
+        XtreamCredentials {
+            server_url: "http://example.com/".into(),
+            username: "u".into(),
+            password: "p".into(),
+        }
+    }
+
+    /// `season.id` entier, `episode_count` entier, `rating` d'épisode en chaîne / entier / flottant,
+    /// `info` d'épisode vide renvoyé comme liste `[]`, `info` de série sans `rating`.
+    #[test]
+    fn series_info_with_integer_season_id_and_mixed_ratings() {
+        let json = r#"{
+            "seasons":[{"id":1234,"name":"Saison 1","season_number":1,"episode_count":3,"air_date":null,"overview":"","cover":""}],
+            "info":{"name":"The Rain","cover":"c","plot":"p","cast":"","director":"","genre":"g","releaseDate":"2018-05-04","rating":"7","backdrop_path":[]},
+            "episodes":{"1":[
+                {"id":"10","episode_num":1,"title":"E1","container_extension":"mkv","season":1,"info":{"rating":"7.5","duration":"45:00"}},
+                {"id":"11","episode_num":2,"title":"E2","container_extension":"mkv","season":1,"info":{"rating":8}},
+                {"id":"12","episode_num":3,"title":"E3","container_extension":"avi","season":1,"info":{"rating":6.2,"plot":null}},
+                {"id":"13","episode_num":4,"title":"E4","container_extension":"mp4","season":1,"info":[]}
+            ]}
+        }"#;
+        let info: SeriesInfo = serde_json::from_str(json).unwrap();
+        assert_eq!(info.seasons[0].id, "1234");
+        assert_eq!(info.seasons[0].season_number, "1");
+        let eps = &info.episodes["1"];
+        assert_eq!(eps.len(), 4);
+        assert_eq!(eps[0].info.rating, Some(7.5));
+        assert_eq!(eps[1].info.rating, Some(8.0));
+        assert_eq!(eps[2].info.rating, Some(6.2));
+        assert_eq!(eps[3].info.rating, None);
+        assert_eq!(eps[2].container_extension, "avi");
+    }
+
+    #[test]
+    fn series_info_with_empty_info_object_as_list() {
+        let json = r#"{"seasons":[],"info":[],"episodes":[]}"#;
+        let info: SeriesInfo = serde_json::from_str(json).unwrap();
+        assert!(info.episodes.is_empty());
+        assert_eq!(info.info.name, "");
+    }
+
+    /// `rating` de la fiche film : nombre (9/150 fiches observées) ou chaîne.
+    #[test]
+    fn vod_info_rating_as_number_or_string() {
+        let as_number = r#"{"info":{"name":"A","rating":5.5,"backdrop_path":["b"]},"movie_data":{"stream_id":1,"name":"A","container_extension":"mkv"}}"#;
+        let v: VodInfo = serde_json::from_str(as_number).unwrap();
+        assert_eq!(v.info.rating.as_deref(), Some("5.5"));
+        assert_eq!(v.movie_data.container_extension.as_deref(), Some("mkv"));
+
+        let as_int = r#"{"info":{"rating":5},"movie_data":{}}"#;
+        assert_eq!(serde_json::from_str::<VodInfo>(as_int).unwrap().info.rating.as_deref(), Some("5"));
+
+        let as_string = r#"{"info":{"rating":"6.1","backdrop_path":"https://x/y.jpg"},"movie_data":{}}"#;
+        let v: VodInfo = serde_json::from_str(as_string).unwrap();
+        assert_eq!(v.info.rating.as_deref(), Some("6.1"));
+        assert_eq!(v.info.backdrop_path.unwrap(), vec!["https://x/y.jpg".to_string()]);
+    }
+
+    /// Fiche film absente : `info` vide en liste `[]`
+    #[test]
+    fn vod_info_with_empty_info_list() {
+        let v: VodInfo = serde_json::from_str(r#"{"info":[],"movie_data":{"stream_id":2}}"#).unwrap();
+        assert!(v.info.name.is_none());
+        assert_eq!(v.movie_data.stream_id, Some(2));
+    }
+
+    /// Entrées du catalogue : `rating` int/float, `tmdb_id` null/chaîne/entier, `tv_archive_duration` int/chaîne
+    #[test]
+    fn catalog_entries_with_mixed_types() {
+        let json = r#"[
+            {"num":1,"name":"Film A","stream_type":"movie","stream_id":131837,"stream_icon":"i","rating":5,"rating_5based":2.5,"added":"1","category_id":"148","container_extension":"mkv","custom_sid":"","direct_source":"","tmdb_id":"1159477"},
+            {"num":2,"name":"Film B","stream_type":"movie","stream_id":2,"stream_icon":"i","rating":7.4,"rating_5based":3.7,"added":"1","category_id":"148","container_extension":"avi","custom_sid":"","direct_source":"","tmdb_id":null}
+        ]"#;
+        let streams: Vec<XtreamStream> = serde_json::from_str(json).unwrap();
+        let channels = convert_streams_to_channels(&creds(), streams, "vod", &HashMap::new());
+        assert_eq!(channels[0].url, "http://example.com/movie/u/p/131837.mkv");
+        assert_eq!(channels[0].rating, Some(5.0));
+        assert_eq!(channels[1].url, "http://example.com/movie/u/p/2.avi");
+        assert_eq!(channels[1].rating, Some(7.4));
+
+        // Chaîne live : epg_channel_id null, tv_archive_duration en chaîne ou en entier
+        let live = r#"[
+            {"num":3,"name":"Chaîne","stream_type":"live","stream_id":7819,"stream_icon":"i","epg_channel_id":null,"added":"1","category_id":"104","custom_sid":"","tv_archive":1,"direct_source":"","tv_archive_duration":"10"},
+            {"num":4,"name":"Chaîne 2","stream_type":"live","stream_id":7820,"stream_icon":"i","epg_channel_id":"TF1.fr","added":"1","category_id":"104","custom_sid":"","tv_archive":0,"direct_source":"","tv_archive_duration":0}
+        ]"#;
+        let streams: Vec<XtreamStream> = serde_json::from_str(live).unwrap();
+        let channels = convert_streams_to_channels(&creds(), streams, "live", &HashMap::new());
+        assert_eq!(channels[0].content_type, "live");
+        assert_eq!(channels[0].url, "http://example.com/live/u/p/7819.m3u8");
+        assert_eq!(channels.len(), 2);
+    }
+
+    #[test]
+    fn series_entries_use_cover_and_string_rating() {
+        let json = r#"[{"num":1,"name":"S","series_id":2,"cover":"c","plot":"","rating":"7.1","rating_5based":3.5,"backdrop_path":[],"category_id":"9"}]"#;
+        let streams: Vec<XtreamStream> = serde_json::from_str(json).unwrap();
+        let channels = convert_streams_to_channels(&creds(), streams, "series", &HashMap::new());
+        assert_eq!(channels[0].content_type, "series");
+        assert_eq!(channels[0].rating, Some(7.1));
+        assert_eq!(channels[0].logo.as_deref(), Some("c"));
+    }
+
+    #[test]
+    fn vod_url_falls_back_to_mp4_without_valid_extension() {
+        let c = creds();
+        assert_eq!(build_stream_url(&c, 5, "vod", None), "http://example.com/movie/u/p/5.mp4");
+        assert_eq!(build_stream_url(&c, 5, "vod", Some("")), "http://example.com/movie/u/p/5.mp4");
+        assert_eq!(build_stream_url(&c, 5, "vod", Some(".mkv")), "http://example.com/movie/u/p/5.mkv");
+        // Valeur douteuse (injection de chemin) : ignorée
+        assert_eq!(build_stream_url(&c, 5, "vod", Some("mp4/../x")), "http://example.com/movie/u/p/5.mp4");
+        // L'extension n'affecte pas le live
+        assert_eq!(build_stream_url(&c, 5, "live", Some("mkv")), "http://example.com/live/u/p/5.m3u8");
     }
 }

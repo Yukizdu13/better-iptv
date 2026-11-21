@@ -48,7 +48,7 @@ src-tauri/src/playback/mpv.rs             MPV système (`mpv` dans le PATH) + so
 - **Build local** : `npm run tauri build -- --bundles deb` → `src-tauri/target/release/bundle/deb/`.
 - **Données** : `~/.local/share/com.m0s.better-ip-tv/` (base `better-ip-tv.db`, `logs/`).
 
-## 3. Windows (KEVIN-MSI — premier build à venir, rien de validé)
+## 3. Windows (KEVIN-MSI — compilation Rust validée, lecture MPV à valider)
 
 Cibles Tauri : `msi` et `nsis` (`bundle.targets = "all"`).
 
@@ -60,8 +60,8 @@ src-tauri/src/playback/mpv.rs             get_mpv_path() : <dossier de l'exe>/mp
 .github/workflows/release.yml             Job windows-latest : télécharge mpv (shinchiro/mpv-winbuild-cmake) dans resources/mpv avant le build
 ```
 
-- **Prérequis build** : Node 20+, Rust stable (toolchain MSVC), WebView2 (présent sur Windows 11), `npm ci`.
-- **MPV en local** : récupérer `mpv-x86_64-*.7z` (shinchiro), extraire dans `resources/mpv/` (reste ignoré par git), ou installer mpv dans le PATH.
+- **Prérequis build** : Node 20+, Rust stable (toolchain MSVC + Visual Studio Build Tools 2022), WebView2 (présent sur Windows 11), `npm ci`. Installés sur KEVIN-MSI le 2026-11-21 (`winget install Rustlang.Rustup OpenJS.NodeJS.LTS`) ; `cargo test` : 108 tests OK.
+- **MPV en local** : récupérer `mpv-x86_64-*.7z` (shinchiro), extraire dans `resources/mpv/` (reste ignoré par git), ou installer mpv dans le PATH. L'extraction exige 7-Zip (filtre BCJ2 : `tar`/`py7zr` échouent).
 - **Données** : `%APPDATA%\com.m0s.better-ip-tv\` (`logs\`, base SQLite).
 - **À valider au premier build** : (a) l'IPC MPV par named pipe n'a jamais été compilé ni testé ; (b) l'emplacement réel des ressources après bundling — Tauri place habituellement les chemins `../` sous `_up_/`, vérifier que `<exe>/mpv/mpv.exe` est bien celui qu'attend `get_mpv_path()`.
 

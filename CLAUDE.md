@@ -13,7 +13,7 @@ Playlists M3U et Xtream Codes (live, VOD, séries, EPG XMLTV), profils, favoris,
 
 - Produit : « Better IPTV+Kev » — identifiant `com.m0s.better-ip-tv` — crate/paquet npm `better-ip-tv`
 - `origin` = `mewset/better-iptv` (upstream, **on n'y pousse jamais**) ; `fork` = `Yukizdu13/better-iptv` (**on pousse ici** : `git push fork main`)
-- Backlog : `prochaine_maj.json` à la racine (les issues GitHub sont désactivées sur le fork). Y noter toute nouvelle idée/bug avec les champs `distributions`, `statut` (Linux), `statut_windows`.
+- Backlog : `prochaine_maj.json` à la racine (les issues GitHub sont désactivées sur le fork). Y noter toute nouvelle idée/bug avec les champs `distributions`, `statut` (Linux), `statut_windows` (`fait` | `a_faire` | `a_valider`) et, si besoin, `notes_windows` ; les décisions d'une entrée vont dans `decisions` (cf. #20, compte universel).
 
 ## Stack
 
@@ -76,6 +76,7 @@ npm run tauri build -- --bundles deb           # paquet Linux
 - **Données sensibles** : la base SQLite de l'utilisateur contient les identifiants Xtream **en clair** → ne jamais les afficher, logger, ni les mettre dans un fichier ou une mémoire. Les URL sont masquées dans les logs (`utils::mask_credentials`).
 - **Linux/Wayland** : `WEBKIT_DISABLE_DMABUF_RENDERER=1` est forcé (`lib.rs` et `src-tauri/templates/better-iptv.desktop`) — ne pas retirer.
 - **Menu KDE « Better IPTV+Kev »** = binaire **installé** (`/usr/bin/better-ip-tv`, paquet `better-iptv-kev`), pas le working tree : pour tester du code neuf, `npm run tauri dev` ou rebuild + `sudo dpkg -i` du `.deb`.
-- **Node.js absent sur kevin-kubuntu** (purgé) : `npm`, le build frontend et le `.deb` se font depuis KEVIN-MSI ou un Node installé à la demande. `cargo` est disponible ici.
+- **Node.js absent sur kevin-kubuntu** (purgé) : `npm`, le build frontend et le `.deb` se font depuis KEVIN-MSI ou un Node installé à la demande. `cargo` est disponible ici. Pour rejouer prettier/eslint/vitest sans Node système : Node 20 portable (tarball officiel nodejs.org, checksum vérifié via `SHASUMS256.txt`) décompressé dans un dossier temporaire et lancé directement (`node node_modules/prettier/bin/prettier.cjs --check src`) ; l'utilisateur doit l'autoriser.
+- **CI ≠ machine locale** : la CI (`Test Build`) utilise Rust `stable` (1.100 le 2026-11-21) alors que kevin-kubuntu a 1.96 : un nouveau lint clippy peut casser la CI sans changement de code (cas réel : `needless_bool`, `unnecessary_sort_by`). Si tout passe en local mais pas en CI : `gh run view <id> --repo Yukizdu13/better-iptv --log-failed`. La CI s'arrête à la première étape en échec (prettier avait masqué clippy). Un push annule le run en cours du même `main` (concurrency).
 - **Logs Linux** : `~/.local/share/com.m0s.better-ip-tv/logs/better-ip-tv.log` ; **DB** : `~/.local/share/com.m0s.better-ip-tv/better-ip-tv.db`.
 - Les `release.yml` et `test.yml` **à la racine** sont d'anciennes copies inactives ; les workflows actifs sont dans `.github/workflows/`.

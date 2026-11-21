@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Play, Square, Star, Clapperboard, Lock } from 'lucide-react';
 import type { Channel } from '../types';
 
@@ -46,6 +46,12 @@ export const ChannelCard = memo(function ChannelCard({
   readOnly = false,
   readOnlyLabel,
 }: ChannelCardProps) {
+  // Logo en échec (lien mort, hôte injoignable) : repli sur la pastille avec l'initiale.
+  // On mémorise l'URL en échec plutôt qu'un booléen : si la carte est réutilisée pour une autre
+  // chaîne (liste virtualisée), le nouveau logo est de nouveau tenté.
+  const [failedLogo, setFailedLogo] = useState<string | null>(null);
+  const showLogo = !!channel.logo && failedLogo !== channel.logo;
+
   // Calculate dynamic image height (approximately 45% of card height)
   const imageHeight = Math.max(80, Math.round(cardHeight * 0.45));
 
@@ -63,7 +69,7 @@ export const ChannelCard = memo(function ChannelCard({
     >
       {/* Logo/Image section */}
       <div className="group relative flex-shrink-0 bg-gray-900">
-        {channel.logo ? (
+        {showLogo ? (
           <div
             className="flex w-full items-center justify-center bg-gray-900 p-2"
             style={{ height: `${imageHeight}px` }}
@@ -72,6 +78,9 @@ export const ChannelCard = memo(function ChannelCard({
               src={channel.logo}
               alt={channel.name}
               loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              onError={() => setFailedLogo(channel.logo ?? null)}
               className="max-h-full max-w-full object-contain"
             />
           </div>

@@ -85,15 +85,20 @@ where
     })
 }
 
-/// Désérialise un objet `T`, ou `T::default()` si le champ est null, absent ou d'une autre
-/// forme (ex. `"info": []` renvoyé par PHP quand l'objet est vide).
+/// Désérialise un objet `T`, ou `T::default()` si le champ est null, absent ou n'est pas un objet
+/// (ex. `"info": []` renvoyé par PHP quand l'objet est vide). Une erreur sur un vrai objet reste
+/// remontée : l'avaler donnerait une fiche vide sans aucun message.
 fn de_object_or_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
     T: serde::de::DeserializeOwned + Default,
 {
     let value = serde_json::Value::deserialize(deserializer)?;
-    Ok(serde_json::from_value(value).unwrap_or_default())
+    if value.is_object() {
+        serde_json::from_value(value).map_err(serde::de::Error::custom)
+    } else {
+        Ok(T::default())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -652,25 +657,80 @@ pub struct VodInfo {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(from = "VodMetadataRaw")]
 pub struct VodMetadata {
     pub name: Option<String>,
-    #[serde(alias = "description")]
     pub plot: Option<String>,
-    #[serde(alias = "actors")]
     pub cast: Option<String>,
     pub director: Option<String>,
     pub genre: Option<String>,
-    /// Chaîne ou nombre selon la fiche (Atlas Pro : les deux coexistent).
-    #[serde(default, deserialize_with = "de_opt_string_lenient")]
     pub rating: Option<String>,
     pub duration: Option<String>,
-    #[serde(alias = "cover_big")]
     pub movie_image: Option<String>,
-    #[serde(default, deserialize_with = "de_opt_string_vec_lenient")]
     pub backdrop_path: Option<Vec<String>>,
-    #[serde(alias = "releasedate", alias = "releaseDate")]
     pub release_date: Option<String>,
     pub youtube_trailer: Option<String>,
+}
+
+/// Fiche film telle que renvoyée par le fournisseur. Beaucoup envoient les deux variantes d'un
+/// même champ à la fois (Atlas Pro : `plot` + `description`, `cast` + `actors`,
+/// `movie_image` + `cover_big`) : un `alias` serde y provoquerait « duplicate field », d'où des
+/// champs séparés fusionnés ensuite (première valeur non vide).
+#[derive(Deserialize)]
+struct VodMetadataRaw {
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    name: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    plot: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    description: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    cast: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    actors: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    director: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    genre: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    rating: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    duration: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    movie_image: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    cover_big: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_vec_lenient")]
+    backdrop_path: Option<Vec<String>>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    releasedate: Option<String>,
+    #[serde(default, rename = "releaseDate", deserialize_with = "de_opt_string_lenient")]
+    release_date_camel: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_string_lenient")]
+    youtube_trailer: Option<String>,
+}
+
+/// Première valeur non vide.
+fn first_non_empty(values: [Option<String>; 3]) -> Option<String> {
+    values.into_iter().flatten().find(|v| !v.trim().is_empty())
+}
+
+impl From<VodMetadataRaw> for VodMetadata {
+    fn from(r: VodMetadataRaw) -> Self {
+        VodMetadata {
+            name: first_non_empty([r.name, None, None]),
+            plot: first_non_empty([r.plot, r.description, None]),
+            cast: first_non_empty([r.cast, r.actors, None]),
+            director: first_non_empty([r.director, None, None]),
+            genre: first_non_empty([r.genre, None, None]),
+            rating: first_non_empty([r.rating, None, None]),
+            duration: first_non_empty([r.duration, None, None]),
+            movie_image: first_non_empty([r.movie_image, r.cover_big, None]),
+            backdrop_path: r.backdrop_path.filter(|v| !v.is_empty()),
+            release_date: first_non_empty([r.releasedate, r.release_date_camel, None]),
+            youtube_trailer: first_non_empty([r.youtube_trailer, None, None]),
+        }
+    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -801,6 +861,36 @@ mod atlas_pro_tests {
         let v: VodInfo = serde_json::from_str(as_string).unwrap();
         assert_eq!(v.info.rating.as_deref(), Some("6.1"));
         assert_eq!(v.info.backdrop_path.unwrap(), vec!["https://x/y.jpg".to_string()]);
+    }
+
+    /// Forme réelle d'Atlas Pro : les deux variantes de chaque champ sont présentes en même temps.
+    /// Régression : un `alias` serde donnait « duplicate field » → fiche vide ou erreur.
+    #[test]
+    fn vod_info_with_both_field_variants_keeps_content() {
+        let json = r#"{"info":{"kinopoisk_url":"x","tmdb_id":"1","name":"El correo (2024)","o_name":"El correo",
+            "cover_big":"https://img/big.jpg","movie_image":"https://img/poster.jpg","releasedate":"2024-01-19",
+            "episode_run_time":"101","youtube_trailer":"","director":"D. Calparsoro","actors":"A, B","cast":"A, B",
+            "description":"Un facteur.","plot":"Un facteur.","genre":"Thriller","rating":6.4,"duration":"01:41:00",
+            "backdrop_path":["https://img/bd.jpg"]},
+            "movie_data":{"stream_id":1,"name":"El correo","container_extension":"mkv"}}"#;
+        let v: VodInfo = serde_json::from_str(json).unwrap();
+        assert_eq!(v.info.name.as_deref(), Some("El correo (2024)"));
+        assert_eq!(v.info.plot.as_deref(), Some("Un facteur."));
+        assert_eq!(v.info.cast.as_deref(), Some("A, B"));
+        assert_eq!(v.info.movie_image.as_deref(), Some("https://img/poster.jpg"));
+        assert_eq!(v.info.release_date.as_deref(), Some("2024-01-19"));
+        assert_eq!(v.info.rating.as_deref(), Some("6.4"));
+        assert_eq!(v.info.youtube_trailer, None);
+        assert_eq!(v.info.backdrop_path.as_deref(), Some(&["https://img/bd.jpg".to_string()][..]));
+    }
+
+    /// Seule une variante présente (ou l'autre vide) : on prend celle qui a du contenu.
+    #[test]
+    fn vod_info_falls_back_to_alternate_field_when_first_is_empty() {
+        let json = r#"{"info":{"plot":"","description":"Texte","cover_big":"c","movie_image":""},"movie_data":{}}"#;
+        let v: VodInfo = serde_json::from_str(json).unwrap();
+        assert_eq!(v.info.plot.as_deref(), Some("Texte"));
+        assert_eq!(v.info.movie_image.as_deref(), Some("c"));
     }
 
     /// Fiche film absente : `info` vide en liste `[]`

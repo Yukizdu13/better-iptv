@@ -17,8 +17,11 @@ lazy_static! {
 fn create_http_client() -> Client {
     Client::builder()
         .user_agent(DEFAULT_HTTP_USER_AGENT)
-        .timeout(Duration::from_secs(30))
-        .connect_timeout(Duration::from_secs(10))
+        // Certains fournisseurs (Atlas Pro) mettent ~8 s à accepter la 1re connexion après une
+        // période d'inactivité, puis répondent en 0,1 s. Avec 10 s, ce 1er essai échouait par
+        // moments et était refait (attente doublée) : 20 s laisse le temps d'aboutir.
+        .timeout(Duration::from_secs(60))
+        .connect_timeout(Duration::from_secs(20))
         .build()
         .expect("Failed to create HTTP client")
 }

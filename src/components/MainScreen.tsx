@@ -1,7 +1,13 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePlayerStore, EMPTY_ADVANCED_FILTERS } from '../stores/player-store';
-import { getChannelGroups, getStalePlaylistIds, getChannels, getFavorites, getSetting } from '../lib/tauri';
+import {
+  getChannelGroups,
+  getStalePlaylistIds,
+  getChannels,
+  getFavorites,
+  getSetting,
+} from '../lib/tauri';
 import { isIOS } from '../lib/platform';
 import { CategoryBar } from './CategoryBar';
 import { ChannelCard } from './ChannelCard';
@@ -384,16 +390,16 @@ export default function MainScreen() {
     return (
       <div className="flex h-screen flex-col">
         <div className="min-h-0 flex-1">
-      <SeriesView
-        seriesId={seriesId}
-        seriesName={selectedSeries.name}
-        channelId={selectedSeries.id}
-        serverUrl={currentPlaylist.url}
-        username={currentPlaylist.xtream_username}
-        password={currentPlaylist.xtream_password}
-        onBack={() => setSelectedSeries(null)}
-        onPlayEpisode={handlePlayEpisode}
-      />
+          <SeriesView
+            seriesId={seriesId}
+            seriesName={selectedSeries.name}
+            channelId={selectedSeries.id}
+            serverUrl={currentPlaylist.url}
+            username={currentPlaylist.xtream_username}
+            password={currentPlaylist.xtream_password}
+            onBack={() => setSelectedSeries(null)}
+            onPlayEpisode={handlePlayEpisode}
+          />
         </div>
         {nowPlayingBar}
       </div>
@@ -435,42 +441,43 @@ export default function MainScreen() {
       />
 
       {/* Filter button row — visible on vod/series tabs only */}
-      {(contentTypeFilter === 'vod' || contentTypeFilter === 'series') && (() => {
-        const activeCount = [
-          advancedFilters.languages.length > 0,
-          advancedFilters.minYear !== null || advancedFilters.maxYear !== null,
-          advancedFilters.minRating !== null,
-        ].filter(Boolean).length;
-        return (
-          <div className="flex items-center border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-800">
-            <button
-              onClick={() => setShowFilters((v) => !v)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                showFilters || activeCount > 0
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-              }`}
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filtres
-              {activeCount > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-bold text-blue-600">
-                  {activeCount}
-                </span>
-              )}
-            </button>
-            {contentTypeFilter === 'series' && seriesChannels.length > 0 && (
+      {(contentTypeFilter === 'vod' || contentTypeFilter === 'series') &&
+        (() => {
+          const activeCount = [
+            advancedFilters.languages.length > 0,
+            advancedFilters.minYear !== null || advancedFilters.maxYear !== null,
+            advancedFilters.minRating !== null,
+          ].filter(Boolean).length;
+          return (
+            <div className="flex items-center border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-800">
               <button
-                onClick={() => setShowRandomPlayModal(true)}
-                className="ml-2 flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                onClick={() => setShowFilters((v) => !v)}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  showFilters || activeCount > 0
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                }`}
               >
-                <Shuffle className="h-4 w-4" />
-                Play aléatoire multi-séries
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtres
+                {activeCount > 0 && (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-bold text-blue-600">
+                    {activeCount}
+                  </span>
+                )}
               </button>
-            )}
-          </div>
-        );
-      })()}
+              {contentTypeFilter === 'series' && seriesChannels.length > 0 && (
+                <button
+                  onClick={() => setShowRandomPlayModal(true)}
+                  className="ml-2 flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                >
+                  <Shuffle className="h-4 w-4" />
+                  Play aléatoire multi-séries
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
       {/* Advanced Filter Panel */}
       {showFilters && (contentTypeFilter === 'vod' || contentTypeFilter === 'series') && (

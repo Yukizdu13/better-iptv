@@ -36,7 +36,8 @@ export default function PlaybackTab({
 
   function saveCreditsSkip(value: string) {
     const n = Number(value.trim());
-    const normalized = value.trim() === '' || !Number.isFinite(n) || n < 0 ? '' : String(Math.round(n));
+    const normalized =
+      value.trim() === '' || !Number.isFinite(n) || n < 0 ? '' : String(Math.round(n));
     setCreditsSkip(normalized);
     setSetting(CREDITS_SKIP_SETTING, normalized).catch((err) =>
       logger.error('Failed to save credits duration:', err)

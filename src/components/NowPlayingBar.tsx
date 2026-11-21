@@ -44,7 +44,10 @@ export const NowPlayingBar = memo(function NowPlayingBar({
 
   useEffect(() => {
     if (!notice) return;
-    const timeout = setTimeout(clearNotice, notice.isError ? NOTICE_DURATION_MS * 2 : NOTICE_DURATION_MS);
+    const timeout = setTimeout(
+      clearNotice,
+      notice.isError ? NOTICE_DURATION_MS * 2 : NOTICE_DURATION_MS
+    );
     return () => clearTimeout(timeout);
   }, [notice, clearNotice]);
 

@@ -42,9 +42,15 @@ export async function getCreditsSkipSeconds(seriesChannelId?: number): Promise<n
 
 function saveProgress(ep: QueuedEpisode, position: number, duration: number | null) {
   if (ep.seriesChannelId == null || ep.season == null || ep.episodeNum == null) return;
-  setLastEpisode(ep.seriesChannelId, ep.season, ep.id, ep.episodeNum, ep.title, position, duration).catch(
-    (err) => logger.error('Failed to save episode progress:', err)
-  );
+  setLastEpisode(
+    ep.seriesChannelId,
+    ep.season,
+    ep.id,
+    ep.episodeNum,
+    ep.title,
+    position,
+    duration
+  ).catch((err) => logger.error('Failed to save episode progress:', err));
 }
 
 interface UseSeriesProgressResult {
@@ -118,7 +124,13 @@ export function useSeriesProgress(): UseSeriesProgressResult {
         }
 
         const hasNext = idx < seriesSession.length - 1;
-        if (creditsSkip <= 0 || !hasNext || !status.duration || cancelledRef.current || status.paused) {
+        if (
+          creditsSkip <= 0 ||
+          !hasNext ||
+          !status.duration ||
+          cancelledRef.current ||
+          status.paused
+        ) {
           setAutoNextIn(null);
           return;
         }

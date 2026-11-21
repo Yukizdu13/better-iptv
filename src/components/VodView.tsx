@@ -26,7 +26,9 @@ export default function VodView({
   onBack,
   onPlay,
 }: VodViewProps) {
-  const isFavorite = usePlayerStore((s) => s.channels.find((c) => c.id === channelId)?.is_favorite ?? false);
+  const isFavorite = usePlayerStore(
+    (s) => s.channels.find((c) => c.id === channelId)?.is_favorite ?? false
+  );
   const toggleChannelFavorite = usePlayerStore((s) => s.toggleChannelFavorite);
   const [info, setInfo] = useState<VodInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +70,7 @@ export default function VodView({
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <p className="mb-4 font-medium text-red-600 dark:text-red-400">{error}</p>
-            <div className="flex gap-3 justify-center">
+            <div className="flex justify-center gap-3">
               <button
                 onClick={onBack}
                 className="rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
@@ -96,21 +98,19 @@ export default function VodView({
   const year = meta?.release_date?.slice(0, 4);
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900 overflow-y-auto">
+    <div className="flex h-screen flex-col overflow-y-auto bg-gray-50 dark:bg-gray-900">
       {/* Backdrop */}
       {backdropUrl && (
         <div className="relative h-56 w-full flex-shrink-0 overflow-hidden">
-          <img
-            src={backdropUrl}
-            alt={title}
-            className="h-full w-full object-cover"
-          />
+          <img src={backdropUrl} alt={title} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-gray-900 dark:to-gray-900" />
         </div>
       )}
 
       {/* Header bar */}
-      <div className={`${backdropUrl ? '-mt-16 relative z-10' : 'border-b border-gray-200 dark:border-gray-700'} bg-white/95 dark:bg-gray-800/95 backdrop-blur px-6 pt-4 pb-6`}>
+      <div
+        className={`${backdropUrl ? 'relative z-10 -mt-16' : 'border-b border-gray-200 dark:border-gray-700'} bg-white/95 px-6 pb-6 pt-4 backdrop-blur dark:bg-gray-800/95`}
+      >
         <button
           onClick={onBack}
           className="mb-4 flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
@@ -131,7 +131,7 @@ export default function VodView({
 
           {/* Info */}
           <div className="flex min-w-0 flex-1 flex-col">
-            <h1 className="mb-3 text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+            <h1 className="mb-3 text-2xl font-bold leading-tight text-gray-900 dark:text-white">
               {title}
             </h1>
 
@@ -172,7 +172,7 @@ export default function VodView({
 
             {/* Cast */}
             {meta?.cast && (
-              <p className="mb-3 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+              <p className="mb-3 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
                 <span className="font-medium">
                   <Users className="mb-0.5 mr-1 inline h-3.5 w-3.5" />
                   Casting :
@@ -210,7 +210,9 @@ export default function VodView({
         {meta?.plot && (
           <div className="mt-4">
             <h2 className="mb-1 font-semibold text-gray-900 dark:text-white">Synopsis</h2>
-            <p className={`text-sm text-gray-700 dark:text-gray-300 ${plotExpanded ? '' : 'line-clamp-4'}`}>
+            <p
+              className={`text-sm text-gray-700 dark:text-gray-300 ${plotExpanded ? '' : 'line-clamp-4'}`}
+            >
               {meta.plot}
             </p>
             <button

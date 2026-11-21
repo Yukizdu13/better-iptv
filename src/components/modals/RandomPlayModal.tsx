@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { X, Shuffle, Search, Trash2, FolderOpen, Save, Plus } from 'lucide-react';
-import { getSeriesInfo, getRandomPlayPresets, createRandomPlayPreset, updateRandomPlayPreset, deleteRandomPlayPreset } from '../../lib/tauri';
+import {
+  getSeriesInfo,
+  getRandomPlayPresets,
+  createRandomPlayPreset,
+  updateRandomPlayPreset,
+  deleteRandomPlayPreset,
+} from '../../lib/tauri';
 import { logger } from '../../lib/logger';
 import { buildBalancedPlaylist } from '../../lib/randomPlaylist';
 import type { Channel, QueuedEpisode, RandomPlayPreset } from '../../types';
@@ -33,14 +39,23 @@ const SERIES_TIMEOUT_MS = 8000;
 
 /** Episode lists cached in memory (series catalogs rarely change within a session) */
 const EPISODES_CACHE_TTL_MS = 60 * 60 * 1000;
-const episodesCache = new Map<string, { at: number; episodes: Omit<QueuedEpisode, 'seriesChannelId'>[] }>();
+const episodesCache = new Map<
+  string,
+  { at: number; episodes: Omit<QueuedEpisode, 'seriesChannelId'>[] }
+>();
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`timeout after ${ms}ms`)), ms);
     promise.then(
-      (v) => { clearTimeout(timer); resolve(v); },
-      (e) => { clearTimeout(timer); reject(e); }
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      }
     );
   });
 }
@@ -85,7 +100,9 @@ export default function RandomPlayModal({
 
   const filteredSeries = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return query ? seriesChannels.filter((c) => c.name.toLowerCase().includes(query)) : seriesChannels;
+    return query
+      ? seriesChannels.filter((c) => c.name.toLowerCase().includes(query))
+      : seriesChannels;
   }, [seriesChannels, searchQuery]);
 
   // Providers expose 10k+ series: only the visible rows are rendered, otherwise opening the
@@ -118,7 +135,9 @@ export default function RandomPlayModal({
 
   function loadPreset(preset: RandomPlayPreset) {
     // Only keep ids that still exist in the current series list (already in memory)
-    const validIds = preset.series_channel_ids.filter((id) => seriesChannels.some((c) => c.id === id));
+    const validIds = preset.series_channel_ids.filter((id) =>
+      seriesChannels.some((c) => c.id === id)
+    );
     setSelectedIds(new Set(validIds));
     setLoadedPresetId(preset.id);
     setPresetName(preset.name);
@@ -245,8 +264,13 @@ export default function RandomPlayModal({
     }
   }
 
-  const hasChanges = loadedPresetId == null || presetName.trim() !== presets.find((p) => p.id === loadedPresetId)?.name
-    || JSON.stringify([...selectedIds].sort()) !== JSON.stringify([...(presets.find((p) => p.id === loadedPresetId)?.series_channel_ids ?? [])].sort());
+  const hasChanges =
+    loadedPresetId == null ||
+    presetName.trim() !== presets.find((p) => p.id === loadedPresetId)?.name ||
+    JSON.stringify([...selectedIds].sort()) !==
+      JSON.stringify(
+        [...(presets.find((p) => p.id === loadedPresetId)?.series_channel_ids ?? [])].sort()
+      );
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -399,7 +423,9 @@ export default function RandomPlayModal({
             Nouveau
           </button>
         </div>
-        {presetError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{presetError}</p>}
+        {presetError && (
+          <p className="mb-2 text-sm text-red-600 dark:text-red-400">{presetError}</p>
+        )}
         {error && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
         <div className="flex justify-end gap-3">
@@ -415,7 +441,11 @@ export default function RandomPlayModal({
             className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Shuffle className="h-4 w-4" />
-            {isLoading ? (progress ? `Chargement ${progress.done}/${progress.total}…` : 'Chargement...') : `Lancer (${selectedIds.size})`}
+            {isLoading
+              ? progress
+                ? `Chargement ${progress.done}/${progress.total}…`
+                : 'Chargement...'
+              : `Lancer (${selectedIds.size})`}
           </button>
         </div>
       </div>

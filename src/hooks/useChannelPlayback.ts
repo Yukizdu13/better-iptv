@@ -63,7 +63,14 @@ export function useChannelPlayback(): UseChannelPlaybackResult {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isPlaying, setIsPlaying, setCurrentChannel, setCurrentProgram, setNextProgram, setSeriesSession]);
+  }, [
+    isPlaying,
+    setIsPlaying,
+    setCurrentChannel,
+    setCurrentProgram,
+    setNextProgram,
+    setSeriesSession,
+  ]);
 
   // Update EPG periodically while playing
   useEffect(() => {

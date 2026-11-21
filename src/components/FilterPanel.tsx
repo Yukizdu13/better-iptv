@@ -74,7 +74,8 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
 
   const hasDefaults =
     JSON.stringify(defaultAdvancedFilters) !== JSON.stringify(EMPTY_ADVANCED_FILTERS);
-  const matchesDefaults = JSON.stringify(advancedFilters) === JSON.stringify(defaultAdvancedFilters);
+  const matchesDefaults =
+    JSON.stringify(advancedFilters) === JSON.stringify(defaultAdvancedFilters);
 
   async function saveDefaults(filters: typeof advancedFilters) {
     setDefaultsError('');
@@ -90,8 +91,10 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
   return (
     <div className="border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
       <div className="mx-auto max-w-7xl">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Filtres avancés</span>
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Filtres avancés
+          </span>
           <div className="flex items-center gap-3">
             {defaultsError && (
               <span className="text-xs text-red-600 dark:text-red-400">{defaultsError}</span>
@@ -122,7 +125,10 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
                 Réinitialiser
               </button>
             )}
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -132,7 +138,7 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
           {/* Langue */}
           {availableLanguages.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 Langue
               </span>
               <div className="flex flex-wrap gap-1.5">
@@ -156,7 +162,7 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
           {/* Année */}
           {yearRange && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 Année
               </span>
               <div className="flex items-center gap-2">
@@ -195,7 +201,7 @@ export function FilterPanel({ onClose }: FilterPanelProps) {
 
           {/* Note minimale */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Note min
             </span>
             {ratingsAvailable ? (

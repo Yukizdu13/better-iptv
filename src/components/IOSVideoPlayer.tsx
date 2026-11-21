@@ -9,7 +9,12 @@ interface IOSVideoPlayerProps {
   onClose: () => void;
 }
 
-export function IOSVideoPlayer({ channel, streamUrls, currentProgram, onClose }: IOSVideoPlayerProps) {
+export function IOSVideoPlayer({
+  channel,
+  streamUrls,
+  currentProgram,
+  onClose,
+}: IOSVideoPlayerProps) {
   const videoRef = useRef<globalThis.HTMLVideoElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const urls = streamUrls.length > 0 ? streamUrls : [channel.url];
@@ -46,9 +51,7 @@ export function IOSVideoPlayer({ channel, streamUrls, currentProgram, onClose }:
 
         <div className="min-w-0 flex-1 text-center">
           <p className="truncate font-medium">{channel.name}</p>
-          {currentProgram && (
-            <p className="truncate text-xs text-gray-300">{currentProgram}</p>
-          )}
+          {currentProgram && <p className="truncate text-xs text-gray-300">{currentProgram}</p>}
           {urls.length > 1 && (
             <p className="text-xs text-gray-400">
               Épisode {currentIndex + 1} / {urls.length}
@@ -62,7 +65,7 @@ export function IOSVideoPlayer({ channel, streamUrls, currentProgram, onClose }:
             <button
               onClick={() => goTo(currentIndex - 1)}
               disabled={currentIndex === 0}
-              className="rounded-full bg-white/20 p-2 disabled:opacity-30 active:bg-white/40"
+              className="rounded-full bg-white/20 p-2 active:bg-white/40 disabled:opacity-30"
               aria-label="Épisode précédent"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -70,7 +73,7 @@ export function IOSVideoPlayer({ channel, streamUrls, currentProgram, onClose }:
             <button
               onClick={() => goTo(currentIndex + 1)}
               disabled={currentIndex === urls.length - 1}
-              className="rounded-full bg-white/20 p-2 disabled:opacity-30 active:bg-white/40"
+              className="rounded-full bg-white/20 p-2 active:bg-white/40 disabled:opacity-30"
               aria-label="Épisode suivant"
             >
               <ChevronRight className="h-5 w-5" />

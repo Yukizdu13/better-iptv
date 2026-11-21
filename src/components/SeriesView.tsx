@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { usePlayerStore } from '../stores/player-store';
-import { getSeriesInfo, getLastEpisode, setLastEpisode, getSetting, setSetting } from '../lib/tauri';
+import {
+  getSeriesInfo,
+  getLastEpisode,
+  setLastEpisode,
+  getSetting,
+  setSetting,
+} from '../lib/tauri';
 import { ChevronLeft, Play, Shuffle, Star, Heart, RotateCcw, SkipForward } from 'lucide-react';
 import type { Episode, LastEpisode, QueuedEpisode } from '../types';
 import { logger } from '../lib/logger';
@@ -48,7 +54,9 @@ export default function SeriesView({
   onPlayEpisode,
 }: SeriesViewProps) {
   const { currentSeries, selectedSeason, setCurrentSeries, setSelectedSeason } = usePlayerStore();
-  const isFavorite = usePlayerStore((s) => s.channels.find((c) => c.id === channelId)?.is_favorite ?? false);
+  const isFavorite = usePlayerStore(
+    (s) => s.channels.find((c) => c.id === channelId)?.is_favorite ?? false
+  );
   const toggleChannelFavorite = usePlayerStore((s) => s.toggleChannelFavorite);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -72,16 +80,30 @@ export default function SeriesView({
   }
 
   function recordLastEpisode(episode: Episode) {
-    setLastEpisode(channelId, String(episode.season), episode.id, episode.episode_num, episode.title).catch(
-      (err) => logger.error('Failed to save last watched episode:', err)
-    );
+    setLastEpisode(
+      channelId,
+      String(episode.season),
+      episode.id,
+      episode.episode_num,
+      episode.title
+    ).catch((err) => logger.error('Failed to save last watched episode:', err));
   }
 
-  function playEpisode(episode: Episode, remainingEpisodes?: QueuedEpisode[], startSeconds?: number) {
+  function playEpisode(
+    episode: Episode,
+    remainingEpisodes?: QueuedEpisode[],
+    startSeconds?: number
+  ) {
     // Saved right away so "Reprendre" works even if playback is stopped early; the exact
     // position is then tracked during playback (useSeriesProgress)
     recordLastEpisode(episode);
-    onPlayEpisode(episode.id, episode.container_extension, episode.title, remainingEpisodes, startSeconds);
+    onPlayEpisode(
+      episode.id,
+      episode.container_extension,
+      episode.title,
+      remainingEpisodes,
+      startSeconds
+    );
   }
 
   function playRandom() {
@@ -103,7 +125,10 @@ export default function SeriesView({
   }
 
   /** Episode following `episode` (same season, else first episode of the next season) */
-  function nextEpisodeAfter(seasonKey: string, episode: Episode): { season: string; episode: Episode } | null {
+  function nextEpisodeAfter(
+    seasonKey: string,
+    episode: Episode
+  ): { season: string; episode: Episode } | null {
     if (!currentSeries) return null;
     const seasonKeys = Object.keys(currentSeries.episodes).sort((a, b) => Number(a) - Number(b));
     const sameSeason = (currentSeries.episodes[seasonKey] || [])
@@ -152,7 +177,10 @@ export default function SeriesView({
       const next = ep ? nextEpisodeAfter(last.season, ep) : null;
       if (next) return `Épisode suivant S${next.season} E${next.episode.episode_num}`;
     }
-    const at = last.position_seconds && !lastEpisodeFinished ? ` à ${formatTime(last.position_seconds)}` : '';
+    const at =
+      last.position_seconds && !lastEpisodeFinished
+        ? ` à ${formatTime(last.position_seconds)}`
+        : '';
     return `Reprendre S${last.season} E${last.episode_num}${at}`;
   }
 
@@ -351,7 +379,9 @@ export default function SeriesView({
               </div>
               {currentSeries.info.plot && (
                 <div>
-                  <p className={`text-gray-700 dark:text-gray-300 ${plotExpanded ? '' : 'line-clamp-3'}`}>
+                  <p
+                    className={`text-gray-700 dark:text-gray-300 ${plotExpanded ? '' : 'line-clamp-3'}`}
+                  >
                     {currentSeries.info.plot}
                   </p>
                   <button
@@ -411,7 +441,8 @@ export default function SeriesView({
                     key={episode.id}
                     episode={episode}
                     isLastWatched={
-                      lastEpisode?.season === selectedSeason && lastEpisode?.episode_id === episode.id
+                      lastEpisode?.season === selectedSeason &&
+                      lastEpisode?.episode_id === episode.id
                     }
                     onPlay={() => playEpisode(episode, remainingEpisodes)}
                   />
@@ -472,7 +503,9 @@ function EpisodeCard({ episode, isLastWatched = false, onPlay }: EpisodeCardProp
         </p>
         {episode.info.plot && (
           <div className="mb-3">
-            <p className={`text-xs text-gray-600 dark:text-gray-400 ${plotExpanded ? '' : 'line-clamp-2'}`}>
+            <p
+              className={`text-xs text-gray-600 dark:text-gray-400 ${plotExpanded ? '' : 'line-clamp-2'}`}
+            >
               {episode.info.plot}
             </p>
             <button

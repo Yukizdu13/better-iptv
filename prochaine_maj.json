@@ -408,26 +408,29 @@
         "Sécurité (point bloquant) : les identifiants Xtream sont des secrets. Chiffrement de bout en bout côté client (clé dérivée d'une phrase secrète du compte, ex : Argon2 + XChaCha20/AES-GCM) pour que le serveur ne voie jamais les identifiants ni l'historique en clair ; aucun secret dans les logs",
         "Authentification par simple phrase secrète (décision utilisateur) : pas d'e-mail ni de mot de passe de compte. La phrase sert à dériver (KDF lent type Argon2, sel propre au compte) d'un côté la clé de chiffrement, de l'autre une preuve d'accès envoyée au serveur ; le serveur ne stocke ni la phrase ni la clé. Limiter les essais côté serveur (rate limiting). Conséquence à assumer : phrase perdue = données du serveur irrécupérables (chiffrement de bout en bout) ; prévoir un export de secours et imposer une phrase longue",
         "Modèle de données : un compte contient plusieurs profils (ex : compte 'kevin' → profils 'brad', 'atlas-pro' ; un autre compte contiendra d'autres profils). Un profil appartient à un seul compte ; pas de partage de profil entre comptes dans la v1",
-        "Hébergement : probablement sur ks1 (pas encore défini) → petit serveur d'API dédié (comptes, stockage de blobs chiffrés). Avant toute intervention sur ks1, lire le repo infra_ops INFRA_ks1 (Nginx uniquement, jamais Apache2). Alternative plus simple à garder en réserve : fichier chiffré dans un dossier Nextcloud synchronisé (WebDAV)",
+        "Hébergement : serveur personnel de l'utilisateur, avec un petit serveur d'API dédié (comptes, stockage de blobs chiffrés). Les détails d'infrastructure (hôte, domaine, ports, sauvegardes) sont dans les notes privées de l'utilisateur, volontairement HORS de ce dépôt public. Alternative plus simple gardée en réserve : fichier chiffré dans un dossier Nextcloud synchronisé (WebDAV)",
         "Offline-first : l'app reste pleinement utilisable sans connexion, la synchronisation se fait en arrière-plan ; la base SQLite locale reste la source de vérité de l'appareil",
         "Résolution de conflits : horodatage updated_at par enregistrement (le plus récent gagne) ; pour la progression de lecture, garder la position la plus avancée/récente ; pour les favoris, fusion (ajouts conservés, suppressions via marqueur de suppression) plutôt qu'écrasement",
         "Écran Compte dans Paramètres : créer/connecter le compte, statut de dernière synchro, bouton 'Synchroniser maintenant', déconnexion (efface les secrets locaux de sync), choix de ce qui est synchronisé",
         "Migration de schéma SQLite (ALTER TABLE, comme pour position_seconds) : colonnes updated_at / uuid / deleted_at sur les tables synchronisées, sans casser les bases existantes",
         "Prévoir une API indépendante de l'OS (logique de sync en Rust dans src-tauri, commandes Tauri identiques sur Linux/Windows) pour pouvoir brancher iOS ensuite sans refaire le protocole",
-        "Découper en étapes livrables : (1) export/import manuel d'un fichier chiffré de compte (déjà utile pour passer Kubuntu -> KEVIN-MSI), (2) synchro automatique via le serveur, (3) client iOS (hors v1)"
+        "Découper en étapes livrables : (1) export/import manuel d'un fichier chiffré de compte (déjà utile pour passer Kubuntu -> KEVIN-MSI), (2) synchro automatique via le serveur, (3) client iOS (hors v1)",
+        "Serveur de synchro (règles applicatives) : la preuve d'accès, déjà dérivée par Argon2id côté client, est re-hachée côté serveur par HMAC-SHA256 avec un secret serveur (comparaison en temps constant, pas d'Argon2 serveur : risque de saturation CPU) ; jamais la preuve dans l'URL ; réponse 401 identique pour un compte inconnu ou une preuve fausse ; écriture avec contrôle de version (If-Match) pour qu'un appareil n'écrase pas le blob d'un autre ; création de compte ouverte : quota minimal (taille du blob, nombre de comptes par IP) ; liste des 5 mots : emplacement à préciser par l'utilisateur, sinon liste Diceware standard. Plan de déploiement : notes privées de l'utilisateur (hors dépôt)."
       ],
       "questions_ouvertes": [
-        "Hébergement définitif (ks1 confirmé ? sous-domaine, déploiement, sauvegardes) ?",
-        "Comment nomme-t-on un compte (identifiant libre choisi à la création, ex : 'kevin') et l'unicité est-elle vérifiée par le serveur ?",
-        "Que se passe-t-il si la phrase secrète est perdue : on accepte la perte des données serveur (avec export de secours local) ?"
+        "Phrase secrète perdue : on accepte la perte des données serveur (avec export de secours local) — défaut proposé, à confirmer avant l'étape 2.",
+        "Nom de compte : identifiant libre avec unicité vérifiée par le serveur — défaut proposé, à confirmer avant l'étape 2."
       ],
-      "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur ('à implémenter bientôt sur les deux plateformes'). Rien d'implémenté. Décisions du 2026-11-21 dans 'decisions' (hébergement probable ks1, compte multi-profils, phrase secrète, iOS hors v1). Le téléphone (iOS) n'est pas une des deux compilations suivies dans 'distributions' mais doit être gardé en tête dans la conception.",
+      "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur ('à implémenter bientôt sur les deux plateformes'). Rien d'implémenté. Décisions du 2026-11-21 dans 'decisions' (hébergement sur le serveur personnel, compte multi-profils, phrase secrète, iOS hors v1). Le téléphone (iOS) n'est pas une des deux compilations suivies dans 'distributions' mais doit être gardé en tête dans la conception.",
       "decisions": [
-        "2026-11-21 — Hébergement : probablement sur ks1, pas encore défini.",
+        "2026-11-21 — Hébergement : serveur personnel de l'utilisateur ; détails d'infrastructure hors dépôt (dépôt public).",
         "2026-11-21 — Modèle : un compte contient plusieurs profils (kevin → brad, atlas-pro ; un autre compte → d'autres profils).",
         "2026-11-21 — Authentification : simple phrase secrète (pas de compte e-mail + mot de passe).",
-        "2026-11-21 — Téléphone (iOS) : hors première version."
-      ]
+        "2026-11-21 — Téléphone (iOS) : hors première version.",
+        "2026-11-21 — Création de compte : l'app crée elle-même le compte sur le serveur (POST /v1/accounts avec nom de compte + preuve d'accès). La phrase secrète est générée CÔTÉ APP (5 mots, procédure habituelle de l'utilisateur) et ne quitte jamais l'appareil : le serveur ne génère ni ne reçoit la phrase (sinon il pourrait tout déchiffrer, fin du chiffrement de bout en bout).",
+        "2026-11-21 — L'utilisateur peut aussi choisir sa propre phrase : minimum 25 caractères, imposé par l'app."
+      ],
+      "avancement": "2026-11-21 — Étape 1 (export/import manuel d'un fichier chiffré) implémentée et testée en unitaire sous Linux : migration SQLite (uuid, updated_at, favorite_updated_at, tables sync_tombstones et sync_pending), module src-tauri/src/sync_domain (crypto Argon2id + XChaCha20-Poly1305, snapshot, fusion le plus récent gagne), commandes Tauri export_account / import_account / default_account_file_path, onglet Paramètres > Compte (masqué sur iOS). Pas encore éprouvée en conditions réelles dans l'appli, ni sous Windows. Reste : sélecteur de fichier natif (plugin dialog), génération de la phrase en 5 mots, réglages par série non synchronisés, étapes 2 (serveur) et 3 (iOS)."
     },
     {
       "id": 21,

@@ -74,11 +74,7 @@ pub fn should_block_channel(
     }
 
     // Check if auto-detect is enabled and channel contains adult content markers
-    if auto_detect_enabled && is_adult_content(channel_name) {
-        return true;
-    }
-
-    false
+    auto_detect_enabled && is_adult_content(channel_name)
 }
 
 #[cfg(test)]

@@ -17,6 +17,13 @@ use rusqlite::{params, Connection, OptionalExtension, Result};
 use serde::Serialize;
 use std::collections::HashMap;
 
+/// Profil créé par l'import (id local), pour que l'appli charge ses chaînes tout de suite.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct AddedProfile {
+    pub id: i64,
+    pub name: String,
+}
+
 #[derive(Debug, Default, Clone, Serialize, PartialEq)]
 pub struct MergeReport {
     pub profiles_added: usize,
@@ -28,6 +35,8 @@ pub struct MergeReport {
     pub settings_applied: usize,
     /// Éléments en attente de l'import des chaînes de leur profil
     pub pending: usize,
+    /// Profils créés par cet import (leurs listes sont à charger)
+    pub added_profiles: Vec<AddedProfile>,
 }
 
 /// Résultat de l'application d'un enregistrement : `resolved` = la chaîne existe localement
@@ -90,6 +99,10 @@ pub fn merge_snapshot(conn: &Connection, snap: &Snapshot) -> Result<MergeReport>
                         p.updated_at
                     ],
                 )?;
+                report.added_profiles.push(AddedProfile {
+                    id: tx.last_insert_rowid(),
+                    name: p.name.clone(),
+                });
                 clear_tombstone(&tx, "profile", &p.uuid)?;
                 report.profiles_added += 1;
             }
@@ -705,6 +718,8 @@ mod tests {
         let b = db();
         let rep = transfer(&a, &b);
         assert_eq!(rep.profiles_added, 1);
+        assert_eq!(rep.added_profiles.len(), 1);
+        assert_eq!(rep.added_profiles[0].name, "brad");
         assert_eq!(rep.settings_applied, 1, "seul 'theme' est synchronisé");
         assert_eq!(rep.pending, 3, "favori + progression + preset en attente");
         assert_eq!(queries::get_setting(&b, "parental_pin_hash").unwrap(), None);

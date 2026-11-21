@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
+import { listen } from '@tauri-apps/api/event';
 import {
   defaultAccountFilePath,
   exportAccount,
+  getSetting,
   importAccount,
+  refreshPlaylist,
   type AccountExportReport,
   type AccountMergeReport,
 } from '../../lib/tauri';
@@ -12,6 +15,7 @@ import {
   isPassphraseLongEnough,
   passphraseLength,
 } from '../../lib/accountPassphrase';
+import { loadAddedProfiles, type LoadFailure, type LoadStep } from '../../lib/accountLoad';
 import { logger } from '../../lib/logger';
 
 const INPUT_CLASS =
@@ -29,7 +33,11 @@ export default function AccountTab({ importOnly = false }: AccountTabProps) {
   const [passphrase, setPassphrase] = useState('');
   const [confirm, setConfirm] = useState('');
   const [importPassphrase, setImportPassphrase] = useState('');
-  const [busy, setBusy] = useState<'export' | 'import' | null>(null);
+  const [busy, setBusy] = useState<'export' | 'import' | 'load' | null>(null);
+  const [loadStep, setLoadStep] = useState<LoadStep | null>(null);
+  const [loadedChannels, setLoadedChannels] = useState(0);
+  const [loadFailures, setLoadFailures] = useState<LoadFailure[]>([]);
+  const [reloading, setReloading] = useState(false);
   const [exportResult, setExportResult] = useState<AccountExportReport | null>(null);
   const [importResult, setImportResult] = useState<AccountMergeReport | null>(null);
   const [error, setError] = useState('');
@@ -38,6 +46,20 @@ export default function AccountTab({ importOnly = false }: AccountTabProps) {
     defaultAccountFilePath()
       .then(setPath)
       .catch((err) => logger.error('Failed to get default account path:', err));
+  }, []);
+
+  // Live channel count while a list is being loaded
+  useEffect(() => {
+    const unlisten = listen<{ live_count: number; vod_count: number; series_count: number }>(
+      'refresh-progress',
+      (event) => {
+        const p = event.payload;
+        setLoadedChannels(p.live_count + p.vod_count + p.series_count);
+      }
+    );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, []);
 
   const length = passphraseLength(passphrase);
@@ -75,6 +97,29 @@ export default function AccountTab({ importOnly = false }: AccountTabProps) {
       const report = await importAccount(path.trim(), importPassphrase);
       setImportResult(report);
       setImportPassphrase('');
+
+      // New profiles have no channels yet: load their lists now, otherwise everything shows 0
+      if (report.added_profiles.length > 0) {
+        setBusy('load');
+        setLoadFailures([]);
+        const activeRaw = await getSetting('active_profile_id').catch(() => null);
+        const failures = await loadAddedProfiles(
+          report.added_profiles,
+          activeRaw ? Number(activeRaw) : null,
+          refreshPlaylist,
+          (step) => {
+            setLoadStep(step);
+            setLoadedChannels(0);
+          },
+          describeError
+        );
+        setLoadStep(null);
+        setLoadFailures(failures);
+        if (failures.length === 0) {
+          setReloading(true);
+          setTimeout(() => window.location.reload(), 1500);
+        }
+      }
     } catch (err) {
       logger.error('Account import failed');
       setError(describeError(err));
@@ -175,9 +220,34 @@ export default function AccountTab({ importOnly = false }: AccountTabProps) {
           />
         </label>
         <button type="button" className={BUTTON_CLASS} disabled={!canImport} onClick={handleImport}>
-          {busy === 'import' ? 'Import en cours…' : 'Importer le compte'}
+          {busy === 'import'
+            ? 'Import en cours…'
+            : busy === 'load'
+              ? 'Chargement des listes…'
+              : 'Importer le compte'}
         </button>
-        {importResult && (
+        {loadStep && (
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            Chargement de la liste {loadStep.index}/{loadStep.total} : {loadStep.name}
+            {loadedChannels > 0 && ` (${loadedChannels.toLocaleString()} chaînes)`}…
+          </p>
+        )}
+        {reloading && (
+          <p className="text-sm text-green-700 dark:text-green-400">
+            Listes chargées, redémarrage de l&apos;application…
+          </p>
+        )}
+        {loadFailures.length > 0 && (
+          <div role="alert" className="space-y-1 text-sm text-red-600">
+            {loadFailures.map((f) => (
+              <p key={f.profile.id}>
+                Liste « {f.profile.name} » non chargée : {f.message}. Réessaie depuis le menu des
+                profils.
+              </p>
+            ))}
+          </div>
+        )}
+        {importResult && busy !== 'load' && !reloading && (
           <div className="space-y-2 text-sm text-green-700 dark:text-green-400">
             <p>
               Import terminé : {importResult.profiles_added} profil(s) ajouté(s),{' '}

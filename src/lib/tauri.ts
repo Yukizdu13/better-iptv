@@ -325,6 +325,8 @@ export interface AccountMergeReport {
   settings_applied: number;
   /** Items waiting for the playlist channels to be imported on this device */
   pending: number;
+  /** Profiles created by the import: their channel lists must be loaded */
+  added_profiles: { id: number; name: string }[];
 }
 
 export async function defaultAccountFilePath(): Promise<string> {

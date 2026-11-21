@@ -30,6 +30,14 @@ pub struct MergeReport {
     pub pending: usize,
 }
 
+/// Résultat de l'application d'un enregistrement : `resolved` = la chaîne existe localement
+/// (sinon l'enregistrement part en attente), `changed` = la base a réellement été modifiée.
+#[derive(Debug, Clone, Copy)]
+struct Applied {
+    resolved: bool,
+    changed: bool,
+}
+
 const KIND_FAV: &str = "fav";
 const KIND_PROGRESS: &str = "progress";
 const KIND_PRESET: &str = "preset";
@@ -135,9 +143,13 @@ pub fn merge_snapshot(conn: &Connection, snap: &Snapshot) -> Result<MergeReport>
     for f in &snap.favorites {
         let Some(&pid) = profile_ids.get(&f.playlist_uuid) else { continue };
         let keys = cached_keys(&tx, &mut key_cache, pid)?;
-        if apply_favorite(&tx, keys, f)? {
+        let r = apply_favorite(&tx, keys, f)?;
+        if r.changed {
             report.favorites_applied += 1;
-        } else if store_pending(&tx, KIND_FAV, &f.playlist_uuid, &f.channel_key, f, &f.updated_at)? {
+        }
+        if !r.resolved
+            && store_pending(&tx, KIND_FAV, &f.playlist_uuid, &f.channel_key, f, &f.updated_at)?
+        {
             report.pending += 1;
         }
     }
@@ -145,9 +157,13 @@ pub fn merge_snapshot(conn: &Connection, snap: &Snapshot) -> Result<MergeReport>
     for s in &snap.series_progress {
         let Some(&pid) = profile_ids.get(&s.playlist_uuid) else { continue };
         let keys = cached_keys(&tx, &mut key_cache, pid)?;
-        if apply_progress(&tx, keys, s)? {
+        let r = apply_progress(&tx, keys, s)?;
+        if r.changed {
             report.progress_applied += 1;
-        } else if store_pending(&tx, KIND_PROGRESS, &s.playlist_uuid, &s.channel_key, s, &s.updated_at)? {
+        }
+        if !r.resolved
+            && store_pending(&tx, KIND_PROGRESS, &s.playlist_uuid, &s.channel_key, s, &s.updated_at)?
+        {
             report.pending += 1;
         }
     }
@@ -239,11 +255,19 @@ pub fn apply_pending_for_playlist(conn: &Connection, playlist_id: i64) -> Result
     for (kind, item_key, payload) in rows {
         let done = match kind.as_str() {
             KIND_FAV => match serde_json::from_str::<FavoriteRec>(&payload) {
-                Ok(rec) => apply_favorite(&tx, &keys, &rec)?,
+                Ok(rec) => {
+                    let r = apply_favorite(&tx, &keys, &rec)?;
+                    applied += usize::from(r.changed);
+                    r.resolved
+                }
                 Err(_) => true, // payload illisible : on l'écarte
             },
             KIND_PROGRESS => match serde_json::from_str::<ProgressRec>(&payload) {
-                Ok(rec) => apply_progress(&tx, &keys, &rec)?,
+                Ok(rec) => {
+                    let r = apply_progress(&tx, &keys, &rec)?;
+                    applied += usize::from(r.changed);
+                    r.resolved
+                }
                 Err(_) => true,
             },
             KIND_PRESET => match serde_json::from_str::<PresetRec>(&payload) {
@@ -263,9 +287,6 @@ pub fn apply_pending_for_playlist(conn: &Connection, playlist_id: i64) -> Result
             _ => true,
         };
         if done {
-            if kind != KIND_PRESET {
-                applied += 1;
-            }
             tx.execute(
                 "DELETE FROM sync_pending WHERE kind=?1 AND playlist_uuid=?2 AND item_key=?3",
                 params![kind, uuid, item_key],
@@ -311,13 +332,15 @@ fn clear_tombstone(conn: &Connection, kind: &str, uuid: &str) -> Result<()> {
     Ok(())
 }
 
-/// Retourne `true` si l'enregistrement a été traité (chaîne trouvée), même sans modification.
 fn apply_favorite(
     conn: &Connection,
     keys: &HashMap<String, Vec<i64>>,
     f: &FavoriteRec,
-) -> Result<bool> {
-    let Some(ids) = keys.get(&f.channel_key) else { return Ok(false) };
+) -> Result<Applied> {
+    let Some(ids) = keys.get(&f.channel_key) else {
+        return Ok(Applied { resolved: false, changed: false });
+    };
+    let mut changed = false;
     for id in ids {
         let local_ts: String = conn.query_row(
             "SELECT COALESCE(favorite_updated_at, ?2) FROM channels WHERE id = ?1",
@@ -329,17 +352,21 @@ fn apply_favorite(
                 "UPDATE channels SET is_favorite = ?1, favorite_updated_at = ?2 WHERE id = ?3",
                 params![f.is_favorite, f.updated_at, id],
             )?;
+            changed = true;
         }
     }
-    Ok(true)
+    Ok(Applied { resolved: true, changed })
 }
 
 fn apply_progress(
     conn: &Connection,
     keys: &HashMap<String, Vec<i64>>,
     s: &ProgressRec,
-) -> Result<bool> {
-    let Some(ids) = keys.get(&s.channel_key) else { return Ok(false) };
+) -> Result<Applied> {
+    let Some(ids) = keys.get(&s.channel_key) else {
+        return Ok(Applied { resolved: false, changed: false });
+    };
+    let mut changed = false;
     for id in ids {
         let local_ts: Option<String> = conn
             .query_row(
@@ -371,9 +398,10 @@ fn apply_progress(
                     s.updated_at
                 ],
             )?;
+            changed = true;
         }
     }
-    Ok(true)
+    Ok(Applied { resolved: true, changed })
 }
 
 /// Retourne `(appliqué, complet)` : `complet` est faux si certaines séries ne sont pas encore
@@ -745,6 +773,7 @@ mod tests {
         // Idempotent : refusionner ne change rien
         let again = transfer(&a, &b);
         assert_eq!(again.profiles_added + again.profiles_updated + again.profiles_deleted, 0);
+        assert_eq!((again.favorites_applied, again.progress_applied, again.presets_applied, again.pending), (0, 0, 0, 0));
         assert!(is_fav(&b, b_tf1));
     }
 

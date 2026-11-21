@@ -387,6 +387,71 @@
       "zone": "Lecture / Player vidéo (MPV desktop)",
       "notes": "Fait 2026-10-12 (à valider en réel) : --autofit-larger=90%x90% (la fenêtre ne dépasse jamais 90% de l'écran en largeur ni hauteur).",
       "notes_windows": "Option MPV --autofit-larger, multi-OS : à valider sous Windows."
+    },
+    {
+      "id": 20,
+      "titre": "Compte universel : retrouver ses profils, favoris et historique sur Linux, Windows (et téléphone)",
+      "description": "Créer un compte utilisateur unique (ex : \"kevin\") qui réunit tous les comptes/profils de l'app et que l'on peut utiliser sur n'importe quelle installation : Linux, Windows, et plus tard le téléphone (iOS, hors première version). Après connexion, on retrouve ses informations sans tout reconfigurer : profils/playlists avec leurs identifiants Xtream, favoris, films et épisodes déjà vus (avec position de lecture), presets de play aléatoire, réglages (qualité vidéo, filtres avancés par défaut, durée du générique, etc.). Aujourd'hui tout est local à chaque machine (SQLite), donc chaque nouvelle installation repart de zéro.",
+      "type": "feature",
+      "priorite": "haute",
+      "statut": "a_faire",
+      "distributions": [
+        "linux",
+        "windows"
+      ],
+      "statut_windows": "a_faire",
+      "zone": "Compte / Synchronisation multi-appareils",
+      "constat_initial": "État du code au 2026-11-21 (src-tauri/src/db/schema.rs) : tables playlists (xtream_username / xtream_password en clair), channels (is_favorite), watch_history, series_last_episode (position/durée), random_play_presets, settings. Aucune notion de compte ni de synchronisation. Les favoris et l'historique pointent vers channel_id, un entier AUTOINCREMENT propre à chaque base locale : il ne peut pas servir d'identifiant commun entre deux machines. channels (dizaines de milliers de lignes) se réimporte depuis le fournisseur et n'a pas besoin d'être synchronisé.",
+      "pistes": [
+        "Décider d'abord CE QUI est synchronisé : profils/playlists + identifiants, favoris, historique de visionnage (films ET épisodes, avec position), series_last_episode, random_play_presets, settings. Ne PAS synchroniser channels/epg_programs (réimportables depuis le fournisseur)",
+        "Identifiant stable inter-appareils : remplacer channel_id (local) par une clé du type (profil, stream_id Xtream) ou un UUID par profil, pour que favoris/historique se retrouvent sur une autre machine",
+        "Sécurité (point bloquant) : les identifiants Xtream sont des secrets. Chiffrement de bout en bout côté client (clé dérivée d'une phrase secrète du compte, ex : Argon2 + XChaCha20/AES-GCM) pour que le serveur ne voie jamais les identifiants ni l'historique en clair ; aucun secret dans les logs",
+        "Authentification par simple phrase secrète (décision utilisateur) : pas d'e-mail ni de mot de passe de compte. La phrase sert à dériver (KDF lent type Argon2, sel propre au compte) d'un côté la clé de chiffrement, de l'autre une preuve d'accès envoyée au serveur ; le serveur ne stocke ni la phrase ni la clé. Limiter les essais côté serveur (rate limiting). Conséquence à assumer : phrase perdue = données du serveur irrécupérables (chiffrement de bout en bout) ; prévoir un export de secours et imposer une phrase longue",
+        "Modèle de données : un compte contient plusieurs profils (ex : compte 'kevin' → profils 'brad', 'atlas-pro' ; un autre compte contiendra d'autres profils). Un profil appartient à un seul compte ; pas de partage de profil entre comptes dans la v1",
+        "Hébergement : probablement sur ks1 (pas encore défini) → petit serveur d'API dédié (comptes, stockage de blobs chiffrés). Avant toute intervention sur ks1, lire le repo infra_ops INFRA_ks1 (Nginx uniquement, jamais Apache2). Alternative plus simple à garder en réserve : fichier chiffré dans un dossier Nextcloud synchronisé (WebDAV)",
+        "Offline-first : l'app reste pleinement utilisable sans connexion, la synchronisation se fait en arrière-plan ; la base SQLite locale reste la source de vérité de l'appareil",
+        "Résolution de conflits : horodatage updated_at par enregistrement (le plus récent gagne) ; pour la progression de lecture, garder la position la plus avancée/récente ; pour les favoris, fusion (ajouts conservés, suppressions via marqueur de suppression) plutôt qu'écrasement",
+        "Écran Compte dans Paramètres : créer/connecter le compte, statut de dernière synchro, bouton 'Synchroniser maintenant', déconnexion (efface les secrets locaux de sync), choix de ce qui est synchronisé",
+        "Migration de schéma SQLite (ALTER TABLE, comme pour position_seconds) : colonnes updated_at / uuid / deleted_at sur les tables synchronisées, sans casser les bases existantes",
+        "Prévoir une API indépendante de l'OS (logique de sync en Rust dans src-tauri, commandes Tauri identiques sur Linux/Windows) pour pouvoir brancher iOS ensuite sans refaire le protocole",
+        "Découper en étapes livrables : (1) export/import manuel d'un fichier chiffré de compte (déjà utile pour passer Kubuntu -> KEVIN-MSI), (2) synchro automatique via le serveur, (3) client iOS (hors v1)"
+      ],
+      "questions_ouvertes": [
+        "Hébergement définitif (ks1 confirmé ? sous-domaine, déploiement, sauvegardes) ?",
+        "Comment nomme-t-on un compte (identifiant libre choisi à la création, ex : 'kevin') et l'unicité est-elle vérifiée par le serveur ?",
+        "Que se passe-t-il si la phrase secrète est perdue : on accepte la perte des données serveur (avec export de secours local) ?"
+      ],
+      "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur ('à implémenter bientôt sur les deux plateformes'). Rien d'implémenté. Décisions du 2026-11-21 dans 'decisions' (hébergement probable ks1, compte multi-profils, phrase secrète, iOS hors v1). Le téléphone (iOS) n'est pas une des deux compilations suivies dans 'distributions' mais doit être gardé en tête dans la conception.",
+      "decisions": [
+        "2026-11-21 — Hébergement : probablement sur ks1, pas encore défini.",
+        "2026-11-21 — Modèle : un compte contient plusieurs profils (kevin → brad, atlas-pro ; un autre compte → d'autres profils).",
+        "2026-11-21 — Authentification : simple phrase secrète (pas de compte e-mail + mot de passe).",
+        "2026-11-21 — Téléphone (iOS) : hors première version."
+      ]
+    },
+    {
+      "id": 21,
+      "titre": "CI : le job Test Build échoue (prettier --check src, 10 fichiers mal formatés)",
+      "description": "Le workflow GitHub Actions 'Test Build' (ubuntu-24.04) est en échec sur le fork. Il s'arrête à l'étape 'Check frontend formatting' (npm run format:check = prettier --check src). Les étapes suivantes n'ont donc jamais été exécutées sur ces runs.",
+      "type": "bug",
+      "priorite": "haute",
+      "statut": "a_faire",
+      "distributions": [
+        "linux",
+        "windows"
+      ],
+      "statut_windows": "a_faire",
+      "zone": "CI / Qualité - Formatage frontend",
+      "constat_initial": "Run 44947107008 (commit 277f59b, 2026-11-21) : échec à format:check, 10 fichiers : src/components/FilterPanel.tsx, IOSVideoPlayer.tsx, MainScreen.tsx, modals/RandomPlayModal.tsx, NowPlayingBar.tsx, SeriesView.tsx, settings/PlaybackTab.tsx, VodView.tsx, src/hooks/useChannelPlayback.ts, useSeriesProgress.ts. L'étape lint (avant) passe. Non exécutées donc inconnues : test:run, cargo clippy (-D warnings -A dead_code), cargo test, build Tauri. Le run précédent de Test Build (38294453938, commit bb286e5, 2026-10-12) était déjà en échec, cause non vérifiée (log illisible). Le workflow 'Build iOS IPA' avait réussi sur bb286e5 ; celui du 2026-11-21 était encore en cours.",
+      "pistes": [
+        "Formater : npm run format (prettier --write src), Prettier 3.7.3 verrouillé dans package-lock.json ; config dans .prettierrc (printWidth 100, plugin tailwindcss)",
+        "Pas de Node sur kevin-kubuntu (purgé le 2026-11-16) : lancer le formatage depuis KEVIN-MSI (npm ci puis npm run format) ou avec un Node 20 portable ; ne pas réinstaller Node système sans l'accord de l'utilisateur",
+        "Commiter le formatage seul (commit dédié 'style:'), sans mélanger avec des changements fonctionnels",
+        "Après le formatage, rejouer en local les mêmes étapes que la CI pour trouver les échecs masqués : npm run lint, npm run format:check, npm run test:run, cd src-tauri && cargo clippy --all-targets -- -D warnings -A dead_code, cargo test",
+        "Éviter la récidive : lancer npm run format:check avant chaque push (hook git pre-push ou habitude), surtout après un lot de features comme celui du 2026-10-12"
+      ],
+      "notes_windows": "À surveiller sur KEVIN-MSI : Prettier 3 impose des fins de ligne LF par défaut ; si git convertit en CRLF (core.autocrlf=true), format:check peut échouer sans vrai défaut de formatage.",
+      "notes": "Ajouté 2026-11-21 d'après la notification GitHub reçue par l'utilisateur. Correction non faite : l'exécution d'un Node portable a été refusée dans la session, en attente de la décision de l'utilisateur."
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 > **Ce fichier doit TOUJOURS être tenu à jour.** Toute modification qui change la structure du repo, les commandes, les plateformes, le flux git/release ou une règle ci-dessous impose de mettre à jour ce fichier **dans le même commit**. Lire ce fichier = le corriger s'il est périmé.
 > Fichier compagnon, à tenir à jour avec lui : [`docs/ARBORESCENCE_PLATEFORMES.md`](docs/ARBORESCENCE_PLATEFORMES.md) (fichiers nécessaires par plateforme).
-> Dernière mise à jour : 2026-11-21 (version de l'app : 2.6.1 ; compte universel étape 1 ajoutée).
+> Dernière mise à jour : 2026-11-21 (version de l'app : 2.6.1 ; compte universel étape 1 ajoutée ; intégration Atlas Pro livrée).
 
 Les règles universelles de l'utilisateur sont chargées via son `~/.claude/CLAUDE.md` (hors repo) ; ce fichier ne contient que ce qui est propre au projet.
 
@@ -14,6 +14,7 @@ Playlists M3U et Xtream Codes (live, VOD, séries, EPG XMLTV), profils, favoris,
 - Produit : « Better IPTV+Kev » — identifiant `com.m0s.better-ip-tv` — crate/paquet npm `better-ip-tv`
 - `mewset/better-iptv` = upstream (**on n'y pousse jamais**) ; `Yukizdu13/better-iptv` = le fork (**on pousse ici**). Le nom du remote dépend du clone : sur kevin-kubuntu `fork` = Yukizdu13 (`git push fork main`) ; sur KEVIN-MSI (clone Windows) `origin` = Yukizdu13 (`git push origin main`). Vérifier avec `git remote -v` avant de pousser.
 - Backlog : `prochaine_maj.json` à la racine (les issues GitHub sont désactivées sur le fork). Y noter toute nouvelle idée/bug avec les champs `distributions`, `statut` (Linux), `statut_windows` (`fait` | `a_faire` | `a_valider`) et, si besoin, `notes_windows` ; les décisions d'une entrée vont dans `decisions` (cf. #20, compte universel).
+- **Reste à faire du clone Windows (KEVIN-MSI)** : fichier local `RESTE_A_FAIRE.local.md` à la racine (validations, nettoyage d'ATLAS-PRO promis après les tests de l'utilisateur, backlog code). **Non versionné** : exclu via `.git/info/exclude`, absent des autres clones (kevin-kubuntu) et du dépôt public. S'il existe, le lire en début de session et le tenir à jour ; ne jamais le committer ni y mettre d'identifiants.
 
 ## Stack
 

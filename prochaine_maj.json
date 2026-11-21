@@ -483,6 +483,74 @@
         "Test Vitest : au clic sur la loupe d'un favori de type vod, contentTypeFilter vaut 'vod' et searchQuery vaut le nom du film"
       ],
       "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur ('les favoris des autres comptes' = favoris des autres profils, cf. #3). Rien d'implémenté. Interaction possible avec #20 (compte universel) : une fois les profils rattachés à un compte, les favoris 'des autres profils' pourraient aussi venir d'un autre appareil."
+    },
+    {
+      "id": 23,
+      "titre": "Page d'accueil : 3e onglet « Compte » pour se connecter au compte universel avant de créer un profil",
+      "description": "Sur un appareil vide, la page d'accueil (Setup) ne propose que l'import M3U et Xtream et n'offre aucun accès aux Paramètres : impossible d'importer un fichier de compte ni (plus tard) de se connecter au serveur de synchro sans créer d'abord un profil bidon. Ajouter un troisième onglet « Compte » à côté de M3U et Xtream : import d'un fichier de compte chiffré (étape 1 de #20) et, quand elle existera, connexion au compte sur le serveur de synchro (étape 2) pour récupérer ses profils sur une installation neuve.",
+      "type": "feature",
+      "priorite": "haute",
+      "distributions": [
+        "linux",
+        "windows"
+      ],
+      "statut": "a_faire",
+      "statut_windows": "a_faire",
+      "zone": "UI - Page d'accueil / Compte",
+      "constat_initial": "Constaté le 2026-11-21 pendant le premier test réel de l'étape 1 de #20 : le test d'import sur une base vide a été bloqué, car Setup.tsx n'a que les onglets M3U et Xtream et aucun bouton Paramètres. L'onglet Paramètres > Compte (AccountTab.tsx) n'est atteignable qu'une fois un profil chargé.",
+      "pistes": [
+        "Réutiliser AccountTab (ou extraire sa partie Importer) dans un 3e onglet de Setup.tsx ; même commandes Tauri import_account / default_account_file_path, aucun changement de backend",
+        "Après un import réussi sur base vide : recharger l'application, ou aller directement au choix du profil (les profils importés n'ont pas encore de chaînes : il faut charger chaque liste, les favoris et séries en cours se rattachent ensuite tout seuls)",
+        "Étape 2 de #20 : le même onglet accueillera la connexion au compte (nom de compte + phrase secrète) et la création de compte",
+        "Masquer l'onglet sur iOS tant que le sélecteur de fichier n'existe pas (comme l'onglet Compte des Paramètres)"
+      ],
+      "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur. Lié à #20.",
+      "notes_windows": "Même code que sous Linux ; à valider avec le premier build Windows."
+    },
+    {
+      "id": 24,
+      "titre": "Dépôt privé pour tout ce qui touche à l'infrastructure personnelle (le dépôt actuel est public)",
+      "description": "Le fork actuel est public et a déjà reçu des informations d'infrastructure personnelle dans le backlog et l'historique. Créer un dépôt PRIVÉ sur le compte GitHub Yukizdu13 (GitHub interdit de rendre privé un fork d'un dépôt public : nouveau dépôt, ou détachement du fork par le support GitHub), y déplacer les notes d'infrastructure et de déploiement (serveur de synchro, plan de déploiement, décisions d'hébergement), et garder dans le dépôt public uniquement du contenu générique.",
+      "type": "chore",
+      "priorite": "haute",
+      "distributions": [
+        "linux",
+        "windows"
+      ],
+      "statut": "a_faire",
+      "statut_windows": "a_faire",
+      "zone": "Dépôt / Confidentialité",
+      "constat_initial": "2026-11-21 : des informations d'infrastructure ont été écrites dans prochaine_maj.json avant d'être retirées (jamais poussées) ; quelques lignes plus anciennes, déjà publiques, restent dans l'historique du fork. La règle « dépôt public : aucune info d'infrastructure » est dans CLAUDE.md.",
+      "pistes": [
+        "Choisir : nouveau dépôt privé (recommandé, simple) ou demande au support GitHub pour détacher le fork (conserve l'historique, plus long)",
+        "Y déplacer les notes d'infra et de déploiement (aujourd'hui dans les notes privées de l'utilisateur, hors dépôt) et le plan du serveur de synchro",
+        "Décider si on réécrit l'historique public pour effacer les quelques lignes anciennes (réécriture d'historique + push forcé, à valider explicitement avant) ; si le dépôt public est abandonné ou remplacé, la question disparaît",
+        "Mettre à jour CLAUDE.md et la mémoire du projet avec le nouvel emplacement, et le remote git (`fork` / nouveau remote) ; ne jamais pousser sur le dépôt amont"
+      ],
+      "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur (on publie trop d'informations d'infrastructure)."
+    },
+    {
+      "id": 25,
+      "titre": "Import de playlist Xtream : l'écran « Importing playlist... » reste bloqué environ 60 s avec des informations invalides",
+      "description": "Avec une URL de serveur ou des identifiants invalides (informations de test), la page d'accueil reste sur « Importing playlist... » sans retour, jusqu'à une minute, puis n'affiche qu'un message générique. L'erreur « builder error » (URL invalide, donc permanente) est traitée comme transitoire et réessayée avec un backoff exponentiel jusqu'à 60 s. Échouer tout de suite sur les erreurs permanentes, valider l'URL dans le formulaire, afficher le vrai message, et permettre d'annuler l'import.",
+      "type": "bug",
+      "priorite": "moyenne",
+      "distributions": [
+        "linux",
+        "windows"
+      ],
+      "statut": "a_faire",
+      "statut_windows": "a_faire",
+      "zone": "Import Xtream / UX",
+      "constat_initial": "Constaté le 2026-11-21 (Linux, build de dev) : journal « Xtream API live streams failed, retrying: builder error » répété pendant environ une minute, puis « Failed to fetch Xtream channels: Failed to fetch live streams from Xtream API after retries ». Code : playlist/xtream.rs (create_backoff : max_elapsed_time 60 s, fetch_json_with_retry), Setup.tsx (le catch affiche err.message si err est une Error, sinon « Failed to import playlist » ; or les erreurs Tauri sont des objets { code, details }).",
+      "pistes": [
+        "Dans fetch_json_with_retry, ne réessayer que les erreurs transitoires (timeout, connexion, 5xx, 429) ; erreur de construction de requête, URL invalide ou 4xx d'authentification : échec immédiat (backoff::Error::permanent)",
+        "Valider le format de l'URL du serveur côté formulaire (schéma http/https, hôte) avant d'appeler le backend, avec un message clair",
+        "Afficher details de l'erreur Tauri (même helper que describeError de AccountTab) au lieu du message générique",
+        "Bouton « Annuler » pendant l'import (ou délai maximal plus court pour la première tentative)"
+      ],
+      "notes": "Ajouté 2026-11-21 d'après un test avec de fausses informations. Aucun identifiant réel n'est consigné ici.",
+      "notes_windows": "Même code que sous Linux."
     }
   ]
 }

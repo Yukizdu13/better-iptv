@@ -431,16 +431,16 @@
     },
     {
       "id": 21,
-      "titre": "CI : le job Test Build échoue (prettier --check src, 10 fichiers mal formatés)",
+      "titre": "CI : le job Test Build échoue (prettier, puis clippy)",
       "description": "Le workflow GitHub Actions 'Test Build' (ubuntu-24.04) est en échec sur le fork. Il s'arrête à l'étape 'Check frontend formatting' (npm run format:check = prettier --check src). Les étapes suivantes n'ont donc jamais été exécutées sur ces runs.",
       "type": "bug",
       "priorite": "haute",
-      "statut": "a_faire",
+      "statut": "fait",
       "distributions": [
         "linux",
         "windows"
       ],
-      "statut_windows": "a_faire",
+      "statut_windows": "a_valider",
       "zone": "CI / Qualité - Formatage frontend",
       "constat_initial": "Run 44947107008 (commit 277f59b, 2026-11-21) : échec à format:check, 10 fichiers : src/components/FilterPanel.tsx, IOSVideoPlayer.tsx, MainScreen.tsx, modals/RandomPlayModal.tsx, NowPlayingBar.tsx, SeriesView.tsx, settings/PlaybackTab.tsx, VodView.tsx, src/hooks/useChannelPlayback.ts, useSeriesProgress.ts. L'étape lint (avant) passe. Non exécutées donc inconnues : test:run, cargo clippy (-D warnings -A dead_code), cargo test, build Tauri. Le run précédent de Test Build (38294453938, commit bb286e5, 2026-10-12) était déjà en échec, cause non vérifiée (log illisible). Le workflow 'Build iOS IPA' avait réussi sur bb286e5 ; celui du 2026-11-21 était encore en cours.",
       "pistes": [
@@ -448,10 +448,11 @@
         "Pas de Node sur kevin-kubuntu (purgé le 2026-11-16) : lancer le formatage depuis KEVIN-MSI (npm ci puis npm run format) ou avec un Node 20 portable ; ne pas réinstaller Node système sans l'accord de l'utilisateur",
         "Commiter le formatage seul (commit dédié 'style:'), sans mélanger avec des changements fonctionnels",
         "Après le formatage, rejouer en local les mêmes étapes que la CI pour trouver les échecs masqués : npm run lint, npm run format:check, npm run test:run, cd src-tauri && cargo clippy --all-targets -- -D warnings -A dead_code, cargo test",
-        "Éviter la récidive : lancer npm run format:check avant chaque push (hook git pre-push ou habitude), surtout après un lot de features comme celui du 2026-10-12"
+        "Éviter la récidive : lancer npm run format:check avant chaque push (hook git pre-push ou habitude), surtout après un lot de features comme celui du 2026-10-12",
+        "Dérive de toolchain : la CI utilise Rust 'stable' (1.100 le 2026-11-21) alors que kevin-kubuntu a 1.96 ; un nouveau lint peut casser la CI sans changement de code. À envisager : épingler la version avec un fichier rust-toolchain.toml, ou garder la machine locale à jour"
       ],
       "notes_windows": "À surveiller sur KEVIN-MSI : Prettier 3 impose des fins de ligne LF par défaut ; si git convertit en CRLF (core.autocrlf=true), format:check peut échouer sans vrai défaut de formatage.",
-      "notes": "Ajouté 2026-11-21 d'après la notification GitHub reçue par l'utilisateur. Correction non faite : l'exécution d'un Node portable a été refusée dans la session, en attente de la décision de l'utilisateur."
+      "notes": "Fait 2026-11-21, CI verte (run 44948899655, commit 9e5dcbe : lint, format, tests frontend, clippy, cargo test et build Tauri OK). 3 causes corrigées : (1) 10 fichiers mal formatés (commit 8d488a4, Prettier 3.7.3 via Node 20 portable) ; (2) clippy unnecessary_sort_by dans channel_domain/mod.rs (3b19a50) ; (3) clippy needless_bool dans parental_domain/mod.rs, visible seulement avec Rust 1.100 de la CI (9e5dcbe). Les 3 lignes de Rust viennent de l'upstream, corrigées sans changement de comportement. statut_windows reste a_valider : seul le build Ubuntu est vérifié, et la remarque sur les fins de ligne CRLF reste à contrôler sur KEVIN-MSI."
     }
   ]
 }

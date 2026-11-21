@@ -505,12 +505,13 @@
         "Masquer l'onglet sur iOS tant que le sélecteur de fichier n'existe pas (comme l'onglet Compte des Paramètres)"
       ],
       "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur. Lié à #20.",
-      "notes_windows": "Même code que sous Linux ; à valider avec le premier build Windows."
+      "notes_windows": "Même code que sous Linux ; à valider avec le premier build Windows.",
+      "avancement": "2026-11-21 — Onglet « Compte » ajouté à Setup.tsx (page d'accueil, hors modale, masqué sur iOS) : réutilise AccountTab en mode importOnly. Tests Vitest ajoutés (src/test/components/Setup.test.tsx). À valider à la main sous Linux, puis sous Windows. Reste pour l'étape 2 de #20 : y ajouter la connexion au compte."
     },
     {
       "id": 24,
-      "titre": "Dépôt privé pour tout ce qui touche à l'infrastructure personnelle (le dépôt actuel est public)",
-      "description": "Le fork actuel est public et a déjà reçu des informations d'infrastructure personnelle dans le backlog et l'historique. Créer un dépôt PRIVÉ sur le compte GitHub Yukizdu13 (GitHub interdit de rendre privé un fork d'un dépôt public : nouveau dépôt, ou détachement du fork par le support GitHub), y déplacer les notes d'infrastructure et de déploiement (serveur de synchro, plan de déploiement, décisions d'hébergement), et garder dans le dépôt public uniquement du contenu générique.",
+      "titre": "Dépôt privé : le code de synchro (adresse du serveur, protocole) et les notes d'infra ne doivent pas être dans un dépôt public",
+      "description": "Le fork actuel est public. Il a déjà reçu des informations d'infrastructure personnelle dans le backlog et l'historique, et surtout, la synchro (étape 2 de #20) fera entrer dans le build du client l'adresse du serveur et la façon dont l'application lui parle (protocole, chemins d'API, format des échanges). Ce n'est donc pas seulement une question de notes : le code du client de synchro et sa configuration de build doivent vivre dans un dépôt PRIVÉ sur le compte GitHub Yukizdu13. GitHub interdit de rendre privé un fork d'un dépôt public : nouveau dépôt privé, ou détachement du fork par le support GitHub.",
       "type": "chore",
       "priorite": "haute",
       "distributions": [
@@ -522,12 +523,14 @@
       "zone": "Dépôt / Confidentialité",
       "constat_initial": "2026-11-21 : des informations d'infrastructure ont été écrites dans prochaine_maj.json avant d'être retirées (jamais poussées) ; quelques lignes plus anciennes, déjà publiques, restent dans l'historique du fork. La règle « dépôt public : aucune info d'infrastructure » est dans CLAUDE.md.",
       "pistes": [
-        "Choisir : nouveau dépôt privé (recommandé, simple) ou demande au support GitHub pour détacher le fork (conserve l'historique, plus long)",
+        "Décision d'architecture avant d'écrire l'étape 2 de #20 : séparer ce qui reste public (app, étape 1 : export/import de fichier, interface générique `SyncBackend`) de ce qui devient privé (client du serveur de synchro, adresse et protocole, configuration de build, notes de déploiement)",
+        "Aucune adresse de serveur ni aucun chemin d'API en dur dans le dépôt public ; si le client de synchro est privé, le build privé l'ajoute (dépôt privé qui contient l'app complète, ou second crate/feature Cargo activé seulement dans le build privé)",
+        "Choisir : nouveau dépôt privé (recommandé, simple) ou demande au support GitHub pour détacher le fork (conserve l'historique, plus long). Le dépôt privé doit contenir l'historique utile ; l'amont `origin` reste en lecture seule, on n'y pousse jamais",
         "Y déplacer les notes d'infra et de déploiement (aujourd'hui dans les notes privées de l'utilisateur, hors dépôt) et le plan du serveur de synchro",
-        "Décider si on réécrit l'historique public pour effacer les quelques lignes anciennes (réécriture d'historique + push forcé, à valider explicitement avant) ; si le dépôt public est abandonné ou remplacé, la question disparaît",
-        "Mettre à jour CLAUDE.md et la mémoire du projet avec le nouvel emplacement, et le remote git (`fork` / nouveau remote) ; ne jamais pousser sur le dépôt amont"
+        "Décider si on réécrit l'historique public pour effacer les quelques lignes anciennes (réécriture + push forcé, à valider explicitement avant) ; si le dépôt public est abandonné ou remplacé, la question disparaît",
+        "Mettre à jour CLAUDE.md, la mémoire du projet, les workflows CI (secrets du dépôt privé pour le build avec l'adresse du serveur) et le remote git ; la CI du dépôt privé construira les .deb/.exe qui contiennent la config de synchro"
       ],
-      "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur (on publie trop d'informations d'infrastructure)."
+      "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur ; précisé le même jour : la fuite possible va au-delà des notes (le build du client de synchro embarquera l'adresse du serveur et le protocole). À trancher avant l'étape 2 de #20."
     },
     {
       "id": 25,

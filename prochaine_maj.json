@@ -506,7 +506,7 @@
       ],
       "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur. Lié à #20.",
       "notes_windows": "Même code que sous Linux ; à valider avec le premier build Windows.",
-      "avancement": "2026-11-21 — Onglet « Compte » ajouté à Setup.tsx (page d'accueil, hors modale, masqué sur iOS) : réutilise AccountTab en mode importOnly. Tests Vitest ajoutés (src/test/components/Setup.test.tsx). À valider à la main sous Linux, puis sous Windows. Reste pour l'étape 2 de #20 : y ajouter la connexion au compte."
+      "avancement": "2026-11-21 — Onglet « Compte » ajouté à Setup.tsx (page d'accueil, hors modale, masqué sur iOS) : réutilise AccountTab en mode importOnly. Tests Vitest ajoutés (src/test/components/Setup.test.tsx). À valider à la main sous Linux, puis sous Windows. Reste pour l'étape 2 de #20 : y ajouter la connexion au compte. 2026-11-21 : après un import qui crée des profils, l'appli charge automatiquement leurs listes (profil actif d'abord, une liste après l'autre, progression affichée) puis redémarre ; une liste en échec n'arrête pas les autres. Rapport d'import : champ added_profiles."
     },
     {
       "id": 24,

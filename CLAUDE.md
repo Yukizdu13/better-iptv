@@ -56,7 +56,7 @@ npm run tauri build -- --bundles deb           # paquet Linux
 | Plateforme | Statut | Machine de build |
 |---|---|---|
 | Linux (Kubuntu 24.04) | utilisé au quotidien, référence du champ `statut` | kevin-kubuntu (MacBook T2) |
-| Windows 11 | `cargo test` OK (108 tests) ; lecture MPV pas encore validée | KEVIN-MSI |
+| Windows 11 | build NSIS OK, `cargo test` OK (108 tests) ; lecture depuis l'UI et IPC MPV à valider | KEVIN-MSI |
 | macOS | prévu en CI upstream, non testé sur le fork | — |
 | iOS | `.ipa` non signé via GitHub Actions (sideload) | CI uniquement |
 | Android | non pris en charge | — |

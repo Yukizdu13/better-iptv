@@ -56,14 +56,14 @@ Cibles Tauri : `msi` et `nsis` (`bundle.targets = "all"`).
 resources/mpv/                            DOIT contenir mpv.exe + ses DLL au moment du build (seul .gitkeep est versionné)
 resources/.gitignore                      Ignore mpv/* sauf .gitkeep et .gitignore
 src-tauri/tauri.conf.json > bundle.resources   ["../resources/mpv/*"] → embarque MPV dans l'installeur
-src-tauri/src/playback/mpv.rs             get_mpv_path() : <dossier de l'exe>/mpv/mpv.exe, sinon mpv.exe du PATH ; IPC par named pipe \\.\pipe\better-iptv-mpv-<pid>
+src-tauri/src/playback/mpv.rs             get_mpv_path() : <dossier de l'exe>/_up_/resources/mpv/mpv.exe (emplacement réel de l'installeur), puis <exe>/mpv/mpv.exe, sinon mpv.exe du PATH ; IPC par named pipe \\.\pipe\better-iptv-mpv-<pid>
 .github/workflows/release.yml             Job windows-latest : télécharge mpv (shinchiro/mpv-winbuild-cmake) dans resources/mpv avant le build
 ```
 
 - **Prérequis build** : Node 20+, Rust stable (toolchain MSVC + Visual Studio Build Tools 2022), WebView2 (présent sur Windows 11), `npm ci`. Installés sur KEVIN-MSI le 2026-11-21 (`winget install Rustlang.Rustup OpenJS.NodeJS.LTS`) ; `cargo test` : 108 tests OK.
 - **MPV en local** : récupérer `mpv-x86_64-*.7z` (shinchiro), extraire dans `resources/mpv/` (reste ignoré par git), ou installer mpv dans le PATH. L'extraction exige 7-Zip (filtre BCJ2 : `tar`/`py7zr` échouent).
 - **Données** : `%APPDATA%\com.m0s.better-ip-tv\` (`logs\`, base SQLite).
-- **À valider au premier build** : (a) l'IPC MPV par named pipe n'a jamais été compilé ni testé ; (b) l'emplacement réel des ressources après bundling — Tauri place habituellement les chemins `../` sous `_up_/`, vérifier que `<exe>/mpv/mpv.exe` est bien celui qu'attend `get_mpv_path()`.
+- **Premier build (2026-11-21)** : `npm run tauri build -- --bundles nsis` produit `src-tauri/target/release/bundle/nsis/Better IPTV+Kev_<version>_x64-setup.exe` (≈ 40 Mo, MPV embarqué) ; le code IPC par named pipe compile. (b) résolu : Tauri remplace `..` par `_up_`, MPV est installé dans `<exe>/_up_/resources/mpv/` (corrigé dans `get_mpv_path()`). **Reste à valider** : l'IPC MPV par named pipe en conditions réelles (pause, seek, reprise) ; le MPV embarqué lit bien les flux (testé en ligne de commande : live h264, film mkv hevc, épisode mkv).
 
 ## 4. macOS (non testé sur le fork)
 

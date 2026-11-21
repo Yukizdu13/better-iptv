@@ -55,12 +55,16 @@ fn get_mpv_path() -> PathBuf {
     #[cfg(target_os = "windows")]
     {
         // Try bundled MPV first (Windows only)
-        // Bundled MPV is in resources/mpv/mpv.exe relative to the executable
         if let Ok(exe_path) = std::env::current_exe() {
             if let Some(exe_dir) = exe_path.parent() {
-                // Check if mpv.exe exists in the bundle
-                let bundled_mpv = exe_dir.join("mpv").join("mpv.exe");
-                if bundled_mpv.exists() {
+                // `bundle.resources = ["../resources/mpv/*"]` : Tauri remplace `..` par `_up_`,
+                // l'installeur (NSIS/MSI) dépose donc MPV dans `<exe>/_up_/resources/mpv/`
+                // (vérifié sur l'installeur NSIS 2026-11-21). `<exe>/mpv/` reste accepté.
+                let candidates = [
+                    exe_dir.join("_up_").join("resources").join("mpv").join("mpv.exe"),
+                    exe_dir.join("mpv").join("mpv.exe"),
+                ];
+                if let Some(bundled_mpv) = candidates.into_iter().find(|p| p.exists()) {
                     info!("Using bundled MPV at: {}", bundled_mpv.display());
                     return bundled_mpv;
                 }

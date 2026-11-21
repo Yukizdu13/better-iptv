@@ -5,9 +5,11 @@ import { listen } from '@tauri-apps/api/event';
 import { logger } from '../lib/logger';
 import type { Playlist } from '../types';
 import LoadingScreen from './LoadingScreen';
+import AccountTab from './settings/AccountTab';
+import { isIOS } from '../lib/platform';
 import logoImage from '../assets/logo/logo-256.webp';
 
-type ImportType = 'm3u' | 'xtream';
+type ImportType = 'm3u' | 'xtream' | 'account';
 
 interface SetupProps {
   onComplete?: (playlist: Playlist) => void; // Callback when profile created (modal mode)
@@ -25,6 +27,10 @@ export default function Setup({ onComplete, onCancel }: SetupProps = {}) {
   const [serverUrl, setServerUrl] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
+  // Onglet Compte : page d'accueil uniquement (en modale, les Paramètres sont accessibles) ;
+  // masqué sur iOS (pas de sélecteur de fichier).
+  const showAccountTab = !onCancel && !isIOS();
 
   const [error, setError] = useState('');
   const [importProgress, setImportProgress] = useState<{
@@ -197,112 +203,131 @@ export default function Setup({ onComplete, onCancel }: SetupProps = {}) {
           >
             Xtream Codes
           </button>
+          {showAccountTab && (
+            <button
+              type="button"
+              onClick={() => setImportType('account')}
+              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                importType === 'account'
+                  ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Compte
+            </button>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="name"
-              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Playlist Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={playlistName}
-              onChange={(e) => setPlaylistName(e.target.value)}
-              placeholder="My IPTV Playlist"
-              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          {importType === 'm3u' ? (
+        {importType === 'account' && showAccountTab ? (
+          <AccountTab importOnly />
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
-                htmlFor="url"
+                htmlFor="name"
                 className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                M3U Playlist URL
+                Playlist Name
               </label>
               <input
-                id="url"
+                id="name"
                 type="text"
-                value={playlistUrl}
-                onChange={(e) => setPlaylistUrl(e.target.value)}
-                placeholder="http://example.com/playlist.m3u"
+                value={playlistName}
+                onChange={(e) => setPlaylistName(e.target.value)}
+                placeholder="My IPTV Playlist"
                 className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
             </div>
-          ) : (
-            <>
-              <div>
-                <label
-                  htmlFor="server"
-                  className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Server URL
-                </label>
-                <input
-                  id="server"
-                  type="text"
-                  value={serverUrl}
-                  onChange={(e) => setServerUrl(e.target.value)}
-                  placeholder="http://example.com:8080"
-                  className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="username"
-                  className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Username
-                </label>
-                <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="username"
-                  className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="password"
-                  className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="password"
-                  className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-            </>
-          )}
 
-          {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-              {error}
-            </div>
-          )}
+            {importType === 'm3u' ? (
+              <div>
+                <label
+                  htmlFor="url"
+                  className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  M3U Playlist URL
+                </label>
+                <input
+                  id="url"
+                  type="text"
+                  value={playlistUrl}
+                  onChange={(e) => setPlaylistUrl(e.target.value)}
+                  placeholder="http://example.com/playlist.m3u"
+                  className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label
+                    htmlFor="server"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Server URL
+                  </label>
+                  <input
+                    id="server"
+                    type="text"
+                    value={serverUrl}
+                    onChange={(e) => setServerUrl(e.target.value)}
+                    placeholder="http://example.com:8080"
+                    className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="username"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Username
+                  </label>
+                  <input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="username"
+                    className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="password"
+                    className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </>
+            )}
 
-          <button
-            type="submit"
-            className="w-full rounded-md bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Add Playlist
-          </button>
-        </form>
+            {error && (
+              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full rounded-md bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Add Playlist
+            </button>
+          </form>
+        )}
 
         <div className="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
-          Your playlist will be saved locally
+          {importType === 'account' && showAccountTab
+            ? 'Retrouve tes profils, favoris et séries en cours depuis un fichier de compte'
+            : 'Your playlist will be saved locally'}
         </div>
       </div>
     </div>

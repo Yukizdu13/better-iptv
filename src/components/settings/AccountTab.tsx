@@ -19,7 +19,12 @@ const INPUT_CLASS =
 const BUTTON_CLASS =
   'rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50';
 
-export default function AccountTab() {
+interface AccountTabProps {
+  /** Page d'accueil : seul l'import est utile sur un appareil vide (rien à exporter). */
+  importOnly?: boolean;
+}
+
+export default function AccountTab({ importOnly = false }: AccountTabProps) {
   const [path, setPath] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -100,49 +105,56 @@ export default function AccountTab() {
         </label>
       </section>
 
-      <section className="space-y-3">
-        <h4 className="text-base font-semibold text-gray-900 dark:text-white">Exporter</h4>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Phrase secrète (au moins {MIN_PASSPHRASE_CHARS} caractères)
-          <input
-            type="password"
-            value={passphrase}
-            onChange={(e) => setPassphrase(e.target.value)}
-            className={`${INPUT_CLASS} mt-1`}
-            autoComplete="new-password"
-          />
-        </label>
-        <p
-          className={`text-xs ${
-            isPassphraseLongEnough(passphrase) ? 'text-green-600' : 'text-gray-500'
-          } dark:text-gray-400`}
-        >
-          {length} / {MIN_PASSPHRASE_CHARS} caractères
-        </p>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Confirmer la phrase secrète
-          <input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            className={`${INPUT_CLASS} mt-1`}
-            autoComplete="new-password"
-          />
-        </label>
-        {confirm !== '' && passphrase !== confirm && (
-          <p className="text-xs text-red-600">Les deux phrases ne correspondent pas.</p>
-        )}
-        <button type="button" className={BUTTON_CLASS} disabled={!canExport} onClick={handleExport}>
-          {busy === 'export' ? 'Export en cours…' : 'Exporter le compte'}
-        </button>
-        {exportResult && (
-          <p className="text-sm text-green-700 dark:text-green-400">
-            Compte exporté dans {exportResult.path} : {exportResult.profiles} profil(s),{' '}
-            {exportResult.favorites} favori(s), {exportResult.series_progress} série(s) en cours,{' '}
-            {exportResult.presets} preset(s), {exportResult.settings} réglage(s).
+      {!importOnly && (
+        <section className="space-y-3">
+          <h4 className="text-base font-semibold text-gray-900 dark:text-white">Exporter</h4>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Phrase secrète (au moins {MIN_PASSPHRASE_CHARS} caractères)
+            <input
+              type="password"
+              value={passphrase}
+              onChange={(e) => setPassphrase(e.target.value)}
+              className={`${INPUT_CLASS} mt-1`}
+              autoComplete="new-password"
+            />
+          </label>
+          <p
+            className={`text-xs ${
+              isPassphraseLongEnough(passphrase) ? 'text-green-600' : 'text-gray-500'
+            } dark:text-gray-400`}
+          >
+            {length} / {MIN_PASSPHRASE_CHARS} caractères
           </p>
-        )}
-      </section>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Confirmer la phrase secrète
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className={`${INPUT_CLASS} mt-1`}
+              autoComplete="new-password"
+            />
+          </label>
+          {confirm !== '' && passphrase !== confirm && (
+            <p className="text-xs text-red-600">Les deux phrases ne correspondent pas.</p>
+          )}
+          <button
+            type="button"
+            className={BUTTON_CLASS}
+            disabled={!canExport}
+            onClick={handleExport}
+          >
+            {busy === 'export' ? 'Export en cours…' : 'Exporter le compte'}
+          </button>
+          {exportResult && (
+            <p className="text-sm text-green-700 dark:text-green-400">
+              Compte exporté dans {exportResult.path} : {exportResult.profiles} profil(s),{' '}
+              {exportResult.favorites} favori(s), {exportResult.series_progress} série(s) en cours,{' '}
+              {exportResult.presets} preset(s), {exportResult.settings} réglage(s).
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="space-y-3">
         <h4 className="text-base font-semibold text-gray-900 dark:text-white">Importer</h4>

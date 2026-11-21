@@ -456,6 +456,30 @@
       ],
       "notes_windows": "À surveiller sur KEVIN-MSI : Prettier 3 impose des fins de ligne LF par défaut ; si git convertit en CRLF (core.autocrlf=true), format:check peut échouer sans vrai défaut de formatage.",
       "notes": "Fait 2026-11-21, CI verte (run 44948899655, commit 9e5dcbe : lint, format, tests frontend, clippy, cargo test et build Tauri OK). 3 causes corrigées : (1) 10 fichiers mal formatés (commit 8d488a4, Prettier 3.7.3 via Node 20 portable) ; (2) clippy unnecessary_sort_by dans channel_domain/mod.rs (3b19a50) ; (3) clippy needless_bool dans parental_domain/mod.rs, visible seulement avec Rust 1.100 de la CI (9e5dcbe). Les 3 lignes de Rust viennent de l'upstream, corrigées sans changement de comportement. statut_windows reste a_valider : seul le build Ubuntu est vérifié, et la remarque sur les fins de ligne CRLF reste à contrôler sur KEVIN-MSI."
+    },
+    {
+      "id": 22,
+      "titre": "Favoris des autres profils : bouton loupe pour chercher le titre dans la vue correspondante",
+      "description": "Dans l'onglet Favoris, la section 'Favoris des autres profils (lecture seule)' affiche des cartes grisées et non cliquables. Ajouter sur chaque carte un bouton loupe : au clic, l'app bascule sur la vue qui correspond au type du contenu (Films, Séries ou Live) et lance la recherche sur son nom. Exemple : le favori d'un autre profil est un film → on arrive dans la vue Films avec le nom du film déjà saisi dans la barre de recherche, pour retrouver l'équivalent dans la playlist du profil actif.",
+      "type": "feature",
+      "priorite": "moyenne",
+      "statut": "a_faire",
+      "distributions": [
+        "linux",
+        "windows"
+      ],
+      "statut_windows": "a_faire",
+      "zone": "UI - Favoris / Recherche",
+      "constat_initial": "État du code au 2026-11-21 : la section est rendue dans MainScreen.tsx (bloc 'Favorites from other profiles') avec ChannelCard en readOnly et onPlay vide. Le store (player-store.ts) expose déjà setContentTypeFilter('all' | 'live' | 'vod' | 'series' | 'favorites') et setSearchQuery ; chaque Channel porte content_type ('live' | 'vod' | 'series'). setContentTypeFilter remet categoryFilter à null et le handler d'onglet réinitialise les filtres avancés, mais ne touche pas à searchQuery : la recherche saisie survit donc au changement de vue.",
+      "pistes": [
+        "Ajouter un bouton loupe (icône déjà utilisée par la SearchBar) dans ChannelCard en mode readOnly, avec une prop du type onSearch ; le clic appelle setContentTypeFilter(channel.content_type), remet les filtres avancés par défaut comme le fait le changement d'onglet, puis setSearchQuery(channel.name) et remonte en haut de la liste",
+        "Le bouton reste cliquable même si la carte est grisée : seul le lancement de la lecture reste interdit (le contenu n'appartient pas à la playlist active)",
+        "Les noms diffèrent d'un fournisseur à l'autre (préfixes de langue du type 'FR - ', année entre parenthèses, suffixes qualité) : envisager de nettoyer le nom avant de le mettre dans la barre de recherche, ou de proposer le nom brut modifiable",
+        "Si la recherche ne donne rien dans la playlist active, afficher un message clair ('Aucun résultat dans ce profil') au lieu d'une liste vide",
+        "Cohérence avec #3 (affichage des favoris des autres profils) : le libellé du profil d'origine reste visible sur la carte",
+        "Test Vitest : au clic sur la loupe d'un favori de type vod, contentTypeFilter vaut 'vod' et searchQuery vaut le nom du film"
+      ],
+      "notes": "Ajouté 2026-11-21 sur demande de l'utilisateur ('les favoris des autres comptes' = favoris des autres profils, cf. #3). Rien d'implémenté. Interaction possible avec #20 (compte universel) : une fois les profils rattachés à un compte, les favoris 'des autres profils' pourraient aussi venir d'un autre appareil."
     }
   ]
 }
